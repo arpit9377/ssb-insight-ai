@@ -2,11 +2,14 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Clock, Target, Users, BookOpen, BarChart3 } from 'lucide-react';
+import { Brain, Clock, Target, Users, BookOpen, BarChart3, User, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { UserButton } from '@clerk/clerk-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user, subscription } = useAuthContext();
 
   const testModules = [
     {
@@ -34,7 +37,7 @@ const Dashboard = () => {
       duration: '60 words, 15s each',
       icon: Brain,
       color: 'bg-purple-500',
-      available: true
+      available: subscription?.status === 'active' || false
     },
     {
       id: 'srt',
@@ -43,7 +46,7 @@ const Dashboard = () => {
       duration: '60 situations, 30min total',
       icon: Users,
       color: 'bg-orange-500',
-      available: true
+      available: subscription?.status === 'active' || false
     }
   ];
 
@@ -66,7 +69,15 @@ const Dashboard = () => {
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Progress
               </Button>
-              <Button variant="outline">Settings</Button>
+              <Button variant="outline" onClick={() => navigate('/subscription')}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Subscription
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/profile')}>
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </Button>
+              <UserButton afterSignOutUrl="/" />
             </div>
           </div>
         </div>
@@ -77,12 +88,31 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to SSB Psychological Test Preparation
+            Welcome back, {user?.firstName || 'Cadet'}!
           </h2>
           <p className="text-gray-600 text-lg">
-            Master all four psychological tests with AI-powered feedback and detailed analysis
+            Continue your SSB psychological test preparation journey
           </p>
         </div>
+
+        {/* Subscription Status */}
+        {!subscription && (
+          <Card className="mb-8 border-yellow-200 bg-yellow-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-yellow-800">Upgrade to Premium</h3>
+                  <p className="text-yellow-700">
+                    Get access to all tests and advanced AI feedback
+                  </p>
+                </div>
+                <Button onClick={() => navigate('/subscription')}>
+                  Upgrade Now
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -124,8 +154,10 @@ const Dashboard = () => {
               <div className="flex items-center">
                 <BarChart3 className="h-8 w-8 text-orange-600" />
                 <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">85%</p>
-                  <p className="text-gray-600">Improvement</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {subscription ? 'Premium' : 'Free'}
+                  </p>
+                  <p className="text-gray-600">Plan Status</p>
                 </div>
               </div>
             </CardContent>
@@ -158,7 +190,7 @@ const Dashboard = () => {
                       onClick={() => handleTestStart(test.id)}
                       disabled={!test.available}
                     >
-                      Start Practice
+                      {test.available ? 'Start Practice' : 'Premium Only'}
                     </Button>
                   </div>
                 </CardContent>
