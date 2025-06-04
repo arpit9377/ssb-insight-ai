@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
@@ -17,69 +17,82 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route
-              path="/dashboard"
-              element={
-                <SignedIn>
-                  <Dashboard />
-                </SignedIn>
-              }
-            />
-            <Route
-              path="/test/:testId"
-              element={
-                <SignedIn>
-                  <TestModule />
-                </SignedIn>
-              }
-            />
-            <Route
-              path="/progress"
-              element={
-                <SignedIn>
-                  <Progress />
-                </SignedIn>
-              }
-            />
-            <Route
-              path="/subscription"
-              element={
-                <SignedIn>
-                  <Subscription />
-                </SignedIn>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <SignedIn>
-                  <Profile />
-                </SignedIn>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <SignedIn>
-                  <AdminDashboard />
-                </SignedIn>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Check if Clerk is available
+  const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const isClerkAvailable = !!PUBLISHABLE_KEY;
+
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!isClerkAvailable) {
+      return <Navigate to="/" replace />;
+    }
+    return <SignedIn>{children}</SignedIn>;
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/:testId"
+                element={
+                  <ProtectedRoute>
+                    <TestModule />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/progress"
+                element={
+                  <ProtectedRoute>
+                    <Progress />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/subscription"
+                element={
+                  <ProtectedRoute>
+                    <Subscription />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
