@@ -9,6 +9,10 @@ import { useNavigate } from 'react-router-dom';
 const Index = () => {
   const navigate = useNavigate();
 
+  // Check if Clerk is available
+  const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const isClerkAvailable = !!PUBLISHABLE_KEY;
+
   const features = [
     {
       icon: Target,
@@ -52,20 +56,28 @@ const Index = () => {
               <h1 className="text-2xl font-bold text-gray-900">PsychSir.ai</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <Button variant="outline">Sign In</Button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <Button>Get Started</Button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <Button onClick={() => navigate('/dashboard')}>
-                  Dashboard
+              {isClerkAvailable ? (
+                <>
+                  <SignedOut>
+                    <SignInButton mode="modal">
+                      <Button variant="outline">Sign In</Button>
+                    </SignInButton>
+                    <SignUpButton mode="modal">
+                      <Button>Get Started</Button>
+                    </SignUpButton>
+                  </SignedOut>
+                  <SignedIn>
+                    <Button onClick={() => navigate('/dashboard')}>
+                      Dashboard
+                    </Button>
+                    <UserButton afterSignOutUrl="/" />
+                  </SignedIn>
+                </>
+              ) : (
+                <Button variant="outline" disabled>
+                  Authentication Setup Required
                 </Button>
-                <UserButton afterSignOutUrl="/" />
-              </SignedIn>
+              )}
             </div>
           </div>
         </div>
@@ -81,18 +93,26 @@ const Index = () => {
             Prepare for PPDT, TAT, WAT, and SRT tests with our comprehensive AI-powered platform. 
             Get detailed feedback on your personality traits and officer-like qualities.
           </p>
-          <SignedOut>
-            <SignUpButton mode="modal">
-              <Button size="lg" className="px-8 py-4 text-lg">
-                Start Your Preparation Today
-              </Button>
-            </SignUpButton>
-          </SignedOut>
-          <SignedIn>
-            <Button size="lg" className="px-8 py-4 text-lg" onClick={() => navigate('/dashboard')}>
-              Go to Dashboard
+          {isClerkAvailable ? (
+            <>
+              <SignedOut>
+                <SignUpButton mode="modal">
+                  <Button size="lg" className="px-8 py-4 text-lg">
+                    Start Your Preparation Today
+                  </Button>
+                </SignUpButton>
+              </SignedOut>
+              <SignedIn>
+                <Button size="lg" className="px-8 py-4 text-lg" onClick={() => navigate('/dashboard')}>
+                  Go to Dashboard
+                </Button>
+              </SignedIn>
+            </>
+          ) : (
+            <Button size="lg" className="px-8 py-4 text-lg" disabled>
+              Setup Authentication to Get Started
             </Button>
-          </SignedIn>
+          )}
         </div>
       </section>
 
@@ -145,16 +165,24 @@ const Index = () => {
               <p className="text-gray-600 mb-6">
                 Join thousands of successful candidates who have used our platform to ace their SSB tests.
               </p>
-              <SignedOut>
-                <SignUpButton mode="modal">
-                  <Button className="w-full">Start Free Trial</Button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <Button className="w-full" onClick={() => navigate('/dashboard')}>
-                  Access Your Dashboard
+              {isClerkAvailable ? (
+                <>
+                  <SignedOut>
+                    <SignUpButton mode="modal">
+                      <Button className="w-full">Start Free Trial</Button>
+                    </SignUpButton>
+                  </SignedOut>
+                  <SignedIn>
+                    <Button className="w-full" onClick={() => navigate('/dashboard')}>
+                      Access Your Dashboard
+                    </Button>
+                  </SignedIn>
+                </>
+              ) : (
+                <Button className="w-full" disabled>
+                  Authentication Setup Required
                 </Button>
-              </SignedIn>
+              )}
             </div>
           </div>
         </div>
