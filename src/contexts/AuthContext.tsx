@@ -14,19 +14,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isLoaded, isSignedIn } = useAuth();
-  const { user } = useUser();
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Check if Clerk is available by checking if we have the publishable key
+  const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const isClerkAvailable = !!PUBLISHABLE_KEY;
+
+  // Only use Clerk hooks if Clerk is available
+  let clerkAuth = null;
+  let clerkUser = null;
+
+  try {
+    if (isClerkAvailable) {
+      clerkAuth = useAuth();
+      clerkUser = useUser();
+    }
+  } catch (error) {
+    console.warn('Clerk hooks not available:', error);
+  }
+
   const checkSubscription = async () => {
-    if (!user) return;
+    if (!clerkUser?.user) return;
     
     try {
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', clerkUser.user.id)
         .eq('status', 'active')
         .single();
       
@@ -39,15 +54,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createUserProfile = async () => {
-    if (!user) return;
+    if (!clerkUser?.user) return;
 
     try {
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          user_id: user.id,
-          email: user.emailAddresses[0]?.emailAddress || '',
-          full_name: user.fullName || '',
+          user_id: clerkUser.user.id,
+          email: clerkUser.user.emailAddresses[0]?.emailAddress || '',
+          full_name: clerkUser.user.fullName || '',
           age: 0,
           education: '',
           background: '',
@@ -63,20 +78,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isClerkAvailable && clerkAuth?.isLoaded) {
       setIsLoading(false);
-      if (isSignedIn && user) {
+      if (clerkAuth.isSignedIn && clerkUser?.user) {
         createUserProfile();
         checkSubscription();
       }
+    } else if (!isClerkAvailable) {
+      // If Clerk is not available, set loading to false immediately
+      setIsLoading(false);
     }
-  }, [isLoaded, isSignedIn, user]);
+  }, [isClerkAvailable, clerkAuth?.isLoaded, clerkAuth?.isSignedIn, clerkUser?.user]);
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: isSignedIn || false,
-        user,
+        isAuthenticated: isClerkAvailable ? (clerkAuth?.isSignedIn || false) : false,
+        user: isClerkAvailable ? clerkUser?.user : null,
         isLoading,
         subscription,
         checkSubscription,
