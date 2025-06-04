@@ -10,11 +10,17 @@ if (!PUBLISHABLE_KEY) {
   console.warn('Clerk publishable key not configured. Authentication features will be disabled.');
 }
 
-// Use a placeholder key if not configured to prevent crashes
-const publishableKey = PUBLISHABLE_KEY || 'pk_test_placeholder-key-for-development';
+const AppWithProviders = () => {
+  if (PUBLISHABLE_KEY) {
+    return (
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <App />
+      </ClerkProvider>
+    );
+  }
 
-createRoot(document.getElementById("root")!).render(
-  <ClerkProvider publishableKey={publishableKey}>
-    <App />
-  </ClerkProvider>
-);
+  // Render app without Clerk when no valid key is provided
+  return <App />;
+};
+
+createRoot(document.getElementById("root")!).render(<AppWithProviders />);
