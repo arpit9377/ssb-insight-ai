@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '@/lib/supabase';
@@ -17,8 +16,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if Clerk is available by checking if we have the publishable key
-  const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  // Use the same hardcoded key as in main.tsx
+  const PUBLISHABLE_KEY = "pk_test_cXVpZXQtd3Jlbi05My5jbGVyay5hY2NvdW50cy5kZXYk";
   const isClerkAvailable = !!PUBLISHABLE_KEY;
 
   // Only use Clerk hooks if Clerk is available
