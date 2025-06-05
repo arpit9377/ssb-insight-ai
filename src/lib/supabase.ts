@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -81,6 +82,52 @@ export type Database = {
           prompt?: string;
           sequence_number?: number;
           is_active?: boolean;
+          created_at?: string;
+        };
+      };
+      wat_words: {
+        Row: {
+          id: string;
+          word: string;
+          is_active: boolean;
+          usage_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          word: string;
+          is_active?: boolean;
+          usage_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          word?: string;
+          is_active?: boolean;
+          usage_count?: number;
+          created_at?: string;
+        };
+      };
+      srt_situations: {
+        Row: {
+          id: string;
+          situation: string;
+          is_active: boolean;
+          usage_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          situation: string;
+          is_active?: boolean;
+          usage_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          situation?: string;
+          is_active?: boolean;
+          usage_count?: number;
           created_at?: string;
         };
       };
