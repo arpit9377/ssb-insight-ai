@@ -1,38 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, TestTube, BarChart3, Settings, Upload, Trash2, Eye } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { useAuth } from '@clerk/clerk-react';
+import StatsCards from '@/components/admin/StatsCards';
+import ImageUploadForm from '@/components/admin/ImageUploadForm';
+import WordUploadForm from '@/components/admin/WordUploadForm';
+import SituationUploadForm from '@/components/admin/SituationUploadForm';
+import ContentManagement from '@/components/admin/ContentManagement';
 
 const AdminDashboard = () => {
+  const { getToken } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalTests: 0,
     activeSubscriptions: 0,
     revenue: 0,
+    clerkUsers: 0,
   });
   const [users, setUsers] = useState([]);
   const [testImages, setTestImages] = useState([]);
   const [watWords, setWatWords] = useState([]);
   const [srtSituations, setSrtSituations] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
-
-  // Form states
-  const [newImage, setNewImage] = useState({
-    testType: 'ppdt',
-    prompt: '',
-    imageFile: null as File | null,
-  });
-  const [newWord, setNewWord] = useState('');
-  const [newSituation, setNewSituation] = useState('');
 
   useEffect(() => {
     loadStats();
@@ -40,7 +30,46 @@ const AdminDashboard = () => {
     loadTestImages();
     loadWatWords();
     loadSrtSituations();
+    loadClerkUsers();
   }, []);
+
+  const loadClerkUsers = async () => {
+    try {
+      const token = await getToken();
+      if (!token) {
+        console.log('No token available');
+        return;
+      }
+
+      // Use Clerk's Backend API to get user count
+      const response = await fetch(`https://api.clerk.com/v1/users?limit=1`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const totalCount = parseInt(response.headers.get('x-total-count') || '0');
+        setStats(prev => ({ ...prev, clerkUsers: totalCount }));
+      } else {
+        console.error('Failed to fetch Clerk users:', response.status);
+        // Fallback: count from profiles table
+        const { count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        setStats(prev => ({ ...prev, clerkUsers: count || 0 }));
+      }
+    } catch (error) {
+      console.error('Error loading Clerk users:', error);
+      // Fallback: count from profiles table
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      setStats(prev => ({ ...prev, clerkUsers: count || 0 }));
+    }
+  };
 
   const loadStats = async () => {
     try {
@@ -57,12 +86,13 @@ const AdminDashboard = () => {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
 
-      setStats({
+      setStats(prev => ({
+        ...prev,
         totalUsers: userCount || 0,
         totalTests: testCount || 0,
         activeSubscriptions: subCount || 0,
         revenue: (subCount || 0) * 499,
-      });
+      }));
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -129,118 +159,11 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleImageUpload = async () => {
-    if (!newImage.imageFile || !newImage.prompt) {
-      toast.error('Please select an image and enter a prompt');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      // Upload image to Supabase Storage
-      const fileExt = newImage.imageFile.name.split('.').pop();
-      const fileName = `${newImage.testType}_${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('test-images')
-        .upload(fileName, newImage.imageFile);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('test-images')
-        .getPublicUrl(fileName);
-
-      // Save to database
-      const { error: dbError } = await supabase
-        .from('test_images')
-        .insert({
-          test_type: newImage.testType,
-          image_url: urlData.publicUrl,
-          prompt: newImage.prompt,
-          sequence_number: testImages.filter(img => img.test_type === newImage.testType).length + 1,
-          is_active: true,
-        });
-
-      if (dbError) throw dbError;
-
-      toast.success('Image uploaded successfully!');
-      setNewImage({ testType: 'ppdt', prompt: '', imageFile: null });
-      loadTestImages();
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleAddWatWord = async () => {
-    if (!newWord.trim()) {
-      toast.error('Please enter a word');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('wat_words')
-        .insert({
-          word: newWord.trim(),
-          is_active: true,
-        });
-
-      if (error) throw error;
-
-      toast.success('Word added successfully!');
-      setNewWord('');
-      loadWatWords();
-    } catch (error) {
-      console.error('Error adding word:', error);
-      toast.error('Failed to add word');
-    }
-  };
-
-  const handleAddSrtSituation = async () => {
-    if (!newSituation.trim()) {
-      toast.error('Please enter a situation');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('srt_situations')
-        .insert({
-          situation: newSituation.trim(),
-          is_active: true,
-        });
-
-      if (error) throw error;
-
-      toast.success('Situation added successfully!');
-      setNewSituation('');
-      loadSrtSituations();
-    } catch (error) {
-      console.error('Error adding situation:', error);
-      toast.error('Failed to add situation');
-    }
-  };
-
-  const deleteTestImage = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('test_images')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast.success('Image deleted successfully!');
-      loadTestImages();
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      toast.error('Failed to delete image');
-    }
+  const refreshContent = () => {
+    loadTestImages();
+    loadWatWords();
+    loadSrtSituations();
+    loadStats();
   };
 
   return (
@@ -250,48 +173,7 @@ const AdminDashboard = () => {
         <p className="text-gray-600">Manage your PsychSir.ai platform</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tests Completed</CardTitle>
-            <TestTube className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalTests}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{stats.revenue.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsCards stats={stats} />
 
       <Tabs defaultValue="upload" className="space-y-4">
         <TabsList>
@@ -303,167 +185,19 @@ const AdminDashboard = () => {
 
         <TabsContent value="upload">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Image Upload for PPDT/TAT */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Test Images</CardTitle>
-                <CardDescription>Add images for PPDT and TAT tests</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="testType">Test Type</Label>
-                  <Select value={newImage.testType} onValueChange={(value) => setNewImage({...newImage, testType: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ppdt">PPDT</SelectItem>
-                      <SelectItem value="tat">TAT</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="imageFile">Image File</Label>
-                  <Input
-                    id="imageFile"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setNewImage({...newImage, imageFile: e.target.files?.[0] || null})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="prompt">Prompt/Description</Label>
-                  <Textarea
-                    id="prompt"
-                    value={newImage.prompt}
-                    onChange={(e) => setNewImage({...newImage, prompt: e.target.value})}
-                    placeholder="Enter prompt or description for this image..."
-                  />
-                </div>
-                <Button onClick={handleImageUpload} disabled={isUploading}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isUploading ? 'Uploading...' : 'Upload Image'}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* WAT Words */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Add WAT Words</CardTitle>
-                <CardDescription>Add words for Word Association Test</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="watWord">Word</Label>
-                  <Input
-                    id="watWord"
-                    value={newWord}
-                    onChange={(e) => setNewWord(e.target.value)}
-                    placeholder="Enter a word..."
-                  />
-                </div>
-                <Button onClick={handleAddWatWord}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Add Word
-                </Button>
-                <div className="text-sm text-gray-600">
-                  Total WAT words: {watWords.length}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* SRT Situations */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Add SRT Situations</CardTitle>
-                <CardDescription>Add situations for Situation Reaction Test</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="srtSituation">Situation</Label>
-                  <Textarea
-                    id="srtSituation"
-                    value={newSituation}
-                    onChange={(e) => setNewSituation(e.target.value)}
-                    placeholder="Enter a situation scenario..."
-                    rows={3}
-                  />
-                </div>
-                <Button onClick={handleAddSrtSituation}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Add Situation
-                </Button>
-                <div className="text-sm text-gray-600">
-                  Total SRT situations: {srtSituations.length}
-                </div>
-              </CardContent>
-            </Card>
+            <ImageUploadForm onImageUploaded={refreshContent} />
+            <WordUploadForm onWordAdded={refreshContent} wordCount={watWords.length} />
+            <SituationUploadForm onSituationAdded={refreshContent} situationCount={srtSituations.length} />
           </div>
         </TabsContent>
 
         <TabsContent value="manage">
-          <div className="space-y-6">
-            {/* Test Images */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Test Images ({testImages.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {testImages.map((image: any) => (
-                    <div key={image.id} className="border rounded-lg p-4">
-                      <img 
-                        src={image.image_url} 
-                        alt="Test" 
-                        className="w-full h-32 object-cover rounded mb-2"
-                      />
-                      <p className="font-medium">{image.test_type.toUpperCase()}</p>
-                      <p className="text-sm text-gray-600 mb-2">{image.prompt}</p>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteTestImage(image.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* WAT Words Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>WAT Words ({watWords.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Word</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {watWords.slice(0, 10).map((word: any) => (
-                      <TableRow key={word.id}>
-                        <TableCell className="font-medium">{word.word}</TableCell>
-                        <TableCell>{new Date(word.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+          <ContentManagement 
+            testImages={testImages}
+            watWords={watWords}
+            srtSituations={srtSituations}
+            onContentDeleted={refreshContent}
+          />
         </TabsContent>
 
         <TabsContent value="users">
@@ -500,7 +234,27 @@ const AdminDashboard = () => {
               <CardDescription>Platform performance metrics</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">Analytics dashboard coming soon...</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium mb-2">Content Statistics</h3>
+                  <p className="text-sm text-gray-600">PPDT Images: {testImages.filter(img => img.test_type === 'ppdt').length}</p>
+                  <p className="text-sm text-gray-600">TAT Images: {testImages.filter(img => img.test_type === 'tat').length}</p>
+                  <p className="text-sm text-gray-600">WAT Words: {watWords.length}</p>
+                  <p className="text-sm text-gray-600">SRT Situations: {srtSituations.length}</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium mb-2">User Engagement</h3>
+                  <p className="text-sm text-gray-600">Total Clerk Users: {stats.clerkUsers}</p>
+                  <p className="text-sm text-gray-600">Profile Users: {stats.totalUsers}</p>
+                  <p className="text-sm text-gray-600">Completion Rate: {stats.totalUsers > 0 ? Math.round((stats.totalTests / stats.totalUsers) * 100) : 0}%</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium mb-2">Revenue</h3>
+                  <p className="text-sm text-gray-600">Active Subscriptions: {stats.activeSubscriptions}</p>
+                  <p className="text-sm text-gray-600">Monthly Revenue: ₹{stats.revenue.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Conversion Rate: {stats.clerkUsers > 0 ? Math.round((stats.activeSubscriptions / stats.clerkUsers) * 100) : 0}%</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
