@@ -36,16 +36,6 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onImageUploaded }) =>
       
       console.log('Uploading file:', fileName);
       
-      // First, ensure the bucket exists by trying to list files
-      const { data: bucketData, error: bucketError } = await supabase.storage
-        .from('test-images')
-        .list('', { limit: 1 });
-
-      if (bucketError) {
-        console.error('Bucket error:', bucketError);
-        // If bucket doesn't exist, we'll still try to upload
-      }
-
       // Upload image to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('test-images')
@@ -114,9 +104,17 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onImageUploaded }) =>
       }
       
       onImageUploaded();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error(`Failed to upload image: ${error.message || 'Unknown error'}`);
+      let errorMessage = 'Failed to upload image';
+      
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
+      } else if (typeof error === 'string') {
+        errorMessage += `: ${error}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }

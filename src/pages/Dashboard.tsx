@@ -1,15 +1,118 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, Clock, Target, Users, BookOpen, BarChart3, User, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, subscription } = useAuthContext();
+  const [userStats, setUserStats] = useState({
+    testsCompleted: 0,
+    avgScore: 0,
+    traitsAnalyzed: 0,
+  });
+  const [recentActivity, setRecentActivity] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      loadUserStats();
+      loadRecentActivity();
+    }
+  }, [user]);
+
+  const loadUserStats = async () => {
+    if (!user) return;
+
+    try {
+      // Get total tests completed by user
+      const { count: testsCount } = await supabase
+        .from('user_responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Get unique test sessions for average score calculation
+      const { data: responses } = await supabase
+        .from('user_responses')
+        .select('trait_scores, test_type, test_session_id')
+        .eq('user_id', user.id);
+
+      let avgScore = 0;
+      let traitsAnalyzed = 0;
+
+      if (responses && responses.length > 0) {
+        // Calculate average score from trait_scores
+        const scoresWithTraits = responses.filter(r => r.trait_scores);
+        if (scoresWithTraits.length > 0) {
+          const totalScore = scoresWithTraits.reduce((sum, response) => {
+            const scores = response.trait_scores as any;
+            const scoreValues = Object.values(scores || {}).filter(v => typeof v === 'number') as number[];
+            const responseAvg = scoreValues.length > 0 ? scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length : 0;
+            return sum + responseAvg;
+          }, 0);
+          avgScore = totalScore / scoresWithTraits.length;
+        }
+
+        // Count unique traits analyzed
+        const allTraits = new Set();
+        responses.forEach(response => {
+          if (response.trait_scores) {
+            Object.keys(response.trait_scores as any).forEach(trait => allTraits.add(trait));
+          }
+        });
+        traitsAnalyzed = allTraits.size;
+      }
+
+      setUserStats({
+        testsCompleted: testsCount || 0,
+        avgScore: Math.round(avgScore * 10) / 10,
+        traitsAnalyzed,
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    }
+  };
+
+  const loadRecentActivity = async () => {
+    if (!user) return;
+
+    try {
+      const { data: responses } = await supabase
+        .from('user_responses')
+        .select('test_type, created_at, trait_scores')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (responses) {
+        const activities = responses.map(response => {
+          const scores = response.trait_scores as any;
+          let avgScore = 0;
+          
+          if (scores) {
+            const scoreValues = Object.values(scores).filter(v => typeof v === 'number') as number[];
+            if (scoreValues.length > 0) {
+              avgScore = scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length;
+            }
+          }
+
+          return {
+            testType: response.test_type.toUpperCase(),
+            createdAt: response.created_at,
+            score: Math.round(avgScore * 10) / 10,
+          };
+        });
+
+        setRecentActivity(activities);
+      }
+    } catch (error) {
+      console.error('Error loading recent activity:', error);
+    }
+  };
 
   const testModules = [
     {
@@ -52,6 +155,40 @@ const Dashboard = () => {
 
   const handleTestStart = (testId: string) => {
     navigate(`/test/${testId}`);
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours === 1) return '1 hour ago';
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return 'Yesterday';
+    return `${diffInDays} days ago`;
+  };
+
+  const getTestIcon = (testType: string) => {
+    switch (testType) {
+      case 'PPDT': return Target;
+      case 'TAT': return BookOpen;
+      case 'WAT': return Brain;
+      case 'SRT': return Users;
+      default: return Target;
+    }
+  };
+
+  const getTestColor = (testType: string) => {
+    switch (testType) {
+      case 'PPDT': return 'bg-blue-500';
+      case 'TAT': return 'bg-green-500';
+      case 'WAT': return 'bg-purple-500';
+      case 'SRT': return 'bg-orange-500';
+      default: return 'bg-blue-500';
+    }
   };
 
   return (
@@ -121,7 +258,7 @@ const Dashboard = () => {
               <div className="flex items-center">
                 <Clock className="h-8 w-8 text-blue-600" />
                 <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">12</p>
+                  <p className="text-2xl font-bold text-gray-900">{userStats.testsCompleted}</p>
                   <p className="text-gray-600">Tests Completed</p>
                 </div>
               </div>
@@ -132,7 +269,9 @@ const Dashboard = () => {
               <div className="flex items-center">
                 <Target className="h-8 w-8 text-green-600" />
                 <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">8.2/10</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {userStats.avgScore > 0 ? `${userStats.avgScore}/10` : 'N/A'}
+                  </p>
                   <p className="text-gray-600">Avg Score</p>
                 </div>
               </div>
@@ -143,7 +282,7 @@ const Dashboard = () => {
               <div className="flex items-center">
                 <Brain className="h-8 w-8 text-purple-600" />
                 <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">15</p>
+                  <p className="text-2xl font-bold text-gray-900">{userStats.traitsAnalyzed}</p>
                   <p className="text-gray-600">Traits Analyzed</p>
                 </div>
               </div>
@@ -208,36 +347,36 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <Target className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium">PPDT Practice Session</p>
-                      <p className="text-sm text-gray-600">Completed 2 hours ago</p>
-                    </div>
+                {recentActivity.length > 0 ? (
+                  recentActivity.map((activity: any, index) => {
+                    const IconComponent = getTestIcon(activity.testType);
+                    const colorClass = getTestColor(activity.testType);
+                    
+                    return (
+                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-8 h-8 ${colorClass} rounded-full flex items-center justify-center`}>
+                            <IconComponent className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{activity.testType} Practice Session</p>
+                            <p className="text-sm text-gray-600">{formatTimeAgo(activity.createdAt)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-green-600">
+                            {activity.score > 0 ? `${activity.score}/10` : 'Completed'}
+                          </p>
+                          <p className="text-sm text-gray-600">Score</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No test sessions yet. Start your first test!</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-green-600">8.5/10</p>
-                    <p className="text-sm text-gray-600">Score</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                      <BookOpen className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium">TAT Full Test</p>
-                      <p className="text-sm text-gray-600">Completed yesterday</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-green-600">9.1/10</p>
-                    <p className="text-sm text-gray-600">Score</p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
