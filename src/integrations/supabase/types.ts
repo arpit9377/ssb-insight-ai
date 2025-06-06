@@ -9,7 +9,201 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          age: number | null
+          background: string | null
+          created_at: string
+          education: string | null
+          email: string
+          full_name: string | null
+          id: string
+          subscription_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          background?: string | null
+          created_at?: string
+          education?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          subscription_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          background?: string | null
+          created_at?: string
+          education?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          subscription_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      srt_situations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          situation: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          situation: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          situation?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_type: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      test_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          is_active: boolean
+          prompt: string
+          sequence_number: number
+          test_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          is_active?: boolean
+          prompt: string
+          sequence_number?: number
+          test_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          prompt?: string
+          sequence_number?: number
+          test_type?: string
+        }
+        Relationships: []
+      }
+      user_responses: {
+        Row: {
+          ai_feedback: Json | null
+          created_at: string
+          id: string
+          question_id: string
+          response_text: string
+          test_session_id: string
+          test_type: string
+          time_taken: number
+          trait_scores: Json | null
+          user_id: string
+        }
+        Insert: {
+          ai_feedback?: Json | null
+          created_at?: string
+          id?: string
+          question_id: string
+          response_text: string
+          test_session_id: string
+          test_type: string
+          time_taken?: number
+          trait_scores?: Json | null
+          user_id: string
+        }
+        Update: {
+          ai_feedback?: Json | null
+          created_at?: string
+          id?: string
+          question_id?: string
+          response_text?: string
+          test_session_id?: string
+          test_type?: string
+          time_taken?: number
+          trait_scores?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wat_words: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          usage_count: number
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          usage_count?: number
+          word: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          usage_count?: number
+          word?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
