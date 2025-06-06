@@ -4,33 +4,48 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Clock, Eye, PenTool } from 'lucide-react';
+import { TestContentService } from '@/services/testContentService';
 
 const PPDTTest = () => {
-  const [phase, setPhase] = useState<'viewing' | 'writing' | 'completed'>('viewing');
+  const [phase, setPhase] = useState<'loading' | 'viewing' | 'writing' | 'completed'>('loading');
   const [timeLeft, setTimeLeft] = useState(30); // 30 seconds for viewing
   const [response, setResponse] = useState('');
   const [wordCount, setWordCount] = useState(0);
-
-  // Sample PPDT image - in real implementation, this would come from database
-  const testImage = "/placeholder.svg";
+  const [currentImage, setCurrentImage] = useState<any>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (phase === 'viewing') {
-            setPhase('writing');
-            return 240; // 4 minutes for writing
-          } else if (phase === 'writing') {
-            setPhase('completed');
-            return 0;
-          }
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    loadRandomImage();
+  }, []);
 
-    return () => clearInterval(timer);
+  const loadRandomImage = async () => {
+    const images = await TestContentService.getRandomPPDTImages(1);
+    if (images && images.length > 0) {
+      setCurrentImage(images[0]);
+      setPhase('viewing');
+    } else {
+      console.error('No PPDT images available');
+    }
+  };
+
+  useEffect(() => {
+    if (phase === 'viewing' || phase === 'writing') {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            if (phase === 'viewing') {
+              setPhase('writing');
+              return 240; // 4 minutes for writing
+            } else if (phase === 'writing') {
+              setPhase('completed');
+              return 0;
+            }
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
   }, [phase]);
 
   useEffect(() => {
@@ -49,6 +64,21 @@ const PPDTTest = () => {
     console.log('PPDT Response:', response);
     setPhase('completed');
   };
+
+  if (phase === 'loading') {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading test image...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (phase === 'viewing') {
     return (
@@ -69,11 +99,15 @@ const PPDTTest = () => {
           <CardContent>
             <div className="text-center">
               <div className="bg-gray-100 rounded-lg p-8 mb-4">
-                <img 
-                  src={testImage} 
-                  alt="PPDT Test Image" 
-                  className="max-w-full max-h-96 mx-auto rounded-lg shadow-lg"
-                />
+                {currentImage ? (
+                  <img 
+                    src={currentImage.image_url} 
+                    alt="PPDT Test Image" 
+                    className="max-w-full max-h-96 mx-auto rounded-lg shadow-lg"
+                  />
+                ) : (
+                  <p className="text-gray-500">Image not available</p>
+                )}
               </div>
               <p className="text-gray-600">
                 Study this image carefully. You have {timeLeft} seconds remaining.
