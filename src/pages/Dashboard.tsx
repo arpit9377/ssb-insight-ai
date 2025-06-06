@@ -83,10 +83,12 @@ const Dashboard = () => {
     try {
       const { data: responses } = await supabase
         .from('user_responses')
-        .select('test_type, created_at, trait_scores')
+        .select('test_type, created_at, trait_scores, response_text')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5);
+
+      console.log('Recent activity responses:', responses);
 
       if (responses) {
         const activities = responses.map(response => {
@@ -104,6 +106,7 @@ const Dashboard = () => {
             testType: response.test_type.toUpperCase(),
             createdAt: response.created_at,
             score: Math.round(avgScore * 10) / 10,
+            hasResponse: !!response.response_text,
           };
         });
 
@@ -113,6 +116,9 @@ const Dashboard = () => {
       console.error('Error loading recent activity:', error);
     }
   };
+
+  // Check if current user should have premium access
+  const isPrivilegedUser = user?.primaryEmailAddress?.emailAddress === 'editkarde@gmail.com';
 
   const testModules = [
     {
@@ -140,7 +146,7 @@ const Dashboard = () => {
       duration: '60 words, 15s each',
       icon: Brain,
       color: 'bg-purple-500',
-      available: subscription?.status === 'active' || false
+      available: isPrivilegedUser || subscription?.status === 'active' || false
     },
     {
       id: 'srt',
@@ -149,7 +155,7 @@ const Dashboard = () => {
       duration: '60 situations, 30min total',
       icon: Users,
       color: 'bg-orange-500',
-      available: subscription?.status === 'active' || false
+      available: isPrivilegedUser || subscription?.status === 'active' || false
     }
   ];
 
@@ -230,10 +236,15 @@ const Dashboard = () => {
           <p className="text-gray-600 text-lg">
             Continue your SSB psychological test preparation journey
           </p>
+          {isPrivilegedUser && (
+            <p className="text-green-600 font-semibold mt-2">
+              ✅ All features unlocked for testing
+            </p>
+          )}
         </div>
 
         {/* Subscription Status */}
-        {!subscription && (
+        {!subscription && !isPrivilegedUser && (
           <Card className="mb-8 border-yellow-200 bg-yellow-50">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -294,7 +305,7 @@ const Dashboard = () => {
                 <BarChart3 className="h-8 w-8 text-orange-600" />
                 <div className="ml-4">
                   <p className="text-2xl font-bold text-gray-900">
-                    {subscription ? 'Premium' : 'Free'}
+                    {isPrivilegedUser ? 'Testing' : subscription ? 'Premium' : 'Free'}
                   </p>
                   <p className="text-gray-600">Plan Status</p>
                 </div>
@@ -365,9 +376,9 @@ const Dashboard = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-green-600">
-                            {activity.score > 0 ? `${activity.score}/10` : 'Completed'}
+                            {activity.hasResponse ? (activity.score > 0 ? `${activity.score}/10` : 'Completed') : 'In Progress'}
                           </p>
-                          <p className="text-sm text-gray-600">Score</p>
+                          <p className="text-sm text-gray-600">Status</p>
                         </div>
                       </div>
                     );
