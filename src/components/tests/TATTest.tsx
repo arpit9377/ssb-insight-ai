@@ -5,19 +5,52 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { BookOpen, Clock, Eye, PenTool } from 'lucide-react';
 import { TestContentService } from '@/services/testContentService';
+import { testAnalysisService } from '@/services/testAnalysisService';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
+import { useToast } from '@/hooks/use-toast';
 
 const TATTest = () => {
-  const [phase, setPhase] = useState<'loading' | 'viewing' | 'writing' | 'completed'>('loading');
+  const [phase, setPhase] = useState<'loading' | 'viewing' | 'writing' | 'analyzing' | 'completed'>('loading');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState(30);
   const [responses, setResponses] = useState<string[]>([]);
   const [currentResponse, setCurrentResponse] = useState('');
+  const [sessionId, setSessionId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const totalImages = 12;
 
   useEffect(() => {
     loadRandomImages();
+    initializeSession();
   }, []);
+
+  const initializeSession = async () => {
+    if (!user) return;
+    
+    try {
+      const newSessionId = await testAnalysisService.createTestSession(
+        user.id, 
+        'tat', 
+        totalImages
+      );
+      setSessionId(newSessionId);
+      console.log('TAT session created:', newSessionId);
+    } catch (error) {
+      console.error('Error creating test session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize test session. Please refresh and try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const loadRandomImages = async () => {
     const fetchedImages = await TestContentService.getRandomTATImages(12);
@@ -26,6 +59,11 @@ const TATTest = () => {
       setPhase('viewing');
     } else {
       console.error('No TAT images available');
+      toast({
+        title: "Error",
+        description: "No test images available. Please contact support.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -38,20 +76,8 @@ const TATTest = () => {
               setPhase('writing');
               return 240; // 4 minutes for writing
             } else if (phase === 'writing') {
-              // Save current response and move to next image
-              const newResponses = [...responses];
-              newResponses[currentImageIndex] = currentResponse;
-              setResponses(newResponses);
-              setCurrentResponse('');
-              
-              if (currentImageIndex < totalImages - 1) {
-                setCurrentImageIndex(prev => prev + 1);
-                setPhase('viewing');
-                return 30; // 30 seconds viewing for next image
-              } else {
-                setPhase('completed');
-                return 0;
-              }
+              handleAutoAdvance();
+              return 0;
             }
           }
           return prev - 1;
@@ -68,9 +94,105 @@ const TATTest = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleAutoAdvance = async () => {
+    try {
+      // Save current response
+      const newResponses = [...responses];
+      newResponses[currentImageIndex] = currentResponse;
+      setResponses(newResponses);
+
+      // Store response in database
+      if (currentResponse.trim()) {
+        await testAnalysisService.storeResponse(
+          user!.id,
+          sessionId,
+          `image_${currentImageIndex + 1}`,
+          currentResponse,
+          240 - timeLeft, // Time taken
+          'tat'
+        );
+      }
+
+      // Update session progress
+      await testAnalysisService.updateTestSession(sessionId, currentImageIndex + 1);
+
+      setCurrentResponse('');
+      
+      if (currentImageIndex < totalImages - 1) {
+        setCurrentImageIndex(prev => prev + 1);
+        setPhase('viewing');
+        setTimeLeft(30); // 30 seconds viewing for next image
+      } else {
+        await handleTestCompletion();
+      }
+    } catch (error) {
+      console.error('Error saving response:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save response. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleTestCompletion = async () => {
+    if (!user || !sessionId) {
+      toast({
+        title: "Error",
+        description: "Missing required information. Please refresh and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setPhase('analyzing');
+
+    try {
+      console.log('Completing TAT test');
+      
+      // Mark session as completed
+      await testAnalysisService.updateTestSession(sessionId, totalImages, 'completed');
+
+      // Check if user can get free analysis
+      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
+      const isPremium = user.primaryEmailAddress?.emailAddress === 'editkarde@gmail.com' || !canGetFree;
+
+      console.log('Analysis type:', isPremium ? 'Premium' : 'Free');
+
+      // Analyze the complete session
+      await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
+
+      console.log('TAT analysis completed');
+      
+      toast({
+        title: "Analysis Complete!",
+        description: "Your TAT responses have been analyzed. Check your dashboard for results.",
+        variant: "default"
+      });
+
+      setPhase('completed');
+      
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error completing test:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Test completed but analysis failed. You can retry from your dashboard.",
+        variant: "destructive"
+      });
+      setPhase('completed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = () => {
-    console.log('TAT Responses:', responses);
-    setPhase('completed');
+    handleTestCompletion();
   };
 
   const currentImage = images[currentImageIndex];
@@ -87,6 +209,15 @@ const TATTest = () => {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  if (phase === 'analyzing') {
+    return (
+      <AnalysisLoadingScreen 
+        testType="tat" 
+        isVisible={true}
+      />
     );
   }
 
@@ -161,12 +292,24 @@ const TATTest = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 mb-2">Writing Guidelines:</h3>
+                <ul className="text-blue-700 text-sm space-y-1">
+                  <li>• Write a complete story with beginning, middle, and end</li>
+                  <li>• Include what led to the situation shown in the image</li>
+                  <li>• Describe what is currently happening</li>
+                  <li>• Predict what will happen next</li>
+                  <li>• Focus on positive themes and leadership qualities</li>
+                </ul>
+              </div>
+
               <Textarea
                 value={currentResponse}
                 onChange={(e) => setCurrentResponse(e.target.value)}
                 placeholder="Write your story for this image..."
                 className="min-h-64 text-base"
                 autoFocus
+                disabled={isSubmitting}
               />
 
               {timeLeft <= 30 && (
@@ -183,7 +326,9 @@ const TATTest = () => {
                 </span>
                 <div className="space-x-2">
                   {currentImageIndex === totalImages - 1 ? (
-                    <Button onClick={handleSubmit}>Finish Test</Button>
+                    <Button onClick={handleSubmit} disabled={isSubmitting}>
+                      {isSubmitting ? 'Submitting...' : 'Finish Test'}
+                    </Button>
                   ) : (
                     <span className="text-sm text-gray-600">Auto-advancing to next image...</span>
                   )}
@@ -209,11 +354,13 @@ const TATTest = () => {
             </div>
             <h3 className="text-xl font-semibold">Test Successfully Submitted</h3>
             <p className="text-gray-600">
-              All {totalImages} stories have been completed and saved.
+              Your TAT responses have been analyzed by our AI system.
+              You'll be redirected to your dashboard shortly to view the detailed feedback.
             </p>
             <div className="flex justify-center space-x-4 mt-6">
-              <Button variant="outline">View My Responses</Button>
-              <Button>Go to Dashboard</Button>
+              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                Go to Dashboard Now
+              </Button>
             </div>
           </div>
         </CardContent>
