@@ -5,17 +5,50 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Clock, Eye, PenTool } from 'lucide-react';
 import { TestContentService } from '@/services/testContentService';
+import { testAnalysisService } from '@/services/testAnalysisService';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
+import { useToast } from '@/hooks/use-toast';
 
 const PPDTTest = () => {
-  const [phase, setPhase] = useState<'loading' | 'viewing' | 'writing' | 'completed'>('loading');
+  const [phase, setPhase] = useState<'loading' | 'viewing' | 'writing' | 'analyzing' | 'completed'>('loading');
   const [timeLeft, setTimeLeft] = useState(30); // 30 seconds for viewing
   const [response, setResponse] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [currentImage, setCurrentImage] = useState<any>(null);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadRandomImage();
+    initializeSession();
   }, []);
+
+  const initializeSession = async () => {
+    if (!user) return;
+    
+    try {
+      const newSessionId = await testAnalysisService.createTestSession(
+        user.id, 
+        'ppdt', 
+        1 // PPDT has 1 question
+      );
+      setSessionId(newSessionId);
+      console.log('PPDT session created:', newSessionId);
+    } catch (error) {
+      console.error('Error creating test session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize test session. Please refresh and try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const loadRandomImage = async () => {
     const images = await TestContentService.getRandomPPDTImages(1);
@@ -24,6 +57,11 @@ const PPDTTest = () => {
       setPhase('viewing');
     } else {
       console.error('No PPDT images available');
+      toast({
+        title: "Error",
+        description: "No test images available. Please contact support.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -36,7 +74,7 @@ const PPDTTest = () => {
               setPhase('writing');
               return 240; // 4 minutes for writing
             } else if (phase === 'writing') {
-              setPhase('completed');
+              handleAutoSubmit();
               return 0;
             }
           }
@@ -59,10 +97,108 @@ const PPDTTest = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSubmit = () => {
-    // In real implementation, save to database and navigate to feedback
-    console.log('PPDT Response:', response);
-    setPhase('completed');
+  const handleAutoSubmit = () => {
+    if (response.trim().length >= 10) {
+      handleSubmit();
+    } else {
+      toast({
+        title: "Warning",
+        description: "Your response is too short. Please write at least a few words.",
+        variant: "destructive"
+      });
+      setPhase('completed');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!user || !sessionId || !currentImage) {
+      toast({
+        title: "Error",
+        description: "Missing required information. Please refresh and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (response.trim().length < 10) {
+      toast({
+        title: "Response too short",
+        description: "Please write at least a few words before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setPhase('analyzing');
+
+    try {
+      console.log('Submitting PPDT response:', response);
+      
+      // Calculate time taken (240 seconds - remaining time)
+      const timeTaken = phase === 'writing' ? 240 - timeLeft : 240;
+      
+      // Store the response
+      const responseId = await testAnalysisService.storeResponse(
+        user.id,
+        sessionId,
+        currentImage.id,
+        response,
+        timeTaken,
+        'ppdt'
+      );
+
+      console.log('Response stored:', responseId);
+
+      // Update session as completed
+      await testAnalysisService.updateTestSession(sessionId, 1, 'completed');
+
+      // Check if user can get free analysis
+      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
+      const isPremium = user.primaryEmailAddress?.emailAddress === 'editkarde@gmail.com' || !canGetFree;
+
+      console.log('Analysis type:', isPremium ? 'Premium' : 'Free');
+
+      // Analyze the individual response
+      await testAnalysisService.analyzeIndividualResponse(
+        user.id,
+        responseId,
+        'ppdt',
+        response,
+        currentImage.prompt,
+        currentImage.image_url,
+        isPremium
+      );
+
+      // Analyze the complete session (for PPDT it's just one response)
+      await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
+
+      console.log('PPDT analysis completed');
+      
+      toast({
+        title: "Analysis Complete!",
+        description: "Your PPDT response has been analyzed. Check your dashboard for results.",
+        variant: "default"
+      });
+
+      setPhase('completed');
+      
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error submitting response:', error);
+      toast({
+        title: "Submission Error",
+        description: "Failed to submit your response. Please try again.",
+        variant: "destructive"
+      });
+      setPhase('writing');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (phase === 'loading') {
@@ -77,6 +213,15 @@ const PPDTTest = () => {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  if (phase === 'analyzing') {
+    return (
+      <AnalysisLoadingScreen 
+        testType="ppdt" 
+        isVisible={true}
+      />
     );
   }
 
@@ -166,6 +311,7 @@ const PPDTTest = () => {
                 placeholder="Write your story here..."
                 className="min-h-96 text-base"
                 autoFocus
+                disabled={isSubmitting}
               />
 
               {timeLeft <= 30 && (
@@ -178,10 +324,14 @@ const PPDTTest = () => {
 
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">
-                  Auto-saving every 30 seconds...
+                  Response will be analyzed by AI after submission
                 </span>
-                <Button onClick={handleSubmit} disabled={response.trim().length < 50}>
-                  Submit Response
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={response.trim().length < 10 || isSubmitting}
+                  className="min-w-[140px]"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Response'}
                 </Button>
               </div>
             </div>
@@ -204,12 +354,13 @@ const PPDTTest = () => {
             </div>
             <h3 className="text-xl font-semibold">Test Successfully Submitted</h3>
             <p className="text-gray-600">
-              Your response has been saved and will be analyzed by our AI system.
-              You'll receive detailed feedback on your personality traits and areas for improvement.
+              Your response has been analyzed by our AI system.
+              You'll be redirected to your dashboard shortly to view the detailed feedback.
             </p>
             <div className="flex justify-center space-x-4 mt-6">
-              <Button variant="outline">View My Response</Button>
-              <Button>Go to Dashboard</Button>
+              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                Go to Dashboard Now
+              </Button>
             </div>
           </div>
         </CardContent>
