@@ -43,6 +43,11 @@ export class AIService {
     this.currentProvider = 'gemini'; // Default to Gemini for development
   }
 
+  // Public getter for current provider
+  getCurrentProvider(): 'gemini' | 'openai' {
+    return this.currentProvider;
+  }
+
   switchProvider(provider: 'gemini' | 'openai') {
     this.currentProvider = provider;
     console.log(`AI Provider switched to: ${provider}`);

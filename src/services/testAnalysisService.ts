@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { aiService } from './aiService';
 
@@ -192,7 +191,7 @@ export class TestAnalysisService {
           test_session_id: responseData?.test_session_id,
           response_id: responseId,
           analysis_type: 'individual',
-          ai_provider: aiService.currentProvider || 'gemini',
+          ai_provider: aiService.getCurrentProvider(),
           raw_analysis: feedback,
           processed_feedback: feedback,
           overall_score: feedback.overallScore,
@@ -265,7 +264,7 @@ export class TestAnalysisService {
           test_session_id: sessionId,
           response_id: responses[0].id, // Use first response ID for session summary
           analysis_type: 'session_summary',
-          ai_provider: aiService.currentProvider || 'gemini',
+          ai_provider: aiService.getCurrentProvider(),
           raw_analysis: sessionSummary,
           processed_feedback: sessionSummary,
           overall_score: sessionSummary.overallScore,
