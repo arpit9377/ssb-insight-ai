@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { testContentService } from '@/services/testContentService';
+import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
-import { AnalysisLoadingScreen } from '@/components/analysis/AnalysisLoadingScreen';
+import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import { toast } from 'sonner';
 
 const TATTest = () => {
@@ -41,7 +40,7 @@ const TATTest = () => {
       await setupTestTables();
       
       // Load test images
-      const testImages = await testContentService.getTestImages('tat');
+      const testImages = await TestContentService.getRandomTATImages(12);
       if (!testImages || testImages.length === 0) {
         throw new Error('No TAT images found');
       }
@@ -164,7 +163,7 @@ const TATTest = () => {
   }
 
   if (isAnalyzing) {
-    return <AnalysisLoadingScreen />;
+    return <AnalysisLoadingScreen testType="tat" isVisible={isAnalyzing} />;
   }
 
   if (images.length === 0) {

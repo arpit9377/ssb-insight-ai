@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { testContentService } from '@/services/testContentService';
+import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
-import { AnalysisLoadingScreen } from '@/components/analysis/AnalysisLoadingScreen';
+import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import { toast } from 'sonner';
 
 const SRTTest = () => {
@@ -41,7 +40,7 @@ const SRTTest = () => {
       await setupTestTables();
       
       // Load test situations
-      const testSituations = await testContentService.getSRTSituations();
+      const testSituations = await TestContentService.getRandomSRTSituations(60);
       if (!testSituations || testSituations.length === 0) {
         throw new Error('No SRT situations found');
       }
@@ -164,7 +163,7 @@ const SRTTest = () => {
   }
 
   if (isAnalyzing) {
-    return <AnalysisLoadingScreen />;
+    return <AnalysisLoadingScreen testType="srt" isVisible={isAnalyzing} />;
   }
 
   if (situations.length === 0) {

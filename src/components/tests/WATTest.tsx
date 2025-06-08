@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { testContentService } from '@/services/testContentService';
+import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
-import { AnalysisLoadingScreen } from '@/components/analysis/AnalysisLoadingScreen';
+import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import { toast } from 'sonner';
 
 const WATTest = () => {
@@ -41,7 +40,7 @@ const WATTest = () => {
       await setupTestTables();
       
       // Load test words
-      const testWords = await testContentService.getWATWords();
+      const testWords = await TestContentService.getRandomWATWords(60);
       if (!testWords || testWords.length === 0) {
         throw new Error('No WAT words found');
       }
@@ -164,7 +163,7 @@ const WATTest = () => {
   }
 
   if (isAnalyzing) {
-    return <AnalysisLoadingScreen />;
+    return <AnalysisLoadingScreen testType="wat" isVisible={isAnalyzing} />;
   }
 
   if (words.length === 0) {

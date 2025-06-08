@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { testContentService } from '@/services/testContentService';
+import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
-import { AnalysisLoadingScreen } from '@/components/analysis/AnalysisLoadingScreen';
+import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import { toast } from 'sonner';
 
 const PPDTTest = () => {
@@ -41,7 +40,7 @@ const PPDTTest = () => {
       await setupTestTables();
       
       // Load test images
-      const testImages = await testContentService.getTestImages('ppdt');
+      const testImages = await TestContentService.getRandomPPDTImages(1);
       if (!testImages || testImages.length === 0) {
         throw new Error('No PPDT images found');
       }
@@ -164,7 +163,7 @@ const PPDTTest = () => {
   }
 
   if (isAnalyzing) {
-    return <AnalysisLoadingScreen />;
+    return <AnalysisLoadingScreen testType="ppdt" isVisible={isAnalyzing} />;
   }
 
   if (images.length === 0) {
