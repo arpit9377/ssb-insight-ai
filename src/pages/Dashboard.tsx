@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Clock, Target, Users, BookOpen, BarChart3, User, CreditCard } from 'lucide-react';
+import { Brain, Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { testAnalysisService } from '@/services/testAnalysisService';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -81,40 +81,15 @@ const Dashboard = () => {
     if (!user) return;
 
     try {
-      const { data: responses } = await supabase
-        .from('user_responses')
-        .select('test_type, created_at, trait_scores, response_text')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      console.log('Recent activity responses:', responses);
-
-      if (responses) {
-        const activities = responses.map(response => {
-          const scores = response.trait_scores as any;
-          let avgScore = 0;
-          
-          if (scores) {
-            const scoreValues = Object.values(scores).filter(v => typeof v === 'number') as number[];
-            if (scoreValues.length > 0) {
-              avgScore = scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length;
-            }
-          }
-
-          return {
-            testType: response.test_type.toUpperCase(),
-            createdAt: response.created_at,
-            score: Math.round(avgScore * 10) / 10,
-            hasResponse: !!response.response_text,
-          };
-        });
-
-        setRecentActivity(activities);
-      }
+      const activity = await testAnalysisService.getRecentActivity(user.id);
+      setRecentActivity(activity.slice(0, 3)); // Only last 3 activities
     } catch (error) {
       console.error('Error loading recent activity:', error);
     }
+  };
+
+  const viewTestResults = (sessionId: string) => {
+    navigate(`/test-results/${sessionId}`);
   };
 
   // Check if current user should have premium access
@@ -353,15 +328,17 @@ const Dashboard = () => {
         <div className="mt-8">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your latest test sessions and improvements</CardDescription>
+              <CardTitle>Recent Activity (Last 3 Tests)</CardTitle>
+              <CardDescription>Your latest test sessions with feedback access</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {recentActivity.length > 0 ? (
                   recentActivity.map((activity: any, index) => {
-                    const IconComponent = getTestIcon(activity.testType);
-                    const colorClass = getTestColor(activity.testType);
+                    const testType = activity.test_type || 'unknown';
+                    const IconComponent = getTestIcon(testType.toUpperCase());
+                    const colorClass = getTestColor(testType.toUpperCase());
+                    const overallScore = activity.processed_feedback?.overallScore || activity.overall_score || 0;
                     
                     return (
                       <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -370,15 +347,22 @@ const Dashboard = () => {
                             <IconComponent className="h-4 w-4 text-white" />
                           </div>
                           <div>
-                            <p className="font-medium">{activity.testType} Practice Session</p>
-                            <p className="text-sm text-gray-600">{formatTimeAgo(activity.createdAt)}</p>
+                            <p className="font-medium">{testType.toUpperCase()} Practice Session</p>
+                            <p className="text-sm text-gray-600">{formatTimeAgo(activity.created_at)}</p>
+                            <p className="text-sm text-green-600 font-medium">
+                              Score: {overallScore}/10
+                            </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium text-green-600">
-                            {activity.hasResponse ? (activity.score > 0 ? `${activity.score}/10` : 'Completed') : 'In Progress'}
-                          </p>
-                          <p className="text-sm text-gray-600">Status</p>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => viewTestResults(activity.test_session_id)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Feedback
+                          </Button>
                         </div>
                       </div>
                     );

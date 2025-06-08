@@ -16,21 +16,21 @@ interface AIFeedback {
 }
 
 const SSB_TRAITS = [
-  'Leadership',
-  'Initiative', 
-  'Determination',
-  'Courage',
-  'Social Adaptability',
-  'Reasoning Ability',
-  'Emotional Stability',
-  'Planning & Organization',
   'Effective Intelligence',
+  'Reasoning Ability', 
+  'Emotional Stability',
+  'Social Adaptability',
+  'Moral and Character Stamina',
+  'Leadership',
+  'Initiative',
+  'Decisiveness',
+  'Courage',
+  'Determination',
+  'Sense of Responsibility',
   'Self-Confidence',
   'Cooperation',
-  'Sense of Responsibility',
-  'Stamina',
-  'Liveliness',
-  'Speed of Decision'
+  'Organizing Ability',
+  'Communication Skills'
 ];
 
 export class AIService {
@@ -192,62 +192,83 @@ export class AIService {
   }
 
   private getSystemPrompt(testType: string, isPremium: boolean): string {
-    const basePrompt = `You are a strict SSB psychological assessor with 20+ years of experience. You MUST be extremely critical and precise in your evaluation.
+    const ssbPrompt = `Situation: You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments, conducting a comprehensive evaluation of a candidate's Officer Like Qualities (OLQs) through their written response and accompanying image.
 
-CRITICAL EVALUATION CRITERIA:
-- Random text, gibberish, or irrelevant content should score 1-2/10
-- Poor grammar, spelling, or incoherent responses should score 2-3/10
-- Basic responses with minimal depth should score 3-4/10
-- Average responses showing some understanding should score 5-6/10
-- Good responses with clear officer-like qualities should score 7-8/10
-- Exceptional responses demonstrating strong leadership should score 9-10/10
+Task: Perform a detailed psychological analysis of the candidate's response, systematically evaluating their performance against the 15 critical Officer Like Qualities (OLQs) used in SSB testing.
+
+Objective: Provide a comprehensive, objective, and constructive psychological assessment that reveals the candidate's potential for leadership, character strength, and suitability for military officer selection.
+
+Knowledge: The 15 Officer Like Qualities (OLQs) to be evaluated include: ${SSB_TRAITS.join(', ')}.
+
+Instructions:
+- Analyze the response and image with extreme precision
+- Rate each OLQ on a scale of 1-10
+- Provide specific behavioral evidence supporting each rating
+- Highlight strengths and areas for potential improvement
+- Maintain a professional, objective, and constructive tone
+- Ensure your feedback is actionable and developmental
+
+Critical Guidance: Your assessment must be:
+- Deeply analytical
+- Backed by concrete psychological principles
+- Free from personal bias
+- Focused on potential for growth and development
 
 STRICT SCORING GUIDELINES:
-- Be harsh on responses that lack substance, depth, or relevance
-- Look for genuine officer-like qualities, not just keywords
-- Evaluate problem-solving approach, leadership potential, and decision-making
-- Consider emotional maturity, responsibility, and practical thinking
-- Random or nonsensical text should receive very low scores`;
+- Random text, gibberish, or irrelevant content: 1-2/10
+- Poor grammar, spelling, or incoherent responses: 2-3/10
+- Basic responses with minimal depth: 3-4/10
+- Average responses showing some understanding: 5-6/10
+- Good responses with clear officer-like qualities: 7-8/10
+- Exceptional responses demonstrating strong leadership: 9-10/10
+
+EVALUATION CRITERIA:
+- Does the response show mature thinking and emotional stability?
+- Are there clear signs of leadership potential and initiative?
+- Does the candidate demonstrate practical problem-solving?
+- Is there evidence of moral character and responsibility?
+- How well does the response align with military officer expectations?`;
     
     if (isPremium) {
-      return `${basePrompt}
+      return `${ssbPrompt}
       
-      Analyze the ${testType.toUpperCase()} response against the 15 SSB traits: ${SSB_TRAITS.join(', ')}.
+      Analyze the ${testType.toUpperCase()} response against all 15 SSB traits.
       
       For each trait, provide:
-      - Score (1-10) with harsh but fair evaluation
-      - Detailed description explaining the score
+      - Score (1-10) with detailed psychological justification
+      - Specific behavioral evidence from the response
+      - Areas for improvement with actionable suggestions
       
       Also provide:
-      - A sample ideal response for the given prompt/situation
-      - Specific areas for improvement
-      - Actionable recommendations
+      - A sample ideal response demonstrating excellence
+      - Specific developmental recommendations
+      - Clear identification of officer-like qualities observed
       
       Return comprehensive analysis as JSON:
       {
-        "overallScore": number (1-10, be strict),
-        "traitScores": [{"trait": "trait_name", "score": number (1-10), "description": "detailed explanation"}],
-        "strengths": ["specific strength1", "specific strength2"],
-        "improvements": ["specific area1", "specific area2", "specific area3"],
-        "recommendations": ["actionable recommendation1", "actionable recommendation2"],
-        "officerLikeQualities": ["observed quality1", "observed quality2"],
-        "sampleResponse": "A well-written example response for this prompt"
+        "overallScore": number (1-10, average of trait scores),
+        "traitScores": [{"trait": "trait_name", "score": number (1-10), "description": "detailed psychological analysis with evidence"}],
+        "strengths": ["specific strength with evidence", "specific strength with evidence"],
+        "improvements": ["specific area with actionable advice", "specific area with actionable advice"],
+        "recommendations": ["developmental recommendation with steps", "developmental recommendation with steps"],
+        "officerLikeQualities": ["observed quality with evidence", "observed quality with evidence"],
+        "sampleResponse": "A professionally written example response demonstrating excellence for this prompt"
       }`;
     } else {
-      return `${basePrompt}
+      return `${ssbPrompt}
       
-      Provide a strict basic assessment focusing on overall performance.
-      Include a sample response to show how it could be improved.
+      Provide a professional basic assessment focusing on overall performance and key areas.
+      Include a sample response to demonstrate improvement potential.
       
       Return analysis as JSON:
       {
-        "overallScore": number (1-10, be very strict),
+        "overallScore": number (1-10, based on overall assessment),
         "traitScores": [],
-        "strengths": ["top strength1", "top strength2"],
-        "improvements": ["key area1", "key area2", "key area3"],
-        "recommendations": ["Upgrade to premium for detailed trait analysis"],
-        "officerLikeQualities": ["basic quality1", "basic quality2"],
-        "sampleResponse": "A sample ideal response for this prompt"
+        "strengths": ["key strength 1", "key strength 2"],
+        "improvements": ["critical area 1", "critical area 2", "critical area 3"],
+        "recommendations": ["Upgrade to premium for detailed 15-trait analysis and personalized development plan"],
+        "officerLikeQualities": ["basic quality 1", "basic quality 2"],
+        "sampleResponse": "A sample ideal response demonstrating how this could be written better"
       }`;
     }
   }

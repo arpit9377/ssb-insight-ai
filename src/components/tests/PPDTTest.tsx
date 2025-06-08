@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
@@ -10,6 +9,7 @@ import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
+import TestTimer from '@/components/tests/TestTimer';
 import { toast } from 'sonner';
 
 const PPDTTest = () => {
@@ -25,28 +25,40 @@ const PPDTTest = () => {
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [viewingTime, setViewingTime] = useState(30);
   const [canRespond, setCanRespond] = useState(false);
+  const [writingTime, setWritingTime] = useState(240); // 4 minutes
+  const [isWritingPhase, setIsWritingPhase] = useState(false);
 
   useEffect(() => {
     initializeTest();
   }, [user]);
 
-  // 30-second viewing timer for PPDT
+  // Modified viewing timer for PPDT
   useEffect(() => {
-    if (viewingTime > 0) {
+    if (!isWritingPhase && viewingTime > 0) {
       const timer = setTimeout(() => {
         setViewingTime(viewingTime - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else {
+    } else if (!isWritingPhase && viewingTime === 0) {
       setCanRespond(true);
+      setIsWritingPhase(true);
     }
-  }, [viewingTime]);
+  }, [viewingTime, isWritingPhase]);
 
   // Reset viewing time when moving to next image
   useEffect(() => {
     setViewingTime(30);
+    setWritingTime(240);
     setCanRespond(false);
+    setIsWritingPhase(false);
   }, [currentImageIndex]);
+
+  const handleWritingTimeUp = () => {
+    toast.warning('Time is up! Moving to next image...');
+    setTimeout(() => {
+      handleNext();
+    }, 1000);
+  };
 
   const initializeTest = async () => {
     try {
@@ -214,16 +226,24 @@ const PPDTTest = () => {
               />
             </div>
             
-            {!canRespond && (
+            {!canRespond ? (
               <div className="bg-yellow-50 p-4 rounded-lg text-center">
                 <p className="text-lg font-medium text-yellow-900 mb-2">
                   Observe the image carefully
                 </p>
-                <p className="text-yellow-800 mb-3">
-                  Time remaining: {viewingTime} seconds
-                </p>
-                <Progress value={((30 - viewingTime) / 30) * 100} className="w-full max-w-md mx-auto" />
+                <TestTimer 
+                  totalTime={30}
+                  isActive={true}
+                  showWarning={false}
+                />
               </div>
+            ) : (
+              <TestTimer 
+                totalTime={240}
+                isActive={isWritingPhase}
+                onTimeUp={handleWritingTimeUp}
+                showWarning={true}
+              />
             )}
             
             <div className="bg-blue-50 p-4 rounded-lg">
