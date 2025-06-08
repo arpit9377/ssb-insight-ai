@@ -1,98 +1,58 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
-import { AuthProvider } from "./contexts/AuthContext";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import TestModule from "./pages/TestModule";
-import Progress from "./pages/Progress";
-import Subscription from "./pages/Subscription";
-import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ClerkProvider } from '@clerk/clerk-react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/sonner';
+import Index from '@/pages/Index';
+import Dashboard from '@/pages/Dashboard';
+import Profile from '@/pages/Profile';
+import TestModule from '@/pages/TestModule';
+import Progress from '@/pages/Progress';
+import Subscription from '@/pages/Subscription';
+import AdminDashboard from '@/pages/AdminDashboard';
+import NotFound from '@/pages/NotFound';
+import TATTest from '@/components/tests/TATTest';
+import PPDTTest from '@/components/tests/PPDTTest';
+import WATTest from '@/components/tests/WATTest';
+import SRTTest from '@/components/tests/SRTTest';
+import TestResultsPage from '@/components/analysis/TestResultsPage';
+import './App.css';
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  // Use the same hardcoded key as in main.tsx
-  const PUBLISHABLE_KEY = "pk_test_cXVpZXQtd3Jlbi05My5jbGVyay5hY2NvdW50cy5kZXYk";
-  const isClerkAvailable = !!PUBLISHABLE_KEY;
+const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    if (!isClerkAvailable) {
-      return <Navigate to="/" replace />;
-    }
-    return <SignedIn>{children}</SignedIn>;
-  };
+if (!publishableKey) {
+  throw new Error("Missing Publishable Key");
+}
 
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
+    <ClerkProvider publishableKey={publishableKey}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/test/:testId"
-                element={
-                  <ProtectedRoute>
-                    <TestModule />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/progress"
-                element={
-                  <ProtectedRoute>
-                    <Progress />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/subscription"
-                element={
-                  <ProtectedRoute>
-                    <Subscription />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/tests" element={<TestModule />} />
+              <Route path="/progress" element={<Progress />} />
+              <Route path="/subscription" element={<Subscription />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/test/tat" element={<TATTest />} />
+              <Route path="/test/ppdt" element={<PPDTTest />} />
+              <Route path="/test/wat" element={<WATTest />} />
+              <Route path="/test/srt" element={<SRTTest />} />
+              <Route path="/test-results/:sessionId" element={<TestResultsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+          </div>
+          <Toaster />
+        </Router>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
-};
+}
 
 export default App;

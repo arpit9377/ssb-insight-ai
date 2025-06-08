@@ -36,16 +36,13 @@ const SRTTest = () => {
 
       console.log('Initializing SRT test for user:', user.id);
       
-      // Setup database tables first
       await setupTestTables();
       
-      // Load test situations
       const testSituations = await TestContentService.getRandomSRTSituations(60);
       if (!testSituations || testSituations.length === 0) {
         throw new Error('No SRT situations found');
       }
 
-      // Create test session
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'srt',
@@ -79,10 +76,8 @@ const SRTTest = () => {
     }
 
     try {
-      // Calculate time taken
       const timeTaken = Date.now() - startTime;
       
-      // Store the response
       await testAnalysisService.storeResponse(
         user.id,
         sessionId,
@@ -92,21 +87,17 @@ const SRTTest = () => {
         'srt'
       );
 
-      // Update responses array
       const newResponses = [...responses];
       newResponses[currentSituationIndex] = currentResponse.trim();
       setResponses(newResponses);
 
-      // Update session progress
       await testAnalysisService.updateTestSession(sessionId, currentSituationIndex + 1);
 
       if (currentSituationIndex < situations.length - 1) {
-        // Move to next situation
         setCurrentSituationIndex(currentSituationIndex + 1);
         setCurrentResponse('');
         setStartTime(Date.now());
       } else {
-        // Test completed - start analysis
         await handleTestCompletion();
       }
     } catch (error) {
@@ -124,24 +115,21 @@ const SRTTest = () => {
     try {
       setIsAnalyzing(true);
       
-      // Mark session as completed
       await testAnalysisService.updateTestSession(sessionId, situations.length, 'completed');
 
-      // Check if user can get free analysis
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
       console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
 
-      // Trigger comprehensive analysis
       await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
 
       toast.success('Test completed and analyzed successfully!');
       
-      // Navigate to dashboard after analysis
+      // Navigate to results page instead of dashboard
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(`/test-results/${sessionId}`);
       }, 2000);
 
     } catch (error) {

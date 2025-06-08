@@ -36,16 +36,13 @@ const WATTest = () => {
 
       console.log('Initializing WAT test for user:', user.id);
       
-      // Setup database tables first
       await setupTestTables();
       
-      // Load test words
       const testWords = await TestContentService.getRandomWATWords(60);
       if (!testWords || testWords.length === 0) {
         throw new Error('No WAT words found');
       }
 
-      // Create test session
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'wat',
@@ -79,10 +76,8 @@ const WATTest = () => {
     }
 
     try {
-      // Calculate time taken
       const timeTaken = Date.now() - startTime;
       
-      // Store the response
       await testAnalysisService.storeResponse(
         user.id,
         sessionId,
@@ -92,21 +87,17 @@ const WATTest = () => {
         'wat'
       );
 
-      // Update responses array
       const newResponses = [...responses];
       newResponses[currentWordIndex] = currentResponse.trim();
       setResponses(newResponses);
 
-      // Update session progress
       await testAnalysisService.updateTestSession(sessionId, currentWordIndex + 1);
 
       if (currentWordIndex < words.length - 1) {
-        // Move to next word
         setCurrentWordIndex(currentWordIndex + 1);
         setCurrentResponse('');
         setStartTime(Date.now());
       } else {
-        // Test completed - start analysis
         await handleTestCompletion();
       }
     } catch (error) {
@@ -124,24 +115,21 @@ const WATTest = () => {
     try {
       setIsAnalyzing(true);
       
-      // Mark session as completed
       await testAnalysisService.updateTestSession(sessionId, words.length, 'completed');
 
-      // Check if user can get free analysis
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
       console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
 
-      // Trigger comprehensive analysis
       await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
 
       toast.success('Test completed and analyzed successfully!');
       
-      // Navigate to dashboard after analysis
+      // Navigate to results page instead of dashboard
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(`/test-results/${sessionId}`);
       }, 2000);
 
     } catch (error) {

@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
@@ -21,10 +23,30 @@ const PPDTTest = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [startTime, setStartTime] = useState<number>(Date.now());
+  const [viewingTime, setViewingTime] = useState(30);
+  const [canRespond, setCanRespond] = useState(false);
 
   useEffect(() => {
     initializeTest();
   }, [user]);
+
+  // 30-second viewing timer for PPDT
+  useEffect(() => {
+    if (viewingTime > 0) {
+      const timer = setTimeout(() => {
+        setViewingTime(viewingTime - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanRespond(true);
+    }
+  }, [viewingTime]);
+
+  // Reset viewing time when moving to next image
+  useEffect(() => {
+    setViewingTime(30);
+    setCanRespond(false);
+  }, [currentImageIndex]);
 
   const initializeTest = async () => {
     try {
@@ -36,16 +58,13 @@ const PPDTTest = () => {
 
       console.log('Initializing PPDT test for user:', user.id);
       
-      // Setup database tables first
       await setupTestTables();
       
-      // Load test images
       const testImages = await TestContentService.getRandomPPDTImages(1);
       if (!testImages || testImages.length === 0) {
         throw new Error('No PPDT images found');
       }
 
-      // Create test session
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'ppdt',
@@ -79,10 +98,8 @@ const PPDTTest = () => {
     }
 
     try {
-      // Calculate time taken
       const timeTaken = Date.now() - startTime;
       
-      // Store the response
       await testAnalysisService.storeResponse(
         user.id,
         sessionId,
@@ -92,21 +109,17 @@ const PPDTTest = () => {
         'ppdt'
       );
 
-      // Update responses array
       const newResponses = [...responses];
       newResponses[currentImageIndex] = currentResponse.trim();
       setResponses(newResponses);
 
-      // Update session progress
       await testAnalysisService.updateTestSession(sessionId, currentImageIndex + 1);
 
       if (currentImageIndex < images.length - 1) {
-        // Move to next image
         setCurrentImageIndex(currentImageIndex + 1);
         setCurrentResponse('');
         setStartTime(Date.now());
       } else {
-        // Test completed - start analysis
         await handleTestCompletion();
       }
     } catch (error) {
@@ -124,24 +137,21 @@ const PPDTTest = () => {
     try {
       setIsAnalyzing(true);
       
-      // Mark session as completed
       await testAnalysisService.updateTestSession(sessionId, images.length, 'completed');
 
-      // Check if user can get free analysis
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
       console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
 
-      // Trigger comprehensive analysis
       await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
 
       toast.success('Test completed and analyzed successfully!');
       
-      // Navigate to dashboard after analysis
+      // Navigate to results page instead of dashboard
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(`/test-results/${sessionId}`);
       }, 2000);
 
     } catch (error) {
@@ -204,6 +214,18 @@ const PPDTTest = () => {
               />
             </div>
             
+            {!canRespond && (
+              <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                <p className="text-lg font-medium text-yellow-900 mb-2">
+                  Observe the image carefully
+                </p>
+                <p className="text-yellow-800 mb-3">
+                  Time remaining: {viewingTime} seconds
+                </p>
+                <Progress value={((30 - viewingTime) / 30) * 100} className="w-full max-w-md mx-auto" />
+              </div>
+            )}
+            
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-lg font-medium text-blue-900 mb-2">Instructions:</p>
               <p className="text-blue-800">{currentImage.prompt}</p>
@@ -213,8 +235,9 @@ const PPDTTest = () => {
               <Textarea
                 value={currentResponse}
                 onChange={(e) => setCurrentResponse(e.target.value)}
-                placeholder="Write your response here..."
+                placeholder={canRespond ? "Write your response here..." : "Please wait for the viewing time to complete..."}
                 className="min-h-32"
+                disabled={!canRespond}
               />
               
               <div className="flex justify-between items-center">
@@ -223,7 +246,7 @@ const PPDTTest = () => {
                 </p>
                 <Button 
                   onClick={handleNext}
-                  disabled={!currentResponse.trim()}
+                  disabled={!currentResponse.trim() || !canRespond}
                   className="px-8"
                 >
                   {currentImageIndex === images.length - 1 ? 'Submit Test' : 'Next'}
