@@ -12,6 +12,7 @@ interface AIFeedback {
   improvements: string[];
   recommendations: string[];
   officerLikeQualities: string[];
+  sampleResponse?: string;
 }
 
 const SSB_TRAITS = [
@@ -40,10 +41,9 @@ export class AIService {
   constructor() {
     this.geminiApiKey = 'AIzaSyCKA1JuneqLKlIALNwnWmo0XEPVA_ofAQs';
     this.openaiApiKey = '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';
-    this.currentProvider = 'gemini'; // Default to Gemini for development
+    this.currentProvider = 'gemini';
   }
 
-  // Public getter for current provider
   getCurrentProvider(): 'gemini' | 'openai' {
     return this.currentProvider;
   }
@@ -91,12 +91,11 @@ export class AIService {
         }]
       }],
       generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2000,
+        temperature: 0.1,
+        maxOutputTokens: 3000,
       }
     };
 
-    // Add image if provided (for PPDT/TAT)
     if (imageUrl && (testType === 'ppdt' || testType === 'tat')) {
       requestBody.contents[0].parts.unshift({
         inlineData: {
@@ -142,7 +141,6 @@ export class AIService {
       { role: 'user', content: userPrompt }
     ];
 
-    // Add image if provided (for PPDT/TAT)
     if (imageUrl && (testType === 'ppdt' || testType === 'tat')) {
       messages[1].content = [
         { type: 'text', text: userPrompt },
@@ -159,8 +157,8 @@ export class AIService {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages,
-        temperature: 0.3,
-        max_tokens: 2000,
+        temperature: 0.1,
+        max_tokens: 3000,
       }),
     });
 
@@ -194,41 +192,62 @@ export class AIService {
   }
 
   private getSystemPrompt(testType: string, isPremium: boolean): string {
-    const basePrompt = `You are an expert SSB psychological assessor specializing in ${testType.toUpperCase()} test evaluation.`;
+    const basePrompt = `You are a strict SSB psychological assessor with 20+ years of experience. You MUST be extremely critical and precise in your evaluation.
+
+CRITICAL EVALUATION CRITERIA:
+- Random text, gibberish, or irrelevant content should score 1-2/10
+- Poor grammar, spelling, or incoherent responses should score 2-3/10
+- Basic responses with minimal depth should score 3-4/10
+- Average responses showing some understanding should score 5-6/10
+- Good responses with clear officer-like qualities should score 7-8/10
+- Exceptional responses demonstrating strong leadership should score 9-10/10
+
+STRICT SCORING GUIDELINES:
+- Be harsh on responses that lack substance, depth, or relevance
+- Look for genuine officer-like qualities, not just keywords
+- Evaluate problem-solving approach, leadership potential, and decision-making
+- Consider emotional maturity, responsibility, and practical thinking
+- Random or nonsensical text should receive very low scores`;
     
     if (isPremium) {
       return `${basePrompt}
-      Analyze the candidate's response and provide detailed feedback on the 15 SSB traits: ${SSB_TRAITS.join(', ')}.
       
-      Evaluate Officer Like Qualities including:
-      - Leadership potential and decision-making ability
-      - Initiative, determination, and courage
-      - Social adaptability and emotional stability
-      - Planning, organization, and reasoning skills
-      - Self-confidence and cooperation
-      - Sense of responsibility and stamina
+      Analyze the ${testType.toUpperCase()} response against the 15 SSB traits: ${SSB_TRAITS.join(', ')}.
       
-      Return comprehensive analysis as JSON with this structure:
+      For each trait, provide:
+      - Score (1-10) with harsh but fair evaluation
+      - Detailed description explaining the score
+      
+      Also provide:
+      - A sample ideal response for the given prompt/situation
+      - Specific areas for improvement
+      - Actionable recommendations
+      
+      Return comprehensive analysis as JSON:
       {
-        "overallScore": number (1-10),
+        "overallScore": number (1-10, be strict),
         "traitScores": [{"trait": "trait_name", "score": number (1-10), "description": "detailed explanation"}],
-        "strengths": ["strength1", "strength2", "strength3"],
-        "improvements": ["area1", "area2", "area3"],
-        "recommendations": ["specific recommendation1", "specific recommendation2"],
-        "officerLikeQualities": ["quality1", "quality2", "quality3"]
+        "strengths": ["specific strength1", "specific strength2"],
+        "improvements": ["specific area1", "specific area2", "specific area3"],
+        "recommendations": ["actionable recommendation1", "actionable recommendation2"],
+        "officerLikeQualities": ["observed quality1", "observed quality2"],
+        "sampleResponse": "A well-written example response for this prompt"
       }`;
     } else {
       return `${basePrompt}
-      Provide a basic assessment focusing on overall performance and key areas.
       
-      Return basic analysis as JSON with this structure:
+      Provide a strict basic assessment focusing on overall performance.
+      Include a sample response to show how it could be improved.
+      
+      Return analysis as JSON:
       {
-        "overallScore": number (1-10),
+        "overallScore": number (1-10, be very strict),
         "traitScores": [],
-        "strengths": ["top strength1", "top strength2", "top strength3"],
+        "strengths": ["top strength1", "top strength2"],
         "improvements": ["key area1", "key area2", "key area3"],
-        "recommendations": ["Upgrade to premium for detailed trait analysis and personalized recommendations"],
-        "officerLikeQualities": ["basic quality1", "basic quality2"]
+        "recommendations": ["Upgrade to premium for detailed trait analysis"],
+        "officerLikeQualities": ["basic quality1", "basic quality2"],
+        "sampleResponse": "A sample ideal response for this prompt"
       }`;
     }
   }
@@ -236,31 +255,51 @@ export class AIService {
   private getUserPrompt(testType: string, response: string, prompt?: string): string {
     let userPrompt = `Test Type: ${testType.toUpperCase()}\n`;
     if (prompt) {
-      userPrompt += `Context/Prompt: ${prompt}\n`;
+      userPrompt += `Situation/Prompt: ${prompt}\n`;
     }
-    userPrompt += `Candidate Response: ${response}\n\nPlease analyze this response according to SSB psychological assessment standards.`;
+    userPrompt += `Candidate Response: "${response}"\n\n`;
+    
+    switch (testType) {
+      case 'tat':
+        userPrompt += `Evaluate this TAT story for creativity, psychological insight, character development, plot structure, and officer-like thinking. Be extremely strict - random text should score very low.`;
+        break;
+      case 'wat':
+        userPrompt += `Evaluate this word association for positive thinking, officer-like qualities, and psychological appropriateness. Be strict - random words or inappropriate responses should score very low.`;
+        break;
+      case 'srt':
+        userPrompt += `Evaluate this situation response for practical problem-solving, leadership approach, decision-making, and responsibility. Be harsh on vague or impractical responses.`;
+        break;
+      case 'ppdt':
+        userPrompt += `Evaluate this PPDT discussion for logical thinking, positive approach, practical solutions, and leadership qualities. Be critical of superficial responses.`;
+        break;
+      default:
+        userPrompt += `Evaluate this response according to strict SSB psychological assessment standards.`;
+    }
+    
     return userPrompt;
   }
 
   private formatFeedback(analysis: any, isPremium: boolean): AIFeedback {
     return {
-      overallScore: analysis.overallScore || 5,
+      overallScore: analysis.overallScore || 3,
       traitScores: isPremium ? (analysis.traitScores || []) : [],
       strengths: analysis.strengths || [],
       improvements: analysis.improvements || [],
       recommendations: analysis.recommendations || [],
       officerLikeQualities: analysis.officerLikeQualities || [],
+      sampleResponse: analysis.sampleResponse || "Upgrade to premium to see sample responses",
     };
   }
 
   private getFallbackFeedback(): AIFeedback {
     return {
-      overallScore: 6,
+      overallScore: 3,
       traitScores: [],
-      strengths: ['Good expression', 'Clear thinking', 'Positive approach'],
-      improvements: ['More detailed responses', 'Better time management', 'Enhanced leadership focus'],
-      recommendations: ['Practice more scenarios', 'Focus on officer-like qualities', 'Upgrade to premium for detailed analysis'],
-      officerLikeQualities: ['Shows initiative', 'Demonstrates responsibility'],
+      strengths: ['Attempted the test'],
+      improvements: ['Provide more detailed responses', 'Focus on officer-like qualities', 'Show better problem-solving'],
+      recommendations: ['Practice writing more structured responses', 'Study officer-like qualities', 'Upgrade to premium for detailed analysis'],
+      officerLikeQualities: ['Shows basic effort'],
+      sampleResponse: "A well-structured response would demonstrate clear thinking, practical solutions, and leadership qualities.",
     };
   }
 }

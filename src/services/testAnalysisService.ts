@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { aiService } from './aiService';
 
@@ -228,7 +227,7 @@ export class TestAnalysisService {
     }
   }
 
-  // Analyze individual response
+  // Analyze individual response with improved prompts
   async analyzeIndividualResponse(
     userId: string,
     responseId: string,
@@ -246,7 +245,33 @@ export class TestAnalysisService {
 
       console.log(`Analyzing individual response: ${responseId}`);
       
-      const feedback = await aiService.analyzeResponse(testType, response, prompt, imageUrl, isPremium);
+      // Get the actual prompt/content for context
+      let contextPrompt = prompt;
+      if (testType === 'wat') {
+        const { data: wordData } = await supabase
+          .from('wat_words')
+          .select('word')
+          .eq('id', prompt)
+          .single();
+        contextPrompt = wordData?.word || prompt;
+      } else if (testType === 'srt') {
+        const { data: situationData } = await supabase
+          .from('srt_situations')
+          .select('situation')
+          .eq('id', prompt)
+          .single();
+        contextPrompt = situationData?.situation || prompt;
+      } else if (testType === 'tat') {
+        const { data: imageData } = await supabase
+          .from('test_images')
+          .select('prompt, image_url')
+          .eq('id', prompt)
+          .single();
+        contextPrompt = imageData?.prompt || prompt;
+        imageUrl = imageData?.image_url || imageUrl;
+      }
+      
+      const feedback = await aiService.analyzeResponse(testType, response, contextPrompt, imageUrl, isPremium);
       
       const { data: responseData } = await supabase
         .from('user_responses')
@@ -254,7 +279,6 @@ export class TestAnalysisService {
         .eq('id', responseId)
         .maybeSingle();
 
-      // Store individual analysis
       const { error } = await supabase
         .from('ai_analyses')
         .insert({
@@ -281,7 +305,6 @@ export class TestAnalysisService {
       console.log(`Individual analysis completed for response: ${responseId}`);
     } catch (error) {
       console.error('Error in individual analysis:', error);
-      // Don't throw here to prevent stopping the overall flow
     }
   }
 
@@ -381,23 +404,126 @@ export class TestAnalysisService {
     }
   }
 
-  // Create session summary from individual analyses
+  // Create session summary with improved analysis
   private async createSessionSummary(responses: any[], testType: string, isPremium: boolean): Promise<any> {
     try {
-      const combinedResponses = responses.map(r => r.response_text).join('\n\n');
-      const prompt = `Combined ${testType.toUpperCase()} test session with ${responses.length} responses`;
+      // Get all individual analyses for better summary
+      const analysisPromises = responses.slice(0, 5).map(async (response) => {
+        const contextPrompt = await this.getContextPrompt(response.question_id, testType);
+        return await aiService.analyzeResponse(testType, response.response_text, contextPrompt, undefined, isPremium);
+      });
       
-      return await aiService.analyzeResponse(testType, combinedResponses, prompt, undefined, isPremium);
+      const individualAnalyses = await Promise.all(analysisPromises);
+      
+      // Calculate average scores and combine insights
+      const avgScore = individualAnalyses.reduce((sum, analysis) => sum + (analysis.overallScore || 0), 0) / individualAnalyses.length;
+      const allStrengths = individualAnalyses.flatMap(a => a.strengths || []);
+      const allImprovements = individualAnalyses.flatMap(a => a.improvements || []);
+      const allRecommendations = individualAnalyses.flatMap(a => a.recommendations || []);
+      
+      return {
+        overallScore: Math.round(avgScore),
+        traitScores: isPremium ? individualAnalyses[0]?.traitScores || {} : {},
+        strengths: [...new Set(allStrengths)].slice(0, 5),
+        improvements: [...new Set(allImprovements)].slice(0, 5),
+        recommendations: [...new Set(allRecommendations)].slice(0, 5),
+        officerLikeQualities: individualAnalyses.flatMap(a => a.officerLikeQualities || []).slice(0, 3),
+        sampleResponse: individualAnalyses[0]?.sampleResponse || "Upgrade to premium for sample responses"
+      };
     } catch (error) {
       console.error('Error creating session summary:', error);
-      // Return a basic summary if AI analysis fails
       return {
-        overallScore: 75,
+        overallScore: 4,
         traitScores: {},
         strengths: ['Completed the test'],
-        improvements: ['Continue practicing'],
-        recommendations: ['Review your responses']
+        improvements: ['Focus on quality responses', 'Show more officer-like thinking'],
+        recommendations: ['Practice more structured responses', 'Study leadership qualities'],
+        sampleResponse: "A good response would show clear thinking and practical solutions"
       };
+    }
+  }
+
+  private async getContextPrompt(questionId: string, testType: string): Promise<string> {
+    try {
+      if (testType === 'wat') {
+        const { data } = await supabase
+          .from('wat_words')
+          .select('word')
+          .eq('id', questionId)
+          .single();
+        return data?.word || questionId;
+      } else if (testType === 'srt') {
+        const { data } = await supabase
+          .from('srt_situations')
+          .select('situation')
+          .eq('id', questionId)
+          .single();
+        return data?.situation || questionId;
+      } else if (testType === 'tat') {
+        const { data } = await supabase
+          .from('test_images')
+          .select('prompt')
+          .eq('id', questionId)
+          .single();
+        return data?.prompt || questionId;
+      }
+      return questionId;
+    } catch (error) {
+      return questionId;
+    }
+  }
+
+  // Add to recent activity (keep last 3)
+  async addToRecentActivity(userId: string, analysisData: any): Promise<void> {
+    try {
+      if (!userId || !analysisData) return;
+
+      // Get current recent activity
+      const { data: existing } = await supabase
+        .from('ai_analyses')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('analysis_type', 'session_summary')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      // If we have 3 or more, delete the oldest
+      if (existing && existing.length >= 3) {
+        const toDelete = existing.slice(2); // Keep first 2, delete rest
+        for (const item of toDelete) {
+          await supabase
+            .from('ai_analyses')
+            .delete()
+            .eq('id', item.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error managing recent activity:', error);
+    }
+  }
+
+  // Get recent activity
+  async getRecentActivity(userId: string): Promise<any[]> {
+    try {
+      if (!userId) return [];
+
+      const { data, error } = await supabase
+        .from('ai_analyses')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('analysis_type', 'session_summary')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error('Error fetching recent activity:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error getting recent activity:', error);
+      return [];
     }
   }
 

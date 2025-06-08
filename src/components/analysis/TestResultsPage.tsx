@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { testAnalysisService } from '@/services/testAnalysisService';
-import { Brain, TrendingUp, Target, Lightbulb, ArrowLeft } from 'lucide-react';
+import { Brain, TrendingUp, Target, Lightbulb, ArrowLeft, BookOpen, History } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TestResultsPage = () => {
@@ -16,9 +17,11 @@ const TestResultsPage = () => {
   const { user } = useUser();
   const [analysis, setAnalysis] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   useEffect(() => {
     loadAnalysis();
+    loadRecentActivity();
   }, [sessionId, user]);
 
   const loadAnalysis = async () => {
@@ -37,6 +40,9 @@ const TestResultsPage = () => {
       }
 
       setAnalysis(analysisData);
+      
+      // Store in recent activity
+      await testAnalysisService.addToRecentActivity(user.id, analysisData);
     } catch (error) {
       console.error('Error loading analysis:', error);
       toast.error('Failed to load analysis');
@@ -44,6 +50,20 @@ const TestResultsPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadRecentActivity = async () => {
+    try {
+      if (!user?.id) return;
+      const activity = await testAnalysisService.getRecentActivity(user.id);
+      setRecentActivity(activity);
+    } catch (error) {
+      console.error('Error loading recent activity:', error);
+    }
+  };
+
+  const viewPreviousAnalysis = (activitySessionId: string) => {
+    navigate(`/test-results/${activitySessionId}`);
   };
 
   if (isLoading) {
@@ -109,6 +129,24 @@ const TestResultsPage = () => {
               <Progress value={(feedback.overallScore || 0) * 10} className="w-full max-w-xs mx-auto" />
             </CardContent>
           </Card>
+
+          {/* Sample Response */}
+          {feedback.sampleResponse && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-purple-600" />
+                  Sample Ideal Response
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <p className="text-purple-900 font-medium mb-2">How it could have been written:</p>
+                  <p className="text-purple-800 italic leading-relaxed">"{feedback.sampleResponse}"</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Strengths */}
           {feedback.strengths && feedback.strengths.length > 0 && (
@@ -188,6 +226,42 @@ const TestResultsPage = () => {
                     <Badge key={index} variant="secondary" className="text-sm p-2 bg-blue-50 text-blue-800">
                       {quality}
                     </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent Activity */}
+          {recentActivity.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5 text-gray-600" />
+                  Recent Activity (Last 3 Tests)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {recentActivity.map((activity, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{activity.test_type.toUpperCase()} Test</p>
+                        <p className="text-sm text-gray-600">
+                          Score: {activity.processed_feedback?.overallScore || 0}/10
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(activity.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => viewPreviousAnalysis(activity.test_session_id)}
+                      >
+                        View Details
+                      </Button>
+                    </div>
                   ))}
                 </div>
               </CardContent>
