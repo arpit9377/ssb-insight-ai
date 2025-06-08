@@ -9,6 +9,78 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_analyses: {
+        Row: {
+          ai_provider: string
+          analysis_type: string
+          created_at: string
+          id: string
+          improvements: string[] | null
+          is_premium_analysis: boolean | null
+          overall_score: number | null
+          processed_feedback: Json | null
+          raw_analysis: Json | null
+          recommendations: string[] | null
+          response_id: string | null
+          strengths: string[] | null
+          test_session_id: string | null
+          trait_scores: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_provider: string
+          analysis_type: string
+          created_at?: string
+          id?: string
+          improvements?: string[] | null
+          is_premium_analysis?: boolean | null
+          overall_score?: number | null
+          processed_feedback?: Json | null
+          raw_analysis?: Json | null
+          recommendations?: string[] | null
+          response_id?: string | null
+          strengths?: string[] | null
+          test_session_id?: string | null
+          trait_scores?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_provider?: string
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          improvements?: string[] | null
+          is_premium_analysis?: boolean | null
+          overall_score?: number | null
+          processed_feedback?: Json | null
+          raw_analysis?: Json | null
+          recommendations?: string[] | null
+          response_id?: string | null
+          strengths?: string[] | null
+          test_session_id?: string | null
+          trait_scores?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ai_analyses_response"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "user_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ai_analyses_test_session"
+            columns: ["test_session_id"]
+            isOneToOne: false
+            referencedRelation: "test_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           age: number | null
@@ -138,6 +210,75 @@ export type Database = {
           prompt?: string
           sequence_number?: number
           test_type?: string
+        }
+        Relationships: []
+      }
+      test_sessions: {
+        Row: {
+          completed_at: string | null
+          completed_questions: number
+          created_at: string
+          id: string
+          started_at: string
+          status: string
+          test_type: string
+          total_questions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_questions?: number
+          created_at?: string
+          id?: string
+          started_at?: string
+          status?: string
+          test_type: string
+          total_questions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_questions?: number
+          created_at?: string
+          id?: string
+          started_at?: string
+          status?: string
+          test_type?: string
+          total_questions?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_analysis_usage: {
+        Row: {
+          created_at: string
+          free_analyses_used: number
+          id: string
+          last_free_analysis_date: string | null
+          total_analyses: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          free_analyses_used?: number
+          id?: string
+          last_free_analysis_date?: string | null
+          total_analyses?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          free_analyses_used?: number
+          id?: string
+          last_free_analysis_date?: string | null
+          total_analyses?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

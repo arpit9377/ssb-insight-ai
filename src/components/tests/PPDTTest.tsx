@@ -1,370 +1,239 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Clock, Eye, PenTool } from 'lucide-react';
-import { TestContentService } from '@/services/testContentService';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { testContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
-import { useToast } from '@/hooks/use-toast';
+import { setupTestTables } from '@/services/databaseSetup';
+import { AnalysisLoadingScreen } from '@/components/analysis/AnalysisLoadingScreen';
+import { toast } from 'sonner';
 
 const PPDTTest = () => {
-  const [phase, setPhase] = useState<'loading' | 'viewing' | 'writing' | 'analyzing' | 'completed'>('loading');
-  const [timeLeft, setTimeLeft] = useState(30); // 30 seconds for viewing
-  const [response, setResponse] = useState('');
-  const [wordCount, setWordCount] = useState(0);
-  const [currentImage, setCurrentImage] = useState<any>(null);
-  const [sessionId, setSessionId] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { user } = useAuthContext();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user } = useUser();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [images, setImages] = useState<any[]>([]);
+  const [responses, setResponses] = useState<string[]>([]);
+  const [currentResponse, setCurrentResponse] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [startTime, setStartTime] = useState<number>(Date.now());
 
   useEffect(() => {
-    loadRandomImage();
-    initializeSession();
-  }, []);
+    initializeTest();
+  }, [user]);
 
-  const initializeSession = async () => {
-    if (!user) return;
-    
+  const initializeTest = async () => {
     try {
-      const newSessionId = await testAnalysisService.createTestSession(
-        user.id, 
-        'ppdt', 
-        1 // PPDT has 1 question
-      );
-      setSessionId(newSessionId);
-      console.log('PPDT session created:', newSessionId);
-    } catch (error) {
-      console.error('Error creating test session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to initialize test session. Please refresh and try again.",
-        variant: "destructive"
-      });
-    }
-  };
+      if (!user?.id) {
+        toast.error('Please log in to take the test');
+        navigate('/');
+        return;
+      }
 
-  const loadRandomImage = async () => {
-    const images = await TestContentService.getRandomPPDTImages(1);
-    if (images && images.length > 0) {
-      setCurrentImage(images[0]);
-      setPhase('viewing');
-    } else {
-      console.error('No PPDT images available');
-      toast({
-        title: "Error",
-        description: "No test images available. Please contact support.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (phase === 'viewing' || phase === 'writing') {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            if (phase === 'viewing') {
-              setPhase('writing');
-              return 240; // 4 minutes for writing
-            } else if (phase === 'writing') {
-              handleAutoSubmit();
-              return 0;
-            }
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [phase]);
-
-  useEffect(() => {
-    const words = response.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
-  }, [response]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleAutoSubmit = () => {
-    if (response.trim().length >= 10) {
-      handleSubmit();
-    } else {
-      toast({
-        title: "Warning",
-        description: "Your response is too short. Please write at least a few words.",
-        variant: "destructive"
-      });
-      setPhase('completed');
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!user || !sessionId || !currentImage) {
-      toast({
-        title: "Error",
-        description: "Missing required information. Please refresh and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (response.trim().length < 10) {
-      toast({
-        title: "Response too short",
-        description: "Please write at least a few words before submitting.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setPhase('analyzing');
-
-    try {
-      console.log('Submitting PPDT response:', response);
+      console.log('Initializing PPDT test for user:', user.id);
       
-      // Calculate time taken (240 seconds - remaining time)
-      const timeTaken = phase === 'writing' ? 240 - timeLeft : 240;
+      // Setup database tables first
+      await setupTestTables();
+      
+      // Load test images
+      const testImages = await testContentService.getTestImages('ppdt');
+      if (!testImages || testImages.length === 0) {
+        throw new Error('No PPDT images found');
+      }
+
+      // Create test session
+      const sessionId = await testAnalysisService.createTestSession(
+        user.id,
+        'ppdt',
+        testImages.length
+      );
+
+      setImages(testImages);
+      setSessionId(sessionId);
+      setResponses(new Array(testImages.length).fill(''));
+      setStartTime(Date.now());
+      setIsLoading(false);
+      
+      console.log('PPDT test initialized successfully with session:', sessionId);
+      
+    } catch (error) {
+      console.error('Failed to initialize PPDT test:', error);
+      toast.error('Failed to initialize the test. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleNext = async () => {
+    if (!currentResponse.trim()) {
+      toast.error('Please provide a response before continuing');
+      return;
+    }
+
+    if (!user?.id || !sessionId) {
+      toast.error('Missing required information. Please refresh and try again.');
+      return;
+    }
+
+    try {
+      // Calculate time taken
+      const timeTaken = Date.now() - startTime;
       
       // Store the response
-      const responseId = await testAnalysisService.storeResponse(
+      await testAnalysisService.storeResponse(
         user.id,
         sessionId,
-        currentImage.id,
-        response,
+        images[currentImageIndex].id,
+        currentResponse.trim(),
         timeTaken,
         'ppdt'
       );
 
-      console.log('Response stored:', responseId);
+      // Update responses array
+      const newResponses = [...responses];
+      newResponses[currentImageIndex] = currentResponse.trim();
+      setResponses(newResponses);
 
-      // Update session as completed
-      await testAnalysisService.updateTestSession(sessionId, 1, 'completed');
+      // Update session progress
+      await testAnalysisService.updateTestSession(sessionId, currentImageIndex + 1);
+
+      if (currentImageIndex < images.length - 1) {
+        // Move to next image
+        setCurrentImageIndex(currentImageIndex + 1);
+        setCurrentResponse('');
+        setStartTime(Date.now());
+      } else {
+        // Test completed - start analysis
+        await handleTestCompletion();
+      }
+    } catch (error) {
+      console.error('Error saving response:', error);
+      toast.error('Failed to save response. Please try again.');
+    }
+  };
+
+  const handleTestCompletion = async () => {
+    if (!user?.id || !sessionId) {
+      toast.error('Missing required information');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      
+      // Mark session as completed
+      await testAnalysisService.updateTestSession(sessionId, images.length, 'completed');
 
       // Check if user can get free analysis
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
-      const isPremium = user.primaryEmailAddress?.emailAddress === 'editkarde@gmail.com' || !canGetFree;
+      const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
+      const isPremium = hasSubscription || !canGetFree;
 
-      console.log('Analysis type:', isPremium ? 'Premium' : 'Free');
+      console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
 
-      // Analyze the individual response
-      await testAnalysisService.analyzeIndividualResponse(
-        user.id,
-        responseId,
-        'ppdt',
-        response,
-        currentImage.prompt,
-        currentImage.image_url,
-        isPremium
-      );
-
-      // Analyze the complete session (for PPDT it's just one response)
+      // Trigger comprehensive analysis
       await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
 
-      console.log('PPDT analysis completed');
+      toast.success('Test completed and analyzed successfully!');
       
-      toast({
-        title: "Analysis Complete!",
-        description: "Your PPDT response has been analyzed. Check your dashboard for results.",
-        variant: "default"
-      });
-
-      setPhase('completed');
-      
-      // Navigate to dashboard after a short delay
+      // Navigate to dashboard after analysis
       setTimeout(() => {
         navigate('/dashboard');
       }, 2000);
 
     } catch (error) {
-      console.error('Error submitting response:', error);
-      toast({
-        title: "Submission Error",
-        description: "Failed to submit your response. Please try again.",
-        variant: "destructive"
-      });
-      setPhase('writing');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error completing test:', error);
+      toast.error('Test completed but analysis failed. Please check your dashboard.');
+      navigate('/dashboard');
     }
   };
 
-  if (phase === 'loading') {
+  if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card>
-          <CardContent className="p-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading test image...</p>
-            </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-lg">Initializing PPDT Test...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAnalyzing) {
+    return <AnalysisLoadingScreen />;
+  }
+
+  if (images.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center p-6">
+            <p className="text-lg text-red-600">No PPDT images available. Please contact support.</p>
+            <Button onClick={() => navigate('/dashboard')} className="mt-4">
+              Return to Dashboard
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (phase === 'analyzing') {
-    return (
-      <AnalysisLoadingScreen 
-        testType="ppdt" 
-        isVisible={true}
-      />
-    );
-  }
+  const currentImage = images[currentImageIndex];
 
-  if (phase === 'viewing') {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card>
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4">
+        <Card className="w-full max-w-4xl mx-auto">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center">
-                <Eye className="h-5 w-5 mr-2" />
-                Viewing Phase
-              </CardTitle>
-              <div className="flex items-center text-2xl font-bold text-blue-600">
-                <Clock className="h-6 w-6 mr-2" />
-                {formatTime(timeLeft)}
-              </div>
-            </div>
+            <CardTitle className="text-center">
+              Picture Perception and Description Test (PPDT)
+            </CardTitle>
+            <p className="text-center text-gray-600">
+              Image {currentImageIndex + 1} of {images.length}
+            </p>
           </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <div className="bg-gray-100 rounded-lg p-8 mb-4">
-                {currentImage ? (
-                  <img 
-                    src={currentImage.image_url} 
-                    alt="PPDT Test Image" 
-                    className="max-w-full max-h-96 mx-auto rounded-lg shadow-lg"
-                  />
-                ) : (
-                  <p className="text-gray-500">Image not available</p>
-                )}
-              </div>
-              <p className="text-gray-600">
-                Study this image carefully. You have {timeLeft} seconds remaining.
-              </p>
-              {timeLeft <= 10 && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 font-semibold">
-                    ⚠️ Last {timeLeft} seconds! Prepare for writing phase.
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (phase === 'writing') {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center">
-                <PenTool className="h-5 w-5 mr-2" />
-                Writing Phase
-              </CardTitle>
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
-                  Words: {wordCount}
-                </span>
-                <div className="flex items-center text-2xl font-bold text-orange-600">
-                  <Clock className="h-6 w-6 mr-2" />
-                  {formatTime(timeLeft)}
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-800 mb-2">Writing Guidelines:</h3>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• Write a complete story with beginning, middle, and end</li>
-                  <li>• Include what led to the situation shown in the image</li>
-                  <li>• Describe what is currently happening</li>
-                  <li>• Predict what will happen next</li>
-                  <li>• Focus on positive themes and leadership qualities</li>
-                </ul>
-              </div>
-
-              <Textarea
-                value={response}
-                onChange={(e) => setResponse(e.target.value)}
-                placeholder="Write your story here..."
-                className="min-h-96 text-base"
-                autoFocus
-                disabled={isSubmitting}
+          <CardContent className="space-y-6">
+            <div className="flex justify-center">
+              <img
+                src={currentImage.image_url}
+                alt={`PPDT Image ${currentImageIndex + 1}`}
+                className="max-w-full h-auto max-h-96 rounded-lg shadow-lg"
               />
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-lg font-medium text-blue-900 mb-2">Instructions:</p>
+              <p className="text-blue-800">{currentImage.prompt}</p>
+            </div>
 
-              {timeLeft <= 30 && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-800 font-semibold">
-                    ⏰ Only {timeLeft} seconds remaining! Finish your story.
-                  </p>
-                </div>
-              )}
-
+            <div className="space-y-4">
+              <Textarea
+                value={currentResponse}
+                onChange={(e) => setCurrentResponse(e.target.value)}
+                placeholder="Write your response here..."
+                className="min-h-32"
+              />
+              
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">
-                  Response will be analyzed by AI after submission
-                </span>
+                <p className="text-sm text-gray-500">
+                  Progress: {currentImageIndex + 1}/{images.length}
+                </p>
                 <Button 
-                  onClick={handleSubmit} 
-                  disabled={response.trim().length < 10 || isSubmitting}
-                  className="min-w-[140px]"
+                  onClick={handleNext}
+                  disabled={!currentResponse.trim()}
+                  className="px-8"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Response'}
+                  {currentImageIndex === images.length - 1 ? 'Submit Test' : 'Next'}
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>PPDT Test Completed!</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-              <PenTool className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold">Test Successfully Submitted</h3>
-            <p className="text-gray-600">
-              Your response has been analyzed by our AI system.
-              You'll be redirected to your dashboard shortly to view the detailed feedback.
-            </p>
-            <div className="flex justify-center space-x-4 mt-6">
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>
-                Go to Dashboard Now
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

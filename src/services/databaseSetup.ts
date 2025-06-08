@@ -3,40 +3,47 @@ import { supabase } from '@/lib/supabase';
 
 export const setupTestTables = async () => {
   try {
-    // Check if test_sessions table exists, if not create it
+    console.log('Setting up test tables...');
+    
+    // Test if tables exist by trying to query them
     const { error: sessionError } = await supabase
       .from('test_sessions')
       .select('id')
       .limit(1);
 
-    if (sessionError && sessionError.code === '42P01') {
-      console.log('Creating test_sessions table...');
-      // Table doesn't exist, will be created via SQL
-    }
-
-    // Check if ai_analyses table exists
     const { error: analysisError } = await supabase
       .from('ai_analyses')
       .select('id')
       .limit(1);
 
-    if (analysisError && analysisError.code === '42P01') {
-      console.log('Creating ai_analyses table...');
-      // Table doesn't exist, will be created via SQL
-    }
-
-    // Check if user_analysis_usage table exists
     const { error: usageError } = await supabase
       .from('user_analysis_usage')
       .select('user_id')
       .limit(1);
 
-    if (usageError && usageError.code === '42P01') {
-      console.log('Creating user_analysis_usage table...');
-      // Table doesn't exist, will be created via SQL
+    if (sessionError) {
+      console.log('test_sessions table check failed:', sessionError.message);
+    } else {
+      console.log('test_sessions table is ready');
     }
+
+    if (analysisError) {
+      console.log('ai_analyses table check failed:', analysisError.message);
+    } else {
+      console.log('ai_analyses table is ready');
+    }
+
+    if (usageError) {
+      console.log('user_analysis_usage table check failed:', usageError.message);
+    } else {
+      console.log('user_analysis_usage table is ready');
+    }
+
+    console.log('Database setup complete');
+    return true;
 
   } catch (error) {
     console.error('Error setting up test tables:', error);
+    return false;
   }
 };
