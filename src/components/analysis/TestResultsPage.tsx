@@ -246,9 +246,11 @@ const TestResultsPage = () => {
                   {recentActivity.map((activity, index) => (
                     <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium">{activity.test_type.toUpperCase()} Test</p>
+                        <p className="font-medium">
+                          {activity.test_type ? activity.test_type.toUpperCase() : 'Unknown'} Test
+                        </p>
                         <p className="text-sm text-gray-600">
-                          Score: {activity.processed_feedback?.overallScore || 0}/10
+                          Score: {activity.processed_feedback?.overallScore || activity.overall_score || 0}/10
                         </p>
                         <p className="text-xs text-gray-500">
                           {new Date(activity.created_at).toLocaleDateString()}
