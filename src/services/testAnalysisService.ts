@@ -616,12 +616,16 @@ export class TestAnalysisService {
     try {
       console.log(`Starting WAT batch analysis for session ${sessionId}`);
       
+      // Prepare batch analysis data
       const batchData = words.map((word, index) => ({
         word: word.word,
         response: responses[index]
       }));
 
+      // Single API call for all WAT responses
       const analysis = await aiService.analyzeWATBatch(batchData, isPremium);
+
+      // Store the comprehensive analysis
       await this.storeComprehensiveAnalysis(userId, sessionId, 'wat', analysis, isPremium);
 
       console.log('WAT batch analysis completed successfully');

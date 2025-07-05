@@ -1,26 +1,30 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
+import TestTimer from '@/components/tests/TestTimer';
 import { toast } from 'sonner';
 
 const SRTTest = () => {
   const navigate = useNavigate();
   const { user } = useUser();
-  const [currentSituationIndex, setCurrentSituationIndex] = useState(0);
   const [situations, setSituations] = useState<any[]>([]);
-  const [responses, setResponses] = useState<string[]>([]);
+  const [responses, setResponses] = useState<{[key: number]: string}>({});
+  const [currentSituationIndex, setCurrentSituationIndex] = useState(0);
   const [currentResponse, setCurrentResponse] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [startTime, setStartTime] = useState<number>(Date.now());
+  const [testStartTime, setTestStartTime] = useState<number>(0);
+  const [isTestActive, setIsTestActive] = useState(false);
 
   useEffect(() => {
     initializeTest();
@@ -51,8 +55,8 @@ const SRTTest = () => {
 
       setSituations(testSituations);
       setSessionId(sessionId);
-      setResponses(new Array(testSituations.length).fill(''));
-      setStartTime(Date.now());
+      setTestStartTime(Date.now());
+      setIsTestActive(true);
       setIsLoading(false);
       
       console.log('SRT test initialized successfully with session:', sessionId);
@@ -64,46 +68,41 @@ const SRTTest = () => {
     }
   };
 
-  const handleNext = async () => {
-    if (!currentResponse.trim()) {
-      toast.error('Please provide a response before continuing');
-      return;
+  const handleTestTimeUp = async () => {
+    toast.warning('Time is up! Submitting your responses for analysis...');
+    setTimeout(() => {
+      handleTestCompletion();
+    }, 2000);
+  };
+
+  const saveCurrentResponse = () => {
+    if (currentResponse.trim()) {
+      setResponses(prev => ({
+        ...prev,
+        [currentSituationIndex]: currentResponse.trim()
+      }));
+      setCurrentResponse('');
     }
+  };
 
-    if (!user?.id || !sessionId) {
-      toast.error('Missing required information. Please refresh and try again.');
-      return;
+  const handleNext = () => {
+    saveCurrentResponse();
+    if (currentSituationIndex < situations.length - 1) {
+      setCurrentSituationIndex(currentSituationIndex + 1);
     }
+  };
 
-    try {
-      const timeTaken = Date.now() - startTime;
-      
-      await testAnalysisService.storeResponse(
-        user.id,
-        sessionId,
-        situations[currentSituationIndex].id,
-        currentResponse.trim(),
-        timeTaken,
-        'srt'
-      );
-
-      const newResponses = [...responses];
-      newResponses[currentSituationIndex] = currentResponse.trim();
-      setResponses(newResponses);
-
-      await testAnalysisService.updateTestSession(sessionId, currentSituationIndex + 1);
-
-      if (currentSituationIndex < situations.length - 1) {
-        setCurrentSituationIndex(currentSituationIndex + 1);
-        setCurrentResponse('');
-        setStartTime(Date.now());
-      } else {
-        await handleTestCompletion();
-      }
-    } catch (error) {
-      console.error('Error saving response:', error);
-      toast.error('Failed to save response. Please try again.');
+  const handlePrevious = () => {
+    saveCurrentResponse();
+    if (currentSituationIndex > 0) {
+      setCurrentSituationIndex(currentSituationIndex - 1);
+      setCurrentResponse(responses[currentSituationIndex - 1] || '');
     }
+  };
+
+  const handleSubmitTest = () => {
+    saveCurrentResponse();
+    handleTestCompletion();
   };
 
   const handleTestCompletion = async () => {
@@ -114,20 +113,48 @@ const SRTTest = () => {
 
     try {
       setIsAnalyzing(true);
+      setIsTestActive(false);
       
-      await testAnalysisService.updateTestSession(sessionId, situations.length, 'completed');
+      // Prepare responses array with all situations and their responses
+      const finalResponses: string[] = [];
+      const answeredSituations: any[] = [];
+      
+      for (let i = 0; i < situations.length; i++) {
+        const response = responses[i] || 'No response provided';
+        finalResponses.push(response);
+        if (responses[i]) {
+          answeredSituations.push(situations[i]);
+        }
+      }
+
+      // Store all responses in database
+      for (let i = 0; i < situations.length; i++) {
+        if (responses[i]) {
+          await testAnalysisService.storeResponse(
+            user.id,
+            sessionId,
+            situations[i].id,
+            responses[i],
+            0, // Time taken per response not tracked in batch mode
+            'srt'
+          );
+        }
+      }
+
+      const completedCount = Object.keys(responses).length;
+      await testAnalysisService.updateTestSession(sessionId, completedCount, 'completed');
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
-      console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
+      console.log(`Starting SRT batch analysis - Premium: ${isPremium}, Completed: ${completedCount}/${situations.length}`);
 
-      await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
+      // Send only answered situations for batch analysis
+      await testAnalysisService.analyzeSRTBatch(user.id, sessionId, isPremium, answeredSituations, Object.values(responses));
 
-      toast.success('Test completed and analyzed successfully!');
+      toast.success(`Test completed! Analyzed ${completedCount} responses successfully.`);
       
-      // Navigate to results page instead of dashboard
       setTimeout(() => {
         navigate(`/test-results/${sessionId}`);
       }, 2000);
@@ -138,6 +165,11 @@ const SRTTest = () => {
       navigate('/dashboard');
     }
   };
+
+  // Update current response when situation changes
+  useEffect(() => {
+    setCurrentResponse(responses[currentSituationIndex] || '');
+  }, [currentSituationIndex, responses]);
 
   if (isLoading) {
     return (
@@ -170,6 +202,8 @@ const SRTTest = () => {
   }
 
   const currentSituation = situations[currentSituationIndex];
+  const answeredCount = Object.keys(responses).length;
+  const hasResponse = responses[currentSituationIndex];
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -179,16 +213,34 @@ const SRTTest = () => {
             <CardTitle className="text-center">
               Situation Reaction Test (SRT)
             </CardTitle>
-            <p className="text-center text-gray-600">
-              Situation {currentSituationIndex + 1} of {situations.length}
-            </p>
+            <div className="text-center space-y-2">
+              <p className="text-gray-600">
+                Situation {currentSituationIndex + 1} of {situations.length}
+              </p>
+              <div className="flex justify-center gap-4">
+                <Badge variant="outline">
+                  Answered: {answeredCount}/{situations.length}
+                </Badge>
+                {hasResponse && <Badge variant="secondary">Response Saved</Badge>}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {isTestActive && (
+              <TestTimer 
+                totalTime={1800} // 30 minutes = 1800 seconds
+                isActive={true}
+                onTimeUp={handleTestTimeUp}
+                showWarning={true}
+              />
+            )}
+
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-lg font-medium text-blue-900 mb-2">Instructions:</p>
               <p className="text-blue-800">
-                Read the situation carefully and write what you would do in this situation.
-                Be honest and write your immediate reaction.
+                You have 30 minutes to answer as many situations as possible. Read each situation carefully 
+                and write what you would do. Navigate between situations using the Previous/Next buttons. 
+                Your responses are automatically saved.
               </p>
             </div>
 
@@ -205,18 +257,34 @@ const SRTTest = () => {
                 onChange={(e) => setCurrentResponse(e.target.value)}
                 placeholder="Write your response to this situation..."
                 className="min-h-32"
+                disabled={!isTestActive}
               />
               
               <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-500">
-                  Progress: {currentSituationIndex + 1}/{situations.length}
-                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handlePrevious}
+                    disabled={currentSituationIndex === 0 || !isTestActive}
+                    variant="outline"
+                  >
+                    Previous
+                  </Button>
+                  <Button 
+                    onClick={handleNext}
+                    disabled={currentSituationIndex === situations.length - 1 || !isTestActive}
+                    variant="outline"
+                  >
+                    Next
+                  </Button>
+                </div>
+                
                 <Button 
-                  onClick={handleNext}
-                  disabled={!currentResponse.trim()}
+                  onClick={handleSubmitTest}
+                  disabled={!isTestActive || answeredCount === 0}
                   className="px-8"
+                  variant={answeredCount > 0 ? "default" : "secondary"}
                 >
-                  {currentSituationIndex === situations.length - 1 ? 'Submit Test' : 'Next'}
+                  Submit Test ({answeredCount} responses)
                 </Button>
               </div>
             </div>

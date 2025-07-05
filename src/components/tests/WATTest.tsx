@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
@@ -8,6 +9,7 @@ import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
+import TestTimer from '@/components/tests/TestTimer';
 import { toast } from 'sonner';
 
 const WATTest = () => {
@@ -64,49 +66,38 @@ const WATTest = () => {
     }
   };
 
-  const handleNext = async () => {
-    if (!currentResponse.trim()) {
+  const handleTimeUp = () => {
+    if (currentResponse.trim()) {
+      handleNext();
+    } else {
+      toast.warning('Time is up! Moving to next word...');
+      setTimeout(() => {
+        handleNext(true); // Force next even without response
+      }, 1000);
+    }
+  };
+
+  const handleNext = async (forceNext = false) => {
+    if (!forceNext && !currentResponse.trim()) {
       toast.error('Please provide a response before continuing');
       return;
     }
 
-    if (!user?.id || !sessionId) {
-      toast.error('Missing required information. Please refresh and try again.');
-      return;
-    }
+    // Store response locally (don't send to AI yet)
+    const newResponses = [...responses];
+    newResponses[currentWordIndex] = currentResponse.trim() || 'No response provided';
+    setResponses(newResponses);
 
-    try {
-      const timeTaken = Date.now() - startTime;
-      
-      await testAnalysisService.storeResponse(
-        user.id,
-        sessionId,
-        words[currentWordIndex].id,
-        currentResponse.trim(),
-        timeTaken,
-        'wat'
-      );
-
-      const newResponses = [...responses];
-      newResponses[currentWordIndex] = currentResponse.trim();
-      setResponses(newResponses);
-
-      await testAnalysisService.updateTestSession(sessionId, currentWordIndex + 1);
-
-      if (currentWordIndex < words.length - 1) {
-        setCurrentWordIndex(currentWordIndex + 1);
-        setCurrentResponse('');
-        setStartTime(Date.now());
-      } else {
-        await handleTestCompletion();
-      }
-    } catch (error) {
-      console.error('Error saving response:', error);
-      toast.error('Failed to save response. Please try again.');
+    if (currentWordIndex < words.length - 1) {
+      setCurrentWordIndex(currentWordIndex + 1);
+      setCurrentResponse('');
+      setStartTime(Date.now());
+    } else {
+      await handleTestCompletion(newResponses);
     }
   };
 
-  const handleTestCompletion = async () => {
+  const handleTestCompletion = async (finalResponses: string[]) => {
     if (!user?.id || !sessionId) {
       toast.error('Missing required information');
       return;
@@ -115,19 +106,31 @@ const WATTest = () => {
     try {
       setIsAnalyzing(true);
       
+      // Store all responses in database first
+      for (let i = 0; i < words.length; i++) {
+        await testAnalysisService.storeResponse(
+          user.id,
+          sessionId,
+          words[i].id,
+          finalResponses[i],
+          0, // Time taken per response not tracked in batch mode
+          'wat'
+        );
+      }
+
       await testAnalysisService.updateTestSession(sessionId, words.length, 'completed');
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
-      console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
+      console.log(`Starting WAT batch analysis - Premium: ${isPremium}`);
 
-      await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
+      // Send all responses for batch analysis
+      await testAnalysisService.analyzeWATBatch(user.id, sessionId, isPremium, words, finalResponses);
 
       toast.success('Test completed and analyzed successfully!');
       
-      // Navigate to results page instead of dashboard
       setTimeout(() => {
         navigate(`/test-results/${sessionId}`);
       }, 2000);
@@ -184,11 +187,18 @@ const WATTest = () => {
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
+            <TestTimer 
+              totalTime={15}
+              isActive={true}
+              onTimeUp={handleTimeUp}
+              showWarning={true}
+            />
+
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-lg font-medium text-blue-900 mb-2">Instructions:</p>
               <p className="text-blue-800">
                 Write the first thought or sentence that comes to your mind when you see this word.
-                There are no right or wrong answers.
+                You have 15 seconds per word. There are no right or wrong answers.
               </p>
             </div>
 
@@ -218,11 +228,10 @@ const WATTest = () => {
                   Progress: {currentWordIndex + 1}/{words.length}
                 </p>
                 <Button 
-                  onClick={handleNext}
-                  disabled={!currentResponse.trim()}
+                  onClick={() => handleNext()}
                   className="px-8"
                 >
-                  {currentWordIndex === words.length - 1 ? 'Submit Test' : 'Next'}
+                  {currentWordIndex === words.length - 1 ? 'Submit All Responses for Analysis' : 'Next'}
                 </Button>
               </div>
             </div>
