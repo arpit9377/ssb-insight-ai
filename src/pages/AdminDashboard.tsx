@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import StatsCards from '@/components/admin/StatsCards';
 import ImageUploadForm from '@/components/admin/ImageUploadForm';
 import WordUploadForm from '@/components/admin/WordUploadForm';
 import SituationUploadForm from '@/components/admin/SituationUploadForm';
+import BulkUploadForm from '@/components/admin/BulkUploadForm';
 import ContentManagement from '@/components/admin/ContentManagement';
 
 const AdminDashboard = () => {
@@ -18,6 +20,9 @@ const AdminDashboard = () => {
     activeSubscriptions: 0,
     revenue: 0,
     clerkUsers: 0,
+    totalTestSessions: 0,
+    completedTestSessions: 0,
+    totalAnalyses: 0,
   });
   const [users, setUsers] = useState([]);
   const [testImages, setTestImages] = useState([]);
@@ -105,14 +110,33 @@ const AdminDashboard = () => {
 
   const loadStats = async () => {
     try {
+      // Get profile count
       const { count: userCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
+      // Get total user responses count
       const { count: testCount } = await supabase
         .from('user_responses')
         .select('*', { count: 'exact', head: true });
 
+      // Get total test sessions count
+      const { count: sessionCount } = await supabase
+        .from('test_sessions')
+        .select('*', { count: 'exact', head: true });
+
+      // Get completed test sessions count
+      const { count: completedSessionCount } = await supabase
+        .from('test_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed');
+
+      // Get total AI analyses count
+      const { count: analysesCount } = await supabase
+        .from('ai_analyses')
+        .select('*', { count: 'exact', head: true });
+
+      // Get active subscriptions count
       const { count: subCount } = await supabase
         .from('subscriptions')
         .select('*', { count: 'exact', head: true })
@@ -122,6 +146,9 @@ const AdminDashboard = () => {
         ...prev,
         totalUsers: userCount || 0,
         totalTests: testCount || 0,
+        totalTestSessions: sessionCount || 0,
+        completedTestSessions: completedSessionCount || 0,
+        totalAnalyses: analysesCount || 0,
         activeSubscriptions: subCount || 0,
         revenue: (subCount || 0) * 499,
       }));
@@ -210,6 +237,7 @@ const AdminDashboard = () => {
       <Tabs defaultValue="upload" className="space-y-4">
         <TabsList>
           <TabsTrigger value="upload">Upload Materials</TabsTrigger>
+          <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
           <TabsTrigger value="manage">Manage Content</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -220,6 +248,12 @@ const AdminDashboard = () => {
             <ImageUploadForm onImageUploaded={refreshContent} />
             <WordUploadForm onWordAdded={refreshContent} wordCount={watWords.length} />
             <SituationUploadForm onSituationAdded={refreshContent} situationCount={srtSituations.length} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="bulk-upload">
+          <div className="grid grid-cols-1 gap-6">
+            <BulkUploadForm onUploadComplete={refreshContent} />
           </div>
         </TabsContent>
 
@@ -275,13 +309,17 @@ const AdminDashboard = () => {
                   <p className="text-sm text-gray-600">SRT Situations: {srtSituations.length}</p>
                 </div>
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium mb-2">User Engagement</h3>
-                  <p className="text-sm text-gray-600">Total Clerk Users: {stats.clerkUsers}</p>
-                  <p className="text-sm text-gray-600">Profile Users: {stats.totalUsers}</p>
-                  <p className="text-sm text-gray-600">Completion Rate: {stats.totalUsers > 0 ? Math.round((stats.totalTests / stats.totalUsers) * 100) : 0}%</p>
+                  <h3 className="font-medium mb-2">Test Engagement</h3>
+                  <p className="text-sm text-gray-600">Total Test Sessions: {stats.totalTestSessions}</p>
+                  <p className="text-sm text-gray-600">Completed Sessions: {stats.completedTestSessions}</p>
+                  <p className="text-sm text-gray-600">Completion Rate: {stats.totalTestSessions > 0 ? Math.round((stats.completedTestSessions / stats.totalTestSessions) * 100) : 0}%</p>
+                  <p className="text-sm text-gray-600">Total Responses: {stats.totalTests}</p>
+                  <p className="text-sm text-gray-600">AI Analyses: {stats.totalAnalyses}</p>
                 </div>
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium mb-2">Revenue</h3>
+                  <h3 className="font-medium mb-2">Revenue & Users</h3>
+                  <p className="text-sm text-gray-600">Total Clerk Users: {stats.clerkUsers}</p>
+                  <p className="text-sm text-gray-600">Profile Users: {stats.totalUsers}</p>
                   <p className="text-sm text-gray-600">Active Subscriptions: {stats.activeSubscriptions}</p>
                   <p className="text-sm text-gray-600">Monthly Revenue: ₹{stats.revenue.toLocaleString()}</p>
                   <p className="text-sm text-gray-600">Conversion Rate: {stats.clerkUsers > 0 ? Math.round((stats.activeSubscriptions / stats.clerkUsers) * 100) : 0}%</p>
