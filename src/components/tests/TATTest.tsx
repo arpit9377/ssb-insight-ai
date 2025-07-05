@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
@@ -8,6 +9,7 @@ import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
+import TestTimer from '@/components/tests/TestTimer';
 import { toast } from 'sonner';
 
 const TATTest = () => {
@@ -21,10 +23,33 @@ const TATTest = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [startTime, setStartTime] = useState<number>(Date.now());
+  const [viewingTime, setViewingTime] = useState(30);
+  const [canRespond, setCanRespond] = useState(false);
+  const [isWritingPhase, setIsWritingPhase] = useState(false);
 
   useEffect(() => {
     initializeTest();
   }, [user]);
+
+  // Timer for viewing phase
+  useEffect(() => {
+    if (!isWritingPhase && viewingTime > 0) {
+      const timer = setTimeout(() => {
+        setViewingTime(viewingTime - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (!isWritingPhase && viewingTime === 0) {
+      setCanRespond(true);
+      setIsWritingPhase(true);
+    }
+  }, [viewingTime, isWritingPhase]);
+
+  // Reset timers when moving to next image
+  useEffect(() => {
+    setViewingTime(30);
+    setCanRespond(false);
+    setIsWritingPhase(false);
+  }, [currentImageIndex]);
 
   const initializeTest = async () => {
     try {
@@ -38,20 +63,31 @@ const TATTest = () => {
       
       await setupTestTables();
       
+      // Get 12 random images + add blank slide
       const testImages = await TestContentService.getRandomTATImages(12);
       if (!testImages || testImages.length === 0) {
         throw new Error('No TAT images found');
       }
 
+      // Add blank slide as 13th image
+      const blankSlide = {
+        id: 'blank-slide',
+        image_url: '',
+        prompt: 'This is a blank slide. Write a story of your own choice based on your imagination.',
+        test_type: 'tat'
+      };
+      
+      const allImages = [...testImages, blankSlide];
+
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'tat',
-        testImages.length
+        allImages.length
       );
 
-      setImages(testImages);
+      setImages(allImages);
       setSessionId(sessionId);
-      setResponses(new Array(testImages.length).fill(''));
+      setResponses(new Array(allImages.length).fill(''));
       setStartTime(Date.now());
       setIsLoading(false);
       
@@ -64,49 +100,38 @@ const TATTest = () => {
     }
   };
 
-  const handleNext = async () => {
-    if (!currentResponse.trim()) {
+  const handleWritingTimeUp = () => {
+    if (currentResponse.trim()) {
+      handleNext();
+    } else {
+      toast.warning('Time is up! Moving to next image...');
+      setTimeout(() => {
+        handleNext(true); // Force next even without response
+      }, 1000);
+    }
+  };
+
+  const handleNext = async (forceNext = false) => {
+    if (!forceNext && !currentResponse.trim()) {
       toast.error('Please provide a response before continuing');
       return;
     }
 
-    if (!user?.id || !sessionId) {
-      toast.error('Missing required information. Please refresh and try again.');
-      return;
-    }
+    // Store response locally (don't send to AI yet)
+    const newResponses = [...responses];
+    newResponses[currentImageIndex] = currentResponse.trim() || 'No response provided';
+    setResponses(newResponses);
 
-    try {
-      const timeTaken = Date.now() - startTime;
-      
-      await testAnalysisService.storeResponse(
-        user.id,
-        sessionId,
-        images[currentImageIndex].id,
-        currentResponse.trim(),
-        timeTaken,
-        'tat'
-      );
-
-      const newResponses = [...responses];
-      newResponses[currentImageIndex] = currentResponse.trim();
-      setResponses(newResponses);
-
-      await testAnalysisService.updateTestSession(sessionId, currentImageIndex + 1);
-
-      if (currentImageIndex < images.length - 1) {
-        setCurrentImageIndex(currentImageIndex + 1);
-        setCurrentResponse('');
-        setStartTime(Date.now());
-      } else {
-        await handleTestCompletion();
-      }
-    } catch (error) {
-      console.error('Error saving response:', error);
-      toast.error('Failed to save response. Please try again.');
+    if (currentImageIndex < images.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+      setCurrentResponse('');
+      setStartTime(Date.now());
+    } else {
+      await handleTestCompletion(newResponses);
     }
   };
 
-  const handleTestCompletion = async () => {
+  const handleTestCompletion = async (finalResponses: string[]) => {
     if (!user?.id || !sessionId) {
       toast.error('Missing required information');
       return;
@@ -115,19 +140,31 @@ const TATTest = () => {
     try {
       setIsAnalyzing(true);
       
+      // Store all responses in database first
+      for (let i = 0; i < images.length; i++) {
+        await testAnalysisService.storeResponse(
+          user.id,
+          sessionId,
+          images[i].id,
+          finalResponses[i],
+          0, // Time taken per response not tracked in batch mode
+          'tat'
+        );
+      }
+
       await testAnalysisService.updateTestSession(sessionId, images.length, 'completed');
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
-      console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
+      console.log(`Starting batch analysis - Premium: ${isPremium}`);
 
-      await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
+      // Send all responses for batch analysis
+      await testAnalysisService.analyzeTATSession(user.id, sessionId, isPremium, images, finalResponses);
 
       toast.success('Test completed and analyzed successfully!');
       
-      // Navigate to results page instead of dashboard
       setTimeout(() => {
         navigate(`/test-results/${sessionId}`);
       }, 2000);
@@ -170,6 +207,7 @@ const TATTest = () => {
   }
 
   const currentImage = images[currentImageIndex];
+  const isBlankSlide = currentImage?.id === 'blank-slide';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -180,17 +218,45 @@ const TATTest = () => {
               Thematic Apperception Test (TAT)
             </CardTitle>
             <p className="text-center text-gray-600">
-              Image {currentImageIndex + 1} of {images.length}
+              {isBlankSlide ? 'Blank Slide' : `Image ${currentImageIndex + 1}`} of {images.length}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex justify-center">
-              <img
-                src={currentImage.image_url}
-                alt={`TAT Image ${currentImageIndex + 1}`}
-                className="max-w-full h-auto max-h-96 rounded-lg shadow-lg"
+            {!isBlankSlide ? (
+              <div className="flex justify-center">
+                <img
+                  src={currentImage.image_url}
+                  alt={`TAT Image ${currentImageIndex + 1}`}
+                  className="max-w-full h-auto max-h-96 rounded-lg shadow-lg"
+                />
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <div className="w-full max-w-md h-64 bg-gray-100 rounded-lg shadow-lg flex items-center justify-center">
+                  <p className="text-gray-500 text-lg">Blank Slide - Use Your Imagination</p>
+                </div>
+              </div>
+            )}
+            
+            {!canRespond && !isBlankSlide ? (
+              <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                <p className="text-lg font-medium text-yellow-900 mb-2">
+                  Observe the image carefully
+                </p>
+                <TestTimer 
+                  totalTime={30}
+                  isActive={true}
+                  showWarning={false}
+                />
+              </div>
+            ) : (
+              <TestTimer 
+                totalTime={240}
+                isActive={canRespond || isBlankSlide}
+                onTimeUp={handleWritingTimeUp}
+                showWarning={true}
               />
-            </div>
+            )}
             
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-lg font-medium text-blue-900 mb-2">Instructions:</p>
@@ -203,6 +269,7 @@ const TATTest = () => {
                 onChange={(e) => setCurrentResponse(e.target.value)}
                 placeholder="Write your story here..."
                 className="min-h-32"
+                disabled={!canRespond && !isBlankSlide}
               />
               
               <div className="flex justify-between items-center">
@@ -210,11 +277,11 @@ const TATTest = () => {
                   Progress: {currentImageIndex + 1}/{images.length}
                 </p>
                 <Button 
-                  onClick={handleNext}
-                  disabled={!currentResponse.trim()}
+                  onClick={() => handleNext()}
+                  disabled={(!canRespond && !isBlankSlide)}
                   className="px-8"
                 >
-                  {currentImageIndex === images.length - 1 ? 'Submit Test' : 'Next'}
+                  {currentImageIndex === images.length - 1 ? 'Submit All Stories for Analysis' : 'Next'}
                 </Button>
               </div>
             </div>

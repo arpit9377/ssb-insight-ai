@@ -573,6 +573,121 @@ export class TestAnalysisService {
       return false;
     }
   }
+
+  async analyzeTATSession(
+    userId: string,
+    sessionId: string,
+    isPremium: boolean,
+    images: any[],
+    responses: string[]
+  ): Promise<void> {
+    try {
+      console.log(`Starting TAT batch analysis for session ${sessionId}`);
+      
+      // Prepare batch analysis data
+      const batchData = images.map((image, index) => ({
+        imageNumber: index + 1,
+        imageUrl: image.image_url || null,
+        prompt: image.prompt,
+        response: responses[index],
+        isBlankSlide: image.id === 'blank-slide'
+      }));
+
+      // Single API call for all TAT responses
+      const analysis = await aiService.analyzeTATBatch(batchData, isPremium);
+
+      // Store the comprehensive analysis
+      await this.storeComprehensiveAnalysis(userId, sessionId, 'tat', analysis, isPremium);
+
+      console.log('TAT batch analysis completed successfully');
+    } catch (error) {
+      console.error('Error in TAT batch analysis:', error);
+      throw error;
+    }
+  }
+
+  async analyzeWATBatch(
+    userId: string,
+    sessionId: string,
+    isPremium: boolean,
+    words: any[],
+    responses: string[]
+  ): Promise<void> {
+    try {
+      console.log(`Starting WAT batch analysis for session ${sessionId}`);
+      
+      const batchData = words.map((word, index) => ({
+        word: word.word,
+        response: responses[index]
+      }));
+
+      const analysis = await aiService.analyzeWATBatch(batchData, isPremium);
+      await this.storeComprehensiveAnalysis(userId, sessionId, 'wat', analysis, isPremium);
+
+      console.log('WAT batch analysis completed successfully');
+    } catch (error) {
+      console.error('Error in WAT batch analysis:', error);
+      throw error;
+    }
+  }
+
+  async analyzeSRTBatch(
+    userId: string,
+    sessionId: string,
+    isPremium: boolean,
+    situations: any[],
+    responses: string[]
+  ): Promise<void> {
+    try {
+      console.log(`Starting SRT batch analysis for session ${sessionId}`);
+      
+      const batchData = situations.map((situation, index) => ({
+        situation: situation.situation,
+        response: responses[index]
+      }));
+
+      const analysis = await aiService.analyzeSRTBatch(batchData, isPremium);
+      await this.storeComprehensiveAnalysis(userId, sessionId, 'srt', analysis, isPremium);
+
+      console.log('SRT batch analysis completed successfully');
+    } catch (error) {
+      console.error('Error in SRT batch analysis:', error);
+      throw error;
+    }
+  }
+
+  private async storeComprehensiveAnalysis(
+    userId: string,
+    sessionId: string,
+    testType: string,
+    analysis: any,
+    isPremium: boolean
+  ): Promise<void> {
+    const { data, error } = await supabase
+      .from('ai_analyses')
+      .insert({
+        user_id: userId,
+        test_session_id: sessionId,
+        analysis_type: testType,
+        ai_provider: 'openai',
+        raw_analysis: analysis,
+        processed_feedback: analysis,
+        overall_score: analysis.overallScore,
+        trait_scores: analysis.traitScores,
+        strengths: analysis.strengths,
+        improvements: analysis.improvements,
+        recommendations: analysis.recommendations,
+        is_premium_analysis: isPremium
+      });
+
+    if (error) {
+      console.error('Error storing comprehensive analysis:', error);
+      throw error;
+    }
+
+    // Update usage tracking
+    await this.updateAnalysisUsage(userId, isPremium);
+  }
 }
 
 export const testAnalysisService = new TestAnalysisService();

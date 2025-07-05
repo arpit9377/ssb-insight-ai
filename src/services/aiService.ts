@@ -1,4 +1,3 @@
-
 interface TraitScore {
   trait: string;
   score: number;
@@ -277,6 +276,222 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
       officerLikeQualities: ['Shows basic effort'],
       sampleResponse: "A well-structured response would demonstrate clear thinking, practical solutions, and leadership qualities.",
     };
+  }
+
+  async analyzeTATBatch(
+    batchData: Array<{
+      imageNumber: number;
+      imageUrl: string | null;
+      prompt: string;
+      response: string;
+      isBlankSlide: boolean;
+    }>,
+    isPremium: boolean = false
+  ): Promise<any> {
+    try {
+      console.log(`Analyzing TAT batch with OpenAI - Premium: ${isPremium}`);
+      
+      const systemPrompt = this.getTATBatchSystemPrompt(isPremium);
+      const userPrompt = this.getTATBatchUserPrompt(batchData);
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.2,
+          max_tokens: isPremium ? 4000 : 2000,
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API request failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const analysis = JSON.parse(data.choices[0].message.content);
+
+      return this.formatFeedback(analysis, isPremium);
+    } catch (error) {
+      console.error('TAT Batch Analysis Error:', error);
+      return this.getFallbackFeedback();
+    }
+  }
+
+  async analyzeWATBatch(
+    batchData: Array<{ word: string; response: string }>,
+    isPremium: boolean = false
+  ): Promise<any> {
+    try {
+      const systemPrompt = this.getWATBatchSystemPrompt(isPremium);
+      const userPrompt = this.getWATBatchUserPrompt(batchData);
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.2,
+          max_tokens: isPremium ? 3000 : 1500,
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      const data = await response.json();
+      const analysis = JSON.parse(data.choices[0].message.content);
+      return this.formatFeedback(analysis, isPremium);
+    } catch (error) {
+      console.error('WAT Batch Analysis Error:', error);
+      return this.getFallbackFeedback();
+    }
+  }
+
+  async analyzeSRTBatch(
+    batchData: Array<{ situation: string; response: string }>,
+    isPremium: boolean = false
+  ): Promise<any> {
+    try {
+      const systemPrompt = this.getSRTBatchSystemPrompt(isPremium);
+      const userPrompt = this.getSRTBatchUserPrompt(batchData);
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.2,
+          max_tokens: isPremium ? 3000 : 1500,
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      const data = await response.json();
+      const analysis = JSON.parse(data.choices[0].message.content);
+      return this.formatFeedback(analysis, isPremium);
+    } catch (error) {
+      console.error('SRT Batch Analysis Error:', error);
+      return this.getFallbackFeedback();
+    }
+  }
+
+  private getTATBatchSystemPrompt(isPremium: boolean): string {
+    const basePrompt = `You are a professional psychologist specializing in SSB psychological assessments. Analyze ALL TAT stories together to provide comprehensive evaluation.
+
+Task: Analyze ${isPremium ? '13' : 'multiple'} TAT stories (12 pictures + 1 blank slide) and evaluate Officer Like Qualities.
+
+The 15 Officer Like Qualities: ${SSB_TRAITS.join(', ')}.
+
+STRICT SCORING GUIDELINES:
+- Evaluate story quality, character development, problem-solving approach
+- Look for consistent patterns across all stories
+- Score each OLQ based on cumulative evidence from all responses
+- Consider creativity, leadership potential, and positive thinking patterns
+
+Return comprehensive analysis as JSON.`;
+
+    if (isPremium) {
+      return `${basePrompt}
+
+Return detailed analysis:
+{
+  "overallScore": number (1-10),
+  "traitScores": [{"trait": "trait_name", "score": number, "description": "detailed analysis"}],
+  "strengths": ["strength with evidence"],
+  "improvements": ["area with advice"],
+  "recommendations": ["development recommendation"],
+  "officerLikeQualities": ["observed quality"],
+  "storyPatterns": "Analysis of recurring themes and patterns across all stories",
+  "bestStories": ["Story numbers that showed exceptional qualities"],
+  "sampleResponse": "Example of an ideal TAT story"
+}`;
+    } else {
+      return `${basePrompt}
+
+Return basic analysis:
+{
+  "overallScore": number (1-10),
+  "traitScores": [],
+  "strengths": ["key strength"],
+  "improvements": ["critical area"],
+  "recommendations": ["Upgrade to premium for detailed analysis"],
+  "officerLikeQualities": ["basic quality"],
+  "sampleResponse": "Example story improvement"
+}`;
+    }
+  }
+
+  private getTATBatchUserPrompt(batchData: any[]): string {
+    let prompt = "TAT BATCH ANALYSIS:\n\n";
+    
+    batchData.forEach((item, index) => {
+      prompt += `Story ${item.imageNumber}${item.isBlankSlide ? ' (Blank Slide)' : ''}:\n`;
+      prompt += `Prompt: ${item.prompt}\n`;
+      prompt += `Response: "${item.response}"\n\n`;
+    });
+
+    prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses.`;
+    
+    return prompt;
+  }
+
+  private getWATBatchSystemPrompt(isPremium: boolean): string {
+    // Similar structure for WAT batch analysis
+    return `You are analyzing Word Association Test responses. Evaluate thought patterns, emotional stability, and officer-like thinking across all 60 word associations.
+
+Look for: Positive vs negative associations, leadership mindset, emotional maturity, social responsibility.
+
+${isPremium ? 'Provide detailed OLQ analysis.' : 'Provide basic assessment.'}`;
+  }
+
+  private getWATBatchUserPrompt(batchData: any[]): string {
+    let prompt = "WAT BATCH ANALYSIS:\n\n";
+    
+    batchData.forEach((item, index) => {
+      prompt += `${index + 1}. ${item.word} → "${item.response}"\n`;
+    });
+
+    return prompt + "\n\nAnalyze these word associations for psychological patterns and officer-like qualities.";
+  }
+
+  private getSRTBatchSystemPrompt(isPremium: boolean): string {
+    return `Analyze Situation Reaction Test responses. Evaluate decision-making, leadership approach, and practical problem-solving across all situations.
+
+Focus on: Initiative, responsibility, practical solutions, leadership potential.
+
+${isPremium ? 'Provide detailed OLQ scoring.' : 'Provide basic assessment.'}`;
+  }
+
+  private getSRTBatchUserPrompt(batchData: any[]): string {
+    let prompt = "SRT BATCH ANALYSIS:\n\n";
+    
+    batchData.forEach((item, index) => {
+      prompt += `Situation ${index + 1}: ${item.situation}\n`;
+      prompt += `Response: "${item.response}"\n\n`;
+    });
+
+    return prompt + "Analyze decision-making patterns and leadership qualities across all responses.";
   }
 }
 

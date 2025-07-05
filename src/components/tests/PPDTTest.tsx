@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { setupTestTables } from '@/services/databaseSetup';
@@ -25,8 +26,14 @@ const PPDTTest = () => {
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [viewingTime, setViewingTime] = useState(30);
   const [canRespond, setCanRespond] = useState(false);
-  const [writingTime, setWritingTime] = useState(240); // 4 minutes
+  const [writingTime, setWritingTime] = useState(240);
   const [isWritingPhase, setIsWritingPhase] = useState(false);
+  
+  // PPDT specific fields
+  const [numberOfPeople, setNumberOfPeople] = useState('');
+  const [mood, setMood] = useState('');
+  const [sex, setSex] = useState('');
+  const [titleAction, setTitleAction] = useState('');
 
   useEffect(() => {
     initializeTest();
@@ -99,8 +106,8 @@ const PPDTTest = () => {
   };
 
   const handleNext = async () => {
-    if (!currentResponse.trim()) {
-      toast.error('Please provide a response before continuing');
+    if (!currentResponse.trim() || !numberOfPeople || !mood || !sex || !titleAction) {
+      toast.error('Please fill all fields before continuing');
       return;
     }
 
@@ -112,17 +119,26 @@ const PPDTTest = () => {
     try {
       const timeTaken = Date.now() - startTime;
       
+      // Store comprehensive PPDT response
+      const comprehensiveResponse = {
+        story: currentResponse.trim(),
+        numberOfPeople,
+        mood,
+        sex,
+        titleAction
+      };
+      
       await testAnalysisService.storeResponse(
         user.id,
         sessionId,
         images[currentImageIndex].id,
-        currentResponse.trim(),
+        JSON.stringify(comprehensiveResponse),
         timeTaken,
         'ppdt'
       );
 
       const newResponses = [...responses];
-      newResponses[currentImageIndex] = currentResponse.trim();
+      newResponses[currentImageIndex] = JSON.stringify(comprehensiveResponse);
       setResponses(newResponses);
 
       await testAnalysisService.updateTestSession(sessionId, currentImageIndex + 1);
@@ -130,6 +146,10 @@ const PPDTTest = () => {
       if (currentImageIndex < images.length - 1) {
         setCurrentImageIndex(currentImageIndex + 1);
         setCurrentResponse('');
+        setNumberOfPeople('');
+        setMood('');
+        setSex('');
+        setTitleAction('');
         setStartTime(Date.now());
       } else {
         await handleTestCompletion();
@@ -251,28 +271,83 @@ const PPDTTest = () => {
               <p className="text-blue-800">{currentImage.prompt}</p>
             </div>
 
-            <div className="space-y-4">
-              <Textarea
-                value={currentResponse}
-                onChange={(e) => setCurrentResponse(e.target.value)}
-                placeholder={canRespond ? "Write your response here..." : "Please wait for the viewing time to complete..."}
-                className="min-h-32"
-                disabled={!canRespond}
-              />
-              
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-500">
-                  Progress: {currentImageIndex + 1}/{images.length}
-                </p>
-                <Button 
-                  onClick={handleNext}
-                  disabled={!currentResponse.trim() || !canRespond}
-                  className="px-8"
-                >
-                  {currentImageIndex === images.length - 1 ? 'Submit Test' : 'Next'}
-                </Button>
-              </div>
-            </div>
+            {canRespond && (
+              <>
+                {/* PPDT Analysis Fields */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-4 rounded-lg border">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">No. of People</label>
+                    <Input
+                      value={numberOfPeople}
+                      onChange={(e) => setNumberOfPeople(e.target.value)}
+                      placeholder="e.g., 3"
+                      disabled={!canRespond}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Mood</label>
+                    <Select value={mood} onValueChange={setMood} disabled={!canRespond}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select mood" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="+">+ (Positive)</SelectItem>
+                        <SelectItem value="-">- (Negative)</SelectItem>
+                        <SelectItem value="N">N (Neutral)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Sex</label>
+                    <Select value={sex} onValueChange={setSex} disabled={!canRespond}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select sex" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">M (Male)</SelectItem>
+                        <SelectItem value="F">F (Female)</SelectItem>
+                        <SelectItem value="M/F">M/F (Both)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Title/Action</label>
+                    <Input
+                      value={titleAction}
+                      onChange={(e) => setTitleAction(e.target.value)}
+                      placeholder="Brief title"
+                      disabled={!canRespond}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Textarea
+                    value={currentResponse}
+                    onChange={(e) => setCurrentResponse(e.target.value)}
+                    placeholder="Write your story here..."
+                    className="min-h-32"
+                    disabled={!canRespond}
+                  />
+                  
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-gray-500">
+                      Progress: {currentImageIndex + 1}/{images.length}
+                    </p>
+                    <Button 
+                      onClick={handleNext}
+                      disabled={!currentResponse.trim() || !numberOfPeople || !mood || !sex || !titleAction || !canRespond}
+                      className="px-8"
+                    >
+                      {currentImageIndex === images.length - 1 ? 'Submit Test' : 'Next'}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
