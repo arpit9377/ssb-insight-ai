@@ -34,23 +34,17 @@ const SSB_TRAITS = [
 ];
 
 export class AIService {
-  private geminiApiKey: string;
   private openaiApiKey: string;
-  private currentProvider: 'gemini' | 'openai';
+  private currentProvider: 'openai';
 
   constructor() {
-    this.geminiApiKey = 'AIzaSyCKA1JuneqLKlIALNwnWmo0XEPVA_ofAQs';
+    // Using the existing OpenAI API key from your code
     this.openaiApiKey = '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';
-    this.currentProvider = 'gemini';
+    this.currentProvider = 'openai';
   }
 
-  getCurrentProvider(): 'gemini' | 'openai' {
+  getCurrentProvider(): 'openai' {
     return this.currentProvider;
-  }
-
-  switchProvider(provider: 'gemini' | 'openai') {
-    this.currentProvider = provider;
-    console.log(`AI Provider switched to: ${provider}`);
   }
 
   async analyzeResponse(
@@ -61,69 +55,12 @@ export class AIService {
     isPremium: boolean = false
   ): Promise<AIFeedback> {
     try {
-      console.log(`Analyzing with ${this.currentProvider} - Premium: ${isPremium}`);
-      
-      if (this.currentProvider === 'gemini') {
-        return await this.analyzeWithGemini(testType, response, prompt, imageUrl, isPremium);
-      } else {
-        return await this.analyzeWithOpenAI(testType, response, prompt, imageUrl, isPremium);
-      }
+      console.log(`Analyzing with OpenAI - Premium: ${isPremium}`);
+      return await this.analyzeWithOpenAI(testType, response, prompt, imageUrl, isPremium);
     } catch (error) {
-      console.error('AI Analysis Error:', error);
+      console.error('OpenAI Analysis Error:', error);
       return this.getFallbackFeedback();
     }
-  }
-
-  private async analyzeWithGemini(
-    testType: string,
-    response: string,
-    prompt?: string,
-    imageUrl?: string,
-    isPremium: boolean = false
-  ): Promise<AIFeedback> {
-    const systemPrompt = this.getSystemPrompt(testType, isPremium);
-    const userPrompt = this.getUserPrompt(testType, response, prompt);
-
-    const requestBody: any = {
-      contents: [{
-        parts: [{
-          text: `${systemPrompt}\n\n${userPrompt}`
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 3000,
-      }
-    };
-
-    if (imageUrl && (testType === 'ppdt' || testType === 'tat')) {
-      requestBody.contents[0].parts.unshift({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: await this.getBase64FromUrl(imageUrl)
-        }
-      });
-    }
-
-    const apiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    if (!apiResponse.ok) {
-      throw new Error(`Gemini API request failed: ${apiResponse.statusText}`);
-    }
-
-    const data = await apiResponse.json();
-    const analysis = JSON.parse(data.candidates[0].content.parts[0].text);
-
-    return this.formatFeedback(analysis, isPremium);
   }
 
   private async analyzeWithOpenAI(
@@ -133,14 +70,15 @@ export class AIService {
     imageUrl?: string,
     isPremium: boolean = false
   ): Promise<AIFeedback> {
-    const systemPrompt = this.getSystemPrompt(testType, isPremium);
-    const userPrompt = this.getUserPrompt(testType, response, prompt);
+    const systemPrompt = this.getEnhancedSystemPrompt(testType, isPremium);
+    const userPrompt = this.getEnhancedUserPrompt(testType, response, prompt);
 
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ];
 
+    // Add image for vision tasks (TAT/PPDT)
     if (imageUrl && (testType === 'ppdt' || testType === 'tat')) {
       messages[1].content = [
         { type: 'text', text: userPrompt },
@@ -155,15 +93,17 @@ export class AIService {
         'Authorization': `Bearer ${this.openaiApiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-3.5-turbo', // Starting with 3.5 as requested
         messages,
-        temperature: 0.1,
-        max_tokens: 3000,
+        temperature: 0.2, // Lower temperature for more consistent analysis
+        max_tokens: 3500,
+        response_format: { type: "json_object" }
       }),
     });
 
     if (!apiResponse.ok) {
-      throw new Error(`OpenAI API request failed: ${apiResponse.statusText}`);
+      const errorData = await apiResponse.json();
+      throw new Error(`OpenAI API request failed: ${apiResponse.statusText} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await apiResponse.json();
@@ -172,27 +112,8 @@ export class AIService {
     return this.formatFeedback(analysis, isPremium);
   }
 
-  private async getBase64FromUrl(url: string): Promise<string> {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error('Error converting image to base64:', error);
-      throw error;
-    }
-  }
-
-  private getSystemPrompt(testType: string, isPremium: boolean): string {
-    const ssbPrompt = `Situation: You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments, conducting a comprehensive evaluation of a candidate's Officer Like Qualities (OLQs) through their written response and accompanying image.
+  private getEnhancedSystemPrompt(testType: string, isPremium: boolean): string {
+    const basePrompt = `You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments, conducting a comprehensive evaluation of a candidate's Officer Like Qualities (OLQs) through their written response and accompanying image.
 
 Task: Perform a detailed psychological analysis of the candidate's response, systematically evaluating their performance against the 15 critical Officer Like Qualities (OLQs) used in SSB testing.
 
@@ -227,10 +148,12 @@ EVALUATION CRITERIA:
 - Are there clear signs of leadership potential and initiative?
 - Does the candidate demonstrate practical problem-solving?
 - Is there evidence of moral character and responsibility?
-- How well does the response align with military officer expectations?`;
+- How well does the response align with military officer expectations?
+
+You must respond with valid JSON format only.`;
     
     if (isPremium) {
-      return `${ssbPrompt}
+      return `${basePrompt}
       
       Analyze the ${testType.toUpperCase()} response against all 15 SSB traits.
       
@@ -255,7 +178,7 @@ EVALUATION CRITERIA:
         "sampleResponse": "A professionally written example response demonstrating excellence for this prompt"
       }`;
     } else {
-      return `${ssbPrompt}
+      return `${basePrompt}
       
       Provide a professional basic assessment focusing on overall performance and key areas.
       Include a sample response to demonstrate improvement potential.
@@ -273,7 +196,7 @@ EVALUATION CRITERIA:
     }
   }
 
-  private getUserPrompt(testType: string, response: string, prompt?: string): string {
+  private getEnhancedUserPrompt(testType: string, response: string, prompt?: string): string {
     let userPrompt = `Test Type: ${testType.toUpperCase()}\n`;
     if (prompt) {
       userPrompt += `Situation/Prompt: ${prompt}\n`;
@@ -282,19 +205,51 @@ EVALUATION CRITERIA:
     
     switch (testType) {
       case 'tat':
-        userPrompt += `Evaluate this TAT story for creativity, psychological insight, character development, plot structure, and officer-like thinking. Be extremely strict - random text should score very low.`;
+        userPrompt += `Evaluate this TAT story for:
+- Story structure (beginning, middle, end with clear timeline)
+- Character development and motivation
+- Problem identification and resolution approach
+- Leadership qualities demonstrated by characters
+- Emotional maturity and stability shown
+- Initiative and decision-making abilities
+- Moral values and ethical considerations
+- Communication effectiveness
+Be extremely strict - random text should score very low (1-2/10). Good stories with officer-like qualities should score 7-8/10.`;
         break;
       case 'wat':
-        userPrompt += `Evaluate this word association for positive thinking, officer-like qualities, and psychological appropriateness. Be strict - random words or inappropriate responses should score very low.`;
+        userPrompt += `Evaluate this word association for:
+- Positive vs negative thinking patterns
+- Officer-like mental associations
+- Emotional stability indicators
+- Leadership mindset demonstration
+- Practical and constructive thinking
+- Social responsibility awareness
+Be strict - inappropriate or negative responses should score low. Positive, constructive associations score higher.`;
         break;
       case 'srt':
-        userPrompt += `Evaluate this situation response for practical problem-solving, leadership approach, decision-making, and responsibility. Be harsh on vague or impractical responses.`;
+        userPrompt += `Evaluate this situation response for:
+- Immediate problem identification
+- Practical solution approach
+- Leadership initiative taken
+- Decision-making clarity
+- Responsibility acceptance
+- Teamwork and cooperation
+- Risk assessment and management
+Be harsh on vague responses. Look for specific, actionable solutions with clear leadership approach.`;
         break;
       case 'ppdt':
-        userPrompt += `Evaluate this PPDT discussion for logical thinking, positive approach, practical solutions, and leadership qualities. Be critical of superficial responses.`;
+        userPrompt += `Evaluate this PPDT discussion for:
+- Logical analysis of the picture
+- Positive interpretation of the situation
+- Practical solutions proposed
+- Leadership approach demonstrated
+- Team coordination abilities
+- Communication effectiveness
+- Problem-solving methodology
+Be critical of superficial responses. Look for depth, positivity, and practical leadership solutions.`;
         break;
       default:
-        userPrompt += `Evaluate this response according to strict SSB psychological assessment standards.`;
+        userPrompt += `Evaluate this response according to strict SSB psychological assessment standards for officer selection.`;
     }
     
     return userPrompt;
@@ -302,19 +257,19 @@ EVALUATION CRITERIA:
 
   private formatFeedback(analysis: any, isPremium: boolean): AIFeedback {
     return {
-      overallScore: analysis.overallScore || 3,
+      overallScore: analysis.overallScore || 5,
       traitScores: isPremium ? (analysis.traitScores || []) : [],
-      strengths: analysis.strengths || [],
-      improvements: analysis.improvements || [],
-      recommendations: analysis.recommendations || [],
-      officerLikeQualities: analysis.officerLikeQualities || [],
-      sampleResponse: analysis.sampleResponse || "Upgrade to premium to see sample responses",
+      strengths: analysis.strengths || ['Attempted the test'],
+      improvements: analysis.improvements || ['Provide more detailed responses', 'Focus on officer-like qualities'],
+      recommendations: analysis.recommendations || ['Practice structured responses', 'Upgrade to premium for detailed analysis'],
+      officerLikeQualities: analysis.officerLikeQualities || ['Shows basic effort'],
+      sampleResponse: analysis.sampleResponse || "A well-structured response would demonstrate clear thinking, practical solutions, and leadership qualities.",
     };
   }
 
   private getFallbackFeedback(): AIFeedback {
     return {
-      overallScore: 3,
+      overallScore: 5,
       traitScores: [],
       strengths: ['Attempted the test'],
       improvements: ['Provide more detailed responses', 'Focus on officer-like qualities', 'Show better problem-solving'],
