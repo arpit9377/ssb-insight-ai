@@ -146,11 +146,16 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          amount: number | null
           created_at: string
+          currency: string | null
           current_period_end: string | null
           current_period_start: string | null
           id: string
           plan_type: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -158,11 +163,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          amount?: number | null
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           plan_type?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -170,11 +180,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          amount?: number | null
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           plan_type?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null

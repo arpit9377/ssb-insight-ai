@@ -1,30 +1,57 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Star, Zap } from 'lucide-react';
+import { Check, Crown, Star, Zap, Loader2 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { paymentService, subscriptionPlans } from '@/services/paymentService';
+import { useToast } from '@/hooks/use-toast';
 
 const Subscription = () => {
-  const { user, subscription } = useAuthContext();
+  const { user, subscription, checkSubscription } = useAuthContext();
+  const { toast } = useToast();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const handleSubscribe = async (priceId: string) => {
-    if (!user) return;
-    await paymentService.createCheckoutSession(priceId, user.id);
-  };
+  const handleSubscribe = async (planId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handleManageSubscription = async () => {
-    if (!subscription?.stripe_customer_id) return;
-    await paymentService.createCustomerPortalSession(subscription.stripe_customer_id);
+    setLoadingPlan(planId);
+    
+    try {
+      const userEmail = user.emailAddresses?.[0]?.emailAddress || '';
+      await paymentService.processPayment(planId, user.id, userEmail);
+      
+      // Refresh subscription status after successful payment
+      await checkSubscription();
+      
+      toast({
+        title: "Payment Initiated",
+        description: "Please complete the payment process.",
+      });
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast({
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
   };
 
   const getIcon = (planId: string) => {
     switch (planId) {
       case 'basic': return <Zap className="h-6 w-6" />;
       case 'premium': return <Star className="h-6 w-6" />;
-      case 'pro': return <Crown className="h-6 w-6" />;
-      default: return <Check className="h-6 w-6" />;
+      default: return <Crown className="h-6 w-6" />;
     }
   };
 
@@ -32,9 +59,12 @@ const Subscription = () => {
     switch (planId) {
       case 'basic': return 'bg-blue-500';
       case 'premium': return 'bg-purple-500';
-      case 'pro': return 'bg-gold-500';
-      default: return 'bg-gray-500';
+      default: return 'bg-gold-500';
     }
+  };
+
+  const isCurrentPlan = (planId: string) => {
+    return subscription?.plan_type === planId && subscription?.status === 'active';
   };
 
   return (
@@ -49,29 +79,37 @@ const Subscription = () => {
           </p>
         </div>
 
-        {subscription && (
+        {subscription && subscription.status === 'active' && (
           <Card className="mb-8 border-green-200 bg-green-50">
             <CardHeader>
               <CardTitle className="text-green-800">Current Subscription</CardTitle>
               <CardDescription>
                 You are currently subscribed to the {subscription.plan_type} plan
+                {subscription.current_period_end && (
+                  <span className="block mt-1">
+                    Valid until: {new Date(subscription.current_period_end).toLocaleDateString()}
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={handleManageSubscription} variant="outline">
-                Manage Subscription
-              </Button>
-            </CardContent>
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {subscriptionPlans.map((plan) => (
             <Card 
               key={plan.id} 
-              className={`relative ${subscription?.plan_type === plan.id ? 'border-green-500 shadow-lg' : ''}`}
+              className={`relative ${isCurrentPlan(plan.id) ? 'border-green-500 shadow-lg' : ''} ${plan.popular ? 'border-purple-500 shadow-lg' : ''}`}
             >
-              {subscription?.plan_type === plan.id && (
+              {plan.popular && !isCurrentPlan(plan.id) && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                    Most Popular
+                  </span>
+                </div>
+              )}
+              
+              {isCurrentPlan(plan.id) && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
                     Current Plan
@@ -96,19 +134,28 @@ const Subscription = () => {
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center space-x-3">
-                      <Check className="h-5 w-5 text-green-500" />
+                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
                       <span className="text-gray-700">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 
                 <Button 
-                  className="w-full" 
-                  onClick={() => handleSubscribe(plan.priceId)}
-                  disabled={subscription?.plan_type === plan.id}
-                  variant={plan.id === 'premium' ? 'default' : 'outline'}
+                  className={`w-full ${plan.popular ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+                  onClick={() => handleSubscribe(plan.id)}
+                  disabled={isCurrentPlan(plan.id) || loadingPlan === plan.id}
+                  variant={plan.popular ? 'default' : 'outline'}
                 >
-                  {subscription?.plan_type === plan.id ? 'Current Plan' : 'Subscribe Now'}
+                  {loadingPlan === plan.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : isCurrentPlan(plan.id) ? (
+                    'Current Plan'
+                  ) : (
+                    'Subscribe Now'
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -117,10 +164,10 @@ const Subscription = () => {
 
         <div className="mt-12 text-center">
           <p className="text-gray-600 mb-4">
-            All plans include a 7-day free trial. Cancel anytime.
+            All plans are billed monthly. Cancel anytime from your account settings.
           </p>
           <p className="text-sm text-gray-500">
-            Secure payment processing powered by Stripe
+            Secure payment processing powered by Razorpay
           </p>
         </div>
       </div>
