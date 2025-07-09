@@ -37,8 +37,8 @@ export class AIService {
   private currentProvider: 'openai';
 
   constructor() {
-    // Using the existing OpenAI API key from your code
-    this.openaiApiKey = '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';
+    // TODO: Move to environment variables or edge function for security
+    this.openaiApiKey = 'your-openai-api-key-here';
     this.currentProvider = 'openai';
   }
 
@@ -92,9 +92,9 @@ export class AIService {
         'Authorization': `Bearer ${this.openaiApiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo', // Starting with 3.5 as requested
+        model: 'gpt-4o-mini',
         messages,
-        temperature: 0.2, // Lower temperature for more consistent analysis
+        temperature: 0.2,
         max_tokens: 3500,
         response_format: { type: "json_object" }
       }),

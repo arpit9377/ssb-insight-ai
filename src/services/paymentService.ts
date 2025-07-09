@@ -7,22 +7,51 @@ export interface SubscriptionPlan {
   price: number;
   features: string[];
   popular?: boolean;
+  comingSoon?: boolean;
 }
 
 export const subscriptionPlans: SubscriptionPlan[] = [
   {
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    popular: false,
+    features: [
+      'Access to 2 test modules',
+      'Basic feedback',
+      'Limited analysis per month',
+      'Community support'
+    ]
+  },
+  {
     id: 'basic',
-    name: 'Basic Plan',
+    name: 'Basic',
     price: 299,
-    features: ['5 Tests per month', 'Basic AI Feedback', 'Progress Tracking', 'Email Support'],
+    popular: true,
+    features: [
+      'Access to all test modules',
+      'Detailed analysis and feedback',
+      'Progress tracking',
+      'Monthly reports',
+      'Email support'
+    ]
   },
   {
     id: 'premium',
-    name: 'Premium Plan',
+    name: 'Premium',
     price: 999,
-    features: ['Unlimited Tests', 'Advanced AI Feedback', 'Detailed Analytics', 'Study Materials', 'Priority Support'],
-    popular: true,
-  },
+    popular: false,
+    comingSoon: true,
+    features: [
+      'Everything in Basic',
+      'Advanced AI analysis',
+      'Detailed personality insights',
+      'Custom study recommendations',
+      'Priority support',
+      'Mock interviews',
+      'One-on-one coaching'
+    ]
+  }
 ];
 
 declare global {

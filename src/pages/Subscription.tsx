@@ -13,6 +13,14 @@ const Subscription = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleSubscribe = async (planId: string) => {
+    if (planId === 'free') {
+      toast({
+        title: "Free Plan",
+        description: "You are already on the free plan.",
+      });
+      return;
+    }
+
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -49,6 +57,7 @@ const Subscription = () => {
 
   const getIcon = (planId: string) => {
     switch (planId) {
+      case 'free': return <Crown className="h-6 w-6" />;
       case 'basic': return <Zap className="h-6 w-6" />;
       case 'premium': return <Star className="h-6 w-6" />;
       default: return <Crown className="h-6 w-6" />;
@@ -57,13 +66,17 @@ const Subscription = () => {
 
   const getColor = (planId: string) => {
     switch (planId) {
+      case 'free': return 'bg-green-500';
       case 'basic': return 'bg-blue-500';
       case 'premium': return 'bg-purple-500';
-      default: return 'bg-gold-500';
+      default: return 'bg-gray-500';
     }
   };
 
   const isCurrentPlan = (planId: string) => {
+    if (planId === 'free') {
+      return !subscription || subscription?.status !== 'active';
+    }
     return subscription?.plan_type === planId && subscription?.status === 'active';
   };
 
@@ -95,16 +108,24 @@ const Subscription = () => {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {subscriptionPlans.map((plan) => (
             <Card 
               key={plan.id} 
-              className={`relative ${isCurrentPlan(plan.id) ? 'border-green-500 shadow-lg' : ''} ${plan.popular ? 'border-purple-500 shadow-lg' : ''}`}
+              className={`relative ${isCurrentPlan(plan.id) ? 'border-green-500 shadow-lg' : ''} ${plan.popular ? 'border-purple-500 shadow-lg' : ''} ${plan.comingSoon ? 'opacity-60' : ''}`}
             >
-              {plan.popular && !isCurrentPlan(plan.id) && (
+              {plan.popular && !isCurrentPlan(plan.id) && !plan.comingSoon && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
                     Most Popular
+                  </span>
+                </div>
+              )}
+              
+              {plan.comingSoon && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gray-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                    Coming Soon
                   </span>
                 </div>
               )}
@@ -118,15 +139,17 @@ const Subscription = () => {
               )}
               
               <CardHeader className="text-center">
-                <div className={`w-12 h-12 rounded-lg ${getColor(plan.id)} flex items-center justify-center mx-auto mb-4`}>
+                <div className={`w-12 h-12 rounded-lg ${getColor(plan.id)} flex items-center justify-center mx-auto mb-4 ${plan.comingSoon ? 'bg-gray-400' : ''}`}>
                   <div className="text-white">
                     {getIcon(plan.id)}
                   </div>
                 </div>
-                <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                <CardTitle className={`text-2xl ${plan.comingSoon ? 'text-gray-500' : ''}`}>{plan.name}</CardTitle>
                 <CardDescription>
-                  <span className="text-3xl font-bold text-gray-900">₹{plan.price}</span>
-                  <span className="text-gray-600">/month</span>
+                  <span className={`text-3xl font-bold ${plan.comingSoon ? 'text-gray-500' : 'text-gray-900'}`}>
+                    {plan.price === 0 ? 'Free' : `₹${plan.price}`}
+                  </span>
+                  {plan.price > 0 && <span className={`${plan.comingSoon ? 'text-gray-400' : 'text-gray-600'}`}>/month</span>}
                 </CardDescription>
               </CardHeader>
               
@@ -134,24 +157,28 @@ const Subscription = () => {
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center space-x-3">
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
+                      <Check className={`h-5 w-5 flex-shrink-0 ${plan.comingSoon ? 'text-gray-400' : 'text-green-500'}`} />
+                      <span className={`${plan.comingSoon ? 'text-gray-500' : 'text-gray-700'}`}>{feature}</span>
                     </li>
                   ))}
                 </ul>
                 
                 <Button 
-                  className={`w-full ${plan.popular ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
-                  onClick={() => handleSubscribe(plan.id)}
-                  disabled={isCurrentPlan(plan.id) || loadingPlan === plan.id}
-                  variant={plan.popular ? 'default' : 'outline'}
+                  className={`w-full ${plan.popular && !plan.comingSoon ? 'bg-purple-600 hover:bg-purple-700' : ''} ${plan.comingSoon ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed' : ''}`}
+                  onClick={() => !plan.comingSoon && handleSubscribe(plan.id)}
+                  disabled={isCurrentPlan(plan.id) || loadingPlan === plan.id || plan.comingSoon}
+                  variant={plan.popular && !plan.comingSoon ? 'default' : 'outline'}
                 >
-                  {loadingPlan === plan.id ? (
+                  {plan.comingSoon ? (
+                    'Coming Soon'
+                  ) : loadingPlan === plan.id ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
                     </>
                   ) : isCurrentPlan(plan.id) ? (
+                    'Current Plan'
+                  ) : plan.id === 'free' ? (
                     'Current Plan'
                   ) : (
                     'Subscribe Now'
