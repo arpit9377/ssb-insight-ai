@@ -33,12 +33,9 @@ const SSB_TRAITS = [
 ];
 
 export class AIService {
-  private openaiApiKey: string;
   private currentProvider: 'openai';
 
   constructor() {
-    // TODO: Move to environment variables or edge function for security
-    this.openaiApiKey = 'your-openai-api-key-here';
     this.currentProvider = 'openai';
   }
 
@@ -69,46 +66,23 @@ export class AIService {
     imageUrl?: string,
     isPremium: boolean = false
   ): Promise<AIFeedback> {
-    const systemPrompt = this.getEnhancedSystemPrompt(testType, isPremium);
-    const userPrompt = this.getEnhancedUserPrompt(testType, response, prompt);
-
-    const messages: any[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ];
-
-    // Add image for vision tasks (TAT/PPDT)
-    if (imageUrl && (testType === 'ppdt' || testType === 'tat')) {
-      messages[1].content = [
-        { type: 'text', text: userPrompt },
-        { type: 'image_url', image_url: { url: imageUrl } }
-      ];
-    }
-
-    const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages,
-        temperature: 0.2,
-        max_tokens: 3500,
-        response_format: { type: "json_object" }
-      }),
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { data, error } = await supabase.functions.invoke('ai-analysis', {
+      body: {
+        testType,
+        response,
+        prompt,
+        imageUrl,
+        isPremium
+      }
     });
 
-    if (!apiResponse.ok) {
-      const errorData = await apiResponse.json();
-      throw new Error(`OpenAI API request failed: ${apiResponse.statusText} - ${JSON.stringify(errorData)}`);
+    if (error) {
+      throw new Error(`AI analysis failed: ${error.message}`);
     }
 
-    const data = await apiResponse.json();
-    const analysis = JSON.parse(data.choices[0].message.content);
-
-    return this.formatFeedback(analysis, isPremium);
+    return data;
   }
 
   private getEnhancedSystemPrompt(testType: string, isPremium: boolean): string {
@@ -294,32 +268,21 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
       const systemPrompt = this.getTATBatchSystemPrompt(isPremium);
       const userPrompt = this.getTATBatchUserPrompt(batchData);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.openaiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.2,
-          max_tokens: isPremium ? 4000 : 2000,
-          response_format: { type: "json_object" }
-        }),
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { data, error } = await supabase.functions.invoke('ai-analysis', {
+        body: {
+          testType: 'tat_batch',
+          batchData,
+          isPremium
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`OpenAI API request failed: ${response.statusText}`);
+      if (error) {
+        throw new Error(`TAT batch analysis failed: ${error.message}`);
       }
 
-      const data = await response.json();
-      const analysis = JSON.parse(data.choices[0].message.content);
-
-      return this.formatFeedback(analysis, isPremium);
+      return data;
     } catch (error) {
       console.error('TAT Batch Analysis Error:', error);
       return this.getFallbackFeedback();
@@ -334,27 +297,21 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
       const systemPrompt = this.getWATBatchSystemPrompt(isPremium);
       const userPrompt = this.getWATBatchUserPrompt(batchData);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.openaiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.2,
-          max_tokens: isPremium ? 3000 : 1500,
-          response_format: { type: "json_object" }
-        }),
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { data, error } = await supabase.functions.invoke('ai-analysis', {
+        body: {
+          testType: 'wat_batch',
+          batchData,
+          isPremium
+        }
       });
 
-      const data = await response.json();
-      const analysis = JSON.parse(data.choices[0].message.content);
-      return this.formatFeedback(analysis, isPremium);
+      if (error) {
+        throw new Error(`WAT batch analysis failed: ${error.message}`);
+      }
+
+      return data;
     } catch (error) {
       console.error('WAT Batch Analysis Error:', error);
       return this.getFallbackFeedback();
@@ -369,27 +326,21 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
       const systemPrompt = this.getSRTBatchSystemPrompt(isPremium);
       const userPrompt = this.getSRTBatchUserPrompt(batchData);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.openaiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.2,
-          max_tokens: isPremium ? 3000 : 1500,
-          response_format: { type: "json_object" }
-        }),
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { data, error } = await supabase.functions.invoke('ai-analysis', {
+        body: {
+          testType: 'srt_batch',
+          batchData,
+          isPremium
+        }
       });
 
-      const data = await response.json();
-      const analysis = JSON.parse(data.choices[0].message.content);
-      return this.formatFeedback(analysis, isPremium);
+      if (error) {
+        throw new Error(`SRT batch analysis failed: ${error.message}`);
+      }
+
+      return data;
     } catch (error) {
       console.error('SRT Batch Analysis Error:', error);
       return this.getFallbackFeedback();
