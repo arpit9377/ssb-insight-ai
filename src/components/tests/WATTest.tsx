@@ -192,6 +192,7 @@ const WATTest = () => {
               isActive={true}
               onTimeUp={handleTimeUp}
               showWarning={true}
+              key={`wat-timer-${currentWordIndex}`}
             />
 
             <div className="bg-blue-50 p-4 rounded-lg">

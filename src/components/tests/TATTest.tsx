@@ -31,25 +31,31 @@ const TATTest = () => {
     initializeTest();
   }, [user]);
 
-  // Timer for viewing phase
+  // Timer for viewing phase (30 seconds)
   useEffect(() => {
-    if (!isWritingPhase && viewingTime > 0) {
+    const currentImage = images[currentImageIndex];
+    const isBlankSlide = currentImage?.id === 'blank-slide';
+    
+    if (!isWritingPhase && viewingTime > 0 && !isBlankSlide) {
       const timer = setTimeout(() => {
         setViewingTime(viewingTime - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (!isWritingPhase && viewingTime === 0) {
+    } else if (!isWritingPhase && (viewingTime === 0 || isBlankSlide)) {
       setCanRespond(true);
       setIsWritingPhase(true);
     }
-  }, [viewingTime, isWritingPhase]);
+  }, [viewingTime, isWritingPhase, currentImageIndex, images]);
 
   // Reset timers when moving to next image
   useEffect(() => {
+    const currentImage = images[currentImageIndex];
+    const isBlankSlide = currentImage?.id === 'blank-slide';
+    
     setViewingTime(30);
-    setCanRespond(false);
-    setIsWritingPhase(false);
-  }, [currentImageIndex]);
+    setCanRespond(isBlankSlide); // Allow immediate response for blank slide
+    setIsWritingPhase(isBlankSlide);
+  }, [currentImageIndex, images]);
 
   const initializeTest = async () => {
     try {
@@ -247,6 +253,7 @@ const TATTest = () => {
                   totalTime={30}
                   isActive={true}
                   showWarning={false}
+                  key={`tat-viewing-timer-${currentImageIndex}`}
                 />
               </div>
             ) : (
@@ -255,6 +262,7 @@ const TATTest = () => {
                 isActive={canRespond || isBlankSlide}
                 onTimeUp={handleWritingTimeUp}
                 showWarning={true}
+                key={`tat-writing-timer-${currentImageIndex}`}
               />
             )}
             
