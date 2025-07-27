@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
-        .eq('user_id', clerkUser.user.id)
+        .eq('user_id', clerkUser.user.id) // Clerk user ID is already a string
         .eq('status', 'active')
         .single();
       
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          user_id: clerkUser.user.id,
+          user_id: clerkUser.user.id, // Clerk user ID is already a string
           email: clerkUser.user.emailAddresses[0]?.emailAddress || '',
           full_name: clerkUser.user.fullName || '',
           age: 0,
