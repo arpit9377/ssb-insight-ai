@@ -370,7 +370,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_usage_count: {
+        Args: { table_name: string; row_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
