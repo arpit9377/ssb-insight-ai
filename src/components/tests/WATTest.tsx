@@ -31,6 +31,7 @@ const WATTest = () => {
   const initializeTest = async () => {
     try {
       if (!user?.id) {
+        console.error('No user ID found:', user);
         toast.error('Please log in to take the test');
         navigate('/');
         return;
@@ -38,18 +39,26 @@ const WATTest = () => {
 
       console.log('Initializing WAT test for user:', user.id);
       
-      await setupTestTables();
+      // Check database setup
+      const dbSetup = await setupTestTables();
+      console.log('Database setup result:', dbSetup);
       
+      // Test database connection
       const testWords = await TestContentService.getRandomWATWords(60);
+      console.log('Retrieved words:', testWords?.length || 0);
+      
       if (!testWords || testWords.length === 0) {
-        throw new Error('No WAT words found');
+        console.error('No WAT words retrieved from database');
+        throw new Error('No WAT words found in database');
       }
 
+      console.log('Creating test session...');
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'wat',
         testWords.length
       );
+      console.log('Session created:', sessionId);
 
       setWords(testWords);
       setSessionId(sessionId);
@@ -57,11 +66,12 @@ const WATTest = () => {
       setStartTime(Date.now());
       setIsLoading(false);
       
+      toast.success(`WAT test initialized with ${testWords.length} words!`);
       console.log('WAT test initialized successfully with session:', sessionId);
       
     } catch (error) {
       console.error('Failed to initialize WAT test:', error);
-      toast.error('Failed to initialize the test. Please try again.');
+      toast.error(`Test initialization failed: ${error.message}`);
       setIsLoading(false);
     }
   };
