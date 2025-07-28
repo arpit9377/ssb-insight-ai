@@ -60,6 +60,7 @@ const TATTest = () => {
   const initializeTest = async () => {
     try {
       if (!user?.id) {
+        console.error('No user ID found:', user);
         toast.error('Please log in to take the test');
         navigate('/');
         return;
@@ -67,12 +68,18 @@ const TATTest = () => {
 
       console.log('Initializing TAT test for user:', user.id);
       
-      await setupTestTables();
+      // Check database setup
+      const dbSetup = await setupTestTables();
+      console.log('Database setup result:', dbSetup);
       
       // Get 12 random images + add blank slide
+      console.log('Fetching TAT images...');
       const testImages = await TestContentService.getRandomTATImages(12);
+      console.log('Retrieved TAT images:', testImages?.length || 0);
+      
       if (!testImages || testImages.length === 0) {
-        throw new Error('No TAT images found');
+        console.error('No TAT images retrieved from database');
+        throw new Error('No TAT images found in database');
       }
 
       // Add blank slide as 13th image
@@ -84,12 +91,15 @@ const TATTest = () => {
       };
       
       const allImages = [...testImages, blankSlide];
+      console.log('Total images including blank slide:', allImages.length);
 
+      console.log('Creating test session...');
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'tat',
         allImages.length
       );
+      console.log('Session created:', sessionId);
 
       setImages(allImages);
       setSessionId(sessionId);
@@ -97,11 +107,12 @@ const TATTest = () => {
       setStartTime(Date.now());
       setIsLoading(false);
       
+      toast.success(`TAT test initialized with ${allImages.length} images!`);
       console.log('TAT test initialized successfully with session:', sessionId);
       
     } catch (error) {
       console.error('Failed to initialize TAT test:', error);
-      toast.error('Failed to initialize the test. Please try again.');
+      toast.error(`Test initialization failed: ${error.message}`);
       setIsLoading(false);
     }
   };

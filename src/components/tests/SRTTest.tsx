@@ -33,6 +33,7 @@ const SRTTest = () => {
   const initializeTest = async () => {
     try {
       if (!user?.id) {
+        console.error('No user ID found:', user);
         toast.error('Please log in to take the test');
         navigate('/');
         return;
@@ -40,18 +41,26 @@ const SRTTest = () => {
 
       console.log('Initializing SRT test for user:', user.id);
       
-      await setupTestTables();
+      // Check database setup
+      const dbSetup = await setupTestTables();
+      console.log('Database setup result:', dbSetup);
       
+      console.log('Fetching SRT situations...');
       const testSituations = await TestContentService.getRandomSRTSituations(60);
+      console.log('Retrieved SRT situations:', testSituations?.length || 0);
+      
       if (!testSituations || testSituations.length === 0) {
-        throw new Error('No SRT situations found');
+        console.error('No SRT situations retrieved from database');
+        throw new Error('No SRT situations found in database');
       }
 
+      console.log('Creating test session...');
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'srt',
         testSituations.length
       );
+      console.log('Session created:', sessionId);
 
       setSituations(testSituations);
       setSessionId(sessionId);
@@ -59,11 +68,12 @@ const SRTTest = () => {
       setIsTestActive(true);
       setIsLoading(false);
       
+      toast.success(`SRT test initialized with ${testSituations.length} situations!`);
       console.log('SRT test initialized successfully with session:', sessionId);
       
     } catch (error) {
       console.error('Failed to initialize SRT test:', error);
-      toast.error('Failed to initialize the test. Please try again.');
+      toast.error(`Test initialization failed: ${error.message}`);
       setIsLoading(false);
     }
   };

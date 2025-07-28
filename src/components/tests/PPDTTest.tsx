@@ -70,6 +70,7 @@ const PPDTTest = () => {
   const initializeTest = async () => {
     try {
       if (!user?.id) {
+        console.error('No user ID found:', user);
         toast.error('Please log in to take the test');
         navigate('/');
         return;
@@ -77,18 +78,26 @@ const PPDTTest = () => {
 
       console.log('Initializing PPDT test for user:', user.id);
       
-      await setupTestTables();
+      // Check database setup
+      const dbSetup = await setupTestTables();
+      console.log('Database setup result:', dbSetup);
       
+      console.log('Fetching PPDT images...');
       const testImages = await TestContentService.getRandomPPDTImages(1);
+      console.log('Retrieved PPDT images:', testImages?.length || 0);
+      
       if (!testImages || testImages.length === 0) {
-        throw new Error('No PPDT images found');
+        console.error('No PPDT images retrieved from database');
+        throw new Error('No PPDT images found in database');
       }
 
+      console.log('Creating test session...');
       const sessionId = await testAnalysisService.createTestSession(
         user.id,
         'ppdt',
         testImages.length
       );
+      console.log('Session created:', sessionId);
 
       setImages(testImages);
       setSessionId(sessionId);
@@ -96,11 +105,12 @@ const PPDTTest = () => {
       setStartTime(Date.now());
       setIsLoading(false);
       
+      toast.success(`PPDT test initialized with ${testImages.length} image!`);
       console.log('PPDT test initialized successfully with session:', sessionId);
       
     } catch (error) {
       console.error('Failed to initialize PPDT test:', error);
-      toast.error('Failed to initialize the test. Please try again.');
+      toast.error(`Test initialization failed: ${error.message}`);
       setIsLoading(false);
     }
   };
