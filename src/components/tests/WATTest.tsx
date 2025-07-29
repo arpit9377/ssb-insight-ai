@@ -116,28 +116,37 @@ const WATTest = () => {
     try {
       setIsAnalyzing(true);
       
+      // Filter out only the responses we actually have (up to current index)
+      const actualResponses = finalResponses.slice(0, currentWordIndex + 1);
+      const actualWords = words.slice(0, currentWordIndex + 1);
+      
+      console.log(`Storing ${actualResponses.length} responses for analysis`);
+      
       // Store all responses in database first
-      for (let i = 0; i < words.length; i++) {
-        await testAnalysisService.storeResponse(
-          user.id,
-          sessionId,
-          words[i].id,
-          finalResponses[i],
-          0, // Time taken per response not tracked in batch mode
-          'wat'
-        );
+      for (let i = 0; i < actualResponses.length; i++) {
+        if (actualResponses[i] && actualResponses[i] !== '') {
+          console.log(`Storing response ${i + 1}: ${actualResponses[i]}`);
+          await testAnalysisService.storeResponse(
+            user.id,
+            sessionId,
+            actualWords[i].id,
+            actualResponses[i],
+            0, // Time taken per response not tracked in batch mode
+            'wat'
+          );
+        }
       }
 
-      await testAnalysisService.updateTestSession(sessionId, words.length, 'completed');
+      await testAnalysisService.updateTestSession(sessionId, actualResponses.length, 'completed');
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
-      console.log(`Starting WAT batch analysis - Premium: ${isPremium}`);
+      console.log(`Starting WAT batch analysis - Premium: ${isPremium}, Responses: ${actualResponses.length}`);
 
       // Send all responses for batch analysis
-      await testAnalysisService.analyzeWATBatch(user.id, sessionId, isPremium, words, finalResponses);
+      await testAnalysisService.analyzeWATBatch(user.id, sessionId, isPremium, actualWords, actualResponses);
 
       toast.success('Test completed and analyzed successfully!');
       
@@ -147,7 +156,8 @@ const WATTest = () => {
 
     } catch (error) {
       console.error('Error completing test:', error);
-      toast.error('Test completed but analysis failed. Please check your dashboard.');
+      console.error('Error details:', error.message, error.stack);
+      toast.error(`Test completion failed: ${error.message || 'Unknown error'}`);
       navigate('/dashboard');
     }
   };
@@ -232,18 +242,34 @@ const WATTest = () => {
                     handleNext();
                   }
                 }}
+                autoFocus
               />
               
               <div className="flex justify-between items-center">
                 <p className="text-sm text-gray-500">
                   Progress: {currentWordIndex + 1}/{words.length}
                 </p>
-                <Button 
-                  onClick={() => handleNext()}
-                  className="px-8"
-                >
-                  {currentWordIndex === words.length - 1 ? 'Submit All Responses for Analysis' : 'Next'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleNext()}
+                    className="px-8"
+                  >
+                    {currentWordIndex === words.length - 1 ? 'Submit All Responses for Analysis' : 'Next'}
+                  </Button>
+                  {currentWordIndex >= 9 && (
+                    <Button 
+                      onClick={async () => {
+                        const newResponses = [...responses];
+                        newResponses[currentWordIndex] = currentResponse.trim() || 'No response provided';
+                        await handleTestCompletion(newResponses);
+                      }}
+                      variant="outline"
+                      className="px-6"
+                    >
+                      Submit Now
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

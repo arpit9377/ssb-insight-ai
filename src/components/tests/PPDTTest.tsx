@@ -197,8 +197,9 @@ const PPDTTest = () => {
       }, 2000);
 
     } catch (error) {
-      console.error('Error completing test:', error);
-      toast.error('Test completed but analysis failed. Please check your dashboard.');
+      console.error('Error completing PPDT test:', error);
+      console.error('Error details:', error.message, error.stack);
+      toast.error(`PPDT test completion failed: ${error.message || 'Unknown error'}`);
       navigate('/dashboard');
     }
   };
