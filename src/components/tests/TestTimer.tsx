@@ -35,7 +35,7 @@ const TestTimer: React.FC<TestTimerProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isActive, onTimeUp]);
+  }, [isActive]); // Removed onTimeUp from dependencies to prevent restarts
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

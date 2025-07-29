@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,8 @@ const WATTest = () => {
     }
   };
 
-  const handleTimeUp = () => {
+  const handleTimeUp = useCallback(() => {
+    console.log('Timer finished for word:', currentWordIndex + 1);
     if (currentResponse.trim()) {
       handleNext();
     } else {
@@ -85,7 +86,7 @@ const WATTest = () => {
         handleNext(true); // Force next even without response
       }, 1000);
     }
-  };
+  }, [currentResponse, currentWordIndex]);
 
   const handleNext = async (forceNext = false) => {
     if (!forceNext && !currentResponse.trim()) {
@@ -212,7 +213,7 @@ const WATTest = () => {
               isActive={true}
               onTimeUp={handleTimeUp}
               showWarning={true}
-              key={`wat-timer-${currentWordIndex}`}
+              key={currentWordIndex} // This ensures timer resets for each word
             />
 
             <div className="bg-blue-50 p-4 rounded-lg">

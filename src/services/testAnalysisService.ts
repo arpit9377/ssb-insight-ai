@@ -667,30 +667,48 @@ export class TestAnalysisService {
     analysis: any,
     isPremium: boolean
   ): Promise<void> {
-    const { data, error } = await supabase
-      .from('ai_analyses')
-      .insert({
-        user_id: userId,
-        test_session_id: sessionId,
-        analysis_type: testType,
-        ai_provider: 'openai',
-        raw_analysis: analysis,
-        processed_feedback: analysis,
-        overall_score: analysis.overallScore,
-        trait_scores: analysis.traitScores,
-        strengths: analysis.strengths,
-        improvements: analysis.improvements,
-        recommendations: analysis.recommendations,
-        is_premium_analysis: isPremium
-      });
+    try {
+      console.log('Storing comprehensive analysis for session:', sessionId);
+      console.log('Analysis data:', JSON.stringify(analysis, null, 2));
 
-    if (error) {
-      console.error('Error storing comprehensive analysis:', error);
+      const { data, error } = await supabase
+        .from('ai_analyses')
+        .insert({
+          user_id: userId,
+          test_session_id: sessionId,
+          analysis_type: testType,
+          ai_provider: 'openai',
+          raw_analysis: analysis,
+          processed_feedback: analysis,
+          overall_score: analysis.overallScore || 0,
+          trait_scores: analysis.traitScores || {},
+          strengths: analysis.strengths || [],
+          improvements: analysis.improvements || [],
+          recommendations: analysis.recommendations || [],
+          is_premium_analysis: isPremium
+        });
+
+      if (error) {
+        console.error('Error storing comprehensive analysis:', error);
+        console.error('Attempted to store:', {
+          user_id: userId,
+          test_session_id: sessionId,
+          analysis_type: testType,
+          ai_provider: 'openai',
+          overall_score: analysis.overallScore || 0,
+          is_premium_analysis: isPremium
+        });
+        throw error;
+      }
+
+      console.log('Analysis stored successfully');
+
+      // Update usage tracking
+      await this.updateAnalysisUsage(userId, isPremium);
+    } catch (error) {
+      console.error('Failed to store comprehensive analysis:', error);
       throw error;
     }
-
-    // Update usage tracking
-    await this.updateAnalysisUsage(userId, isPremium);
   }
 }
 
