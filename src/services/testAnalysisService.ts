@@ -107,16 +107,28 @@ export class TestAnalysisService {
     testType: string
   ): Promise<string> {
     try {
-      if (!userId || !sessionId || !questionId) {
+      if (!sessionId || !questionId) {
         throw new Error('Missing required parameters for storing response');
       }
 
       console.log('Storing response for session:', sessionId);
 
+      // Get current authenticated user from Supabase
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('Authentication required');
+      }
+
+      const supabaseUserId = user?.id;
+      if (!supabaseUserId) {
+        throw new Error('No authenticated user found');
+      }
+
       const { data, error } = await supabase
         .from('user_responses')
         .insert({
-          user_id: userId,
+          user_id: supabaseUserId,
           test_session_id: sessionId,
           question_id: questionId,
           response_text: responseText || '',
