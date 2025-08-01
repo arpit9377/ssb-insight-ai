@@ -27,15 +27,27 @@ interface AnalysisUsage {
 }
 
 export class TestAnalysisService {
+  // Get current authenticated user ID
+  private async getCurrentUserId(): Promise<string> {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+      throw new Error('No authenticated user found');
+    }
+    return user.id;
+  }
+
   // Create a new test session
   async createTestSession(userId: string, testType: string, totalQuestions: number): Promise<string> {
     try {
       console.log('Creating test session for user:', userId);
       
+      // Use Supabase user ID instead of Clerk user ID
+      const supabaseUserId = await this.getCurrentUserId();
+      
       const { data, error } = await supabase
         .from('test_sessions')
         .insert({
-          user_id: userId,
+          user_id: supabaseUserId,
           test_type: testType,
           status: 'in_progress',
           total_questions: totalQuestions,
@@ -158,15 +170,13 @@ export class TestAnalysisService {
   // Check if user can get free analysis
   async canUserGetFreeAnalysis(userId: string): Promise<boolean> {
     try {
-      if (!userId) {
-        console.log('No user ID provided, defaulting to premium analysis');
-        return false;
-      }
+      // Use Supabase user ID
+      const supabaseUserId = await this.getCurrentUserId();
 
       const { data, error } = await supabase
         .from('user_analysis_usage')
         .select('free_analyses_used')
-        .eq('user_id', userId)
+        .eq('user_id', supabaseUserId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -176,7 +186,7 @@ export class TestAnalysisService {
 
       const freeUsed = data?.free_analyses_used || 0;
       const canGetFree = freeUsed < 2;
-      console.log(`User ${userId} has used ${freeUsed}/2 free analyses, can get free: ${canGetFree}`);
+      console.log(`User ${supabaseUserId} has used ${freeUsed}/2 free analyses, can get free: ${canGetFree}`);
       
       return canGetFree;
     } catch (error) {
@@ -188,15 +198,13 @@ export class TestAnalysisService {
   // Update analysis usage
   async updateAnalysisUsage(userId: string, isFree: boolean): Promise<void> {
     try {
-      if (!userId) {
-        console.log('No user ID provided, skipping usage update');
-        return;
-      }
+      // Use Supabase user ID
+      const supabaseUserId = await this.getCurrentUserId();
 
       const { data: existing } = await supabase
         .from('user_analysis_usage')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', supabaseUserId)
         .maybeSingle();
 
       if (existing) {
@@ -214,7 +222,7 @@ export class TestAnalysisService {
         const { error } = await supabase
           .from('user_analysis_usage')
           .update(updateData)
-          .eq('user_id', userId);
+          .eq('user_id', supabaseUserId);
 
         if (error) {
           console.error('Error updating analysis usage:', error);
@@ -224,7 +232,7 @@ export class TestAnalysisService {
         const { error } = await supabase
           .from('user_analysis_usage')
           .insert({
-            user_id: userId,
+            user_id: supabaseUserId,
             free_analyses_used: isFree ? 1 : 0,
             total_analyses: 1,
             last_free_analysis_date: isFree ? new Date().toISOString().split('T')[0] : null
@@ -250,10 +258,13 @@ export class TestAnalysisService {
     isPremium: boolean = false
   ): Promise<void> {
     try {
-      if (!userId || !responseId || !response) {
+      if (!responseId || !response) {
         console.log('Skipping analysis due to missing required data');
         return;
       }
+
+      // Use Supabase user ID
+      const supabaseUserId = await this.getCurrentUserId();
 
       console.log(`Analyzing individual response: ${responseId}`);
       
@@ -294,7 +305,7 @@ export class TestAnalysisService {
       const { error } = await supabase
         .from('ai_analyses')
         .insert({
-          user_id: userId,
+          user_id: supabaseUserId,
           test_session_id: responseData?.test_session_id,
           response_id: responseId,
           analysis_type: 'individual',
@@ -323,9 +334,12 @@ export class TestAnalysisService {
   // Analyze complete test session
   async analyzeTestSession(userId: string, sessionId: string, isPremium: boolean = false): Promise<any> {
     try {
-      if (!userId || !sessionId) {
+      if (!sessionId) {
         throw new Error('Missing required parameters for session analysis');
       }
+
+      // Use Supabase user ID
+      const supabaseUserId = await this.getCurrentUserId();
 
       console.log(`Starting session analysis for: ${sessionId}`);
 
@@ -362,7 +376,7 @@ export class TestAnalysisService {
       for (const response of responses) {
         try {
           await this.analyzeIndividualResponse(
-            userId,
+            supabaseUserId,
             response.id,
             response.test_type,
             response.response_text,
@@ -382,7 +396,7 @@ export class TestAnalysisService {
       const { data: summaryAnalysis, error: summaryError } = await supabase
         .from('ai_analyses')
         .insert({
-          user_id: userId,
+          user_id: supabaseUserId,
           test_session_id: sessionId,
           response_id: responses[0].id,
           analysis_type: 'session_summary',
@@ -405,7 +419,7 @@ export class TestAnalysisService {
       }
 
       // Update analysis usage
-      await this.updateAnalysisUsage(userId, !isPremium);
+      await this.updateAnalysisUsage(supabaseUserId, !isPremium);
 
       console.log(`Session analysis completed for: ${sessionId}`);
       return summaryAnalysis;
@@ -683,10 +697,13 @@ export class TestAnalysisService {
       console.log('Storing comprehensive analysis for session:', sessionId);
       console.log('Analysis data:', JSON.stringify(analysis, null, 2));
 
+      // Use Supabase user ID
+      const supabaseUserId = await this.getCurrentUserId();
+
       const { data, error } = await supabase
         .from('ai_analyses')
         .insert({
-          user_id: userId,
+          user_id: supabaseUserId,
           test_session_id: sessionId,
           analysis_type: testType,
           ai_provider: 'openai',
@@ -703,7 +720,7 @@ export class TestAnalysisService {
       if (error) {
         console.error('Error storing comprehensive analysis:', error);
         console.error('Attempted to store:', {
-          user_id: userId,
+          user_id: supabaseUserId,
           test_session_id: sessionId,
           analysis_type: testType,
           ai_provider: 'openai',
@@ -716,7 +733,7 @@ export class TestAnalysisService {
       console.log('Analysis stored successfully');
 
       // Update usage tracking
-      await this.updateAnalysisUsage(userId, isPremium);
+      await this.updateAnalysisUsage(supabaseUserId, isPremium);
     } catch (error) {
       console.error('Failed to store comprehensive analysis:', error);
       throw error;
