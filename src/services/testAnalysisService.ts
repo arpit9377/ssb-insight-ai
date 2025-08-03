@@ -670,10 +670,16 @@ export class TestAnalysisService {
       
       const batchData = situations.map((situation, index) => ({
         situation: situation.situation,
-        response: responses[index]
+        response: responses[index],
+        timeTaken: 30 // Default time for each response
       }));
 
-      const analysis = await aiService.analyzeSRTBatch(batchData, isPremium);
+      const analysis = await aiService.analyzeSRTBatch(
+        batchData, 
+        isPremium, 
+        60, // Total SRT questions
+        responses.length // Completed questions
+      );
       await this.storeComprehensiveAnalysis(userId, sessionId, 'srt', analysis, isPremium);
 
       console.log('SRT batch analysis completed successfully');

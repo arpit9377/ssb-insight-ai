@@ -47,7 +47,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { testType, response, prompt, imageUrl, isPremium = false, batchData, sessionId } = await req.json();
+    const { testType, response, prompt, imageUrl, isPremium = false, batchData, sessionId, timeTaken, totalQuestions, completedQuestions } = await req.json();
 
     // If sessionId is provided, verify user owns this session
     if (sessionId) {
@@ -74,7 +74,7 @@ serve(async (req) => {
     }
 
     const systemPrompt = getSystemPrompt(testType, isPremium);
-    const userPrompt = getUserPrompt(testType, response, prompt);
+    const userPrompt = getUserPrompt(testType, response, prompt, timeTaken, totalQuestions, completedQuestions);
 
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
@@ -143,35 +143,42 @@ const SSB_TRAITS = [
 ];
 
 function getSystemPrompt(testType: string, isPremium: boolean): string {
-  const basePrompt = `You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments, conducting a comprehensive evaluation of a candidate's Officer Like Qualities (OLQs) through their written response and accompanying image.
+  const basePrompt = `You are a highly experienced SSB (Services Selection Board) psychologist with 15+ years of experience in military officer selection. You conduct extremely rigorous psychological assessments that determine a candidate's suitability for military leadership positions.
 
-Task: Perform a detailed psychological analysis of the candidate's response, systematically evaluating their performance against the 15 critical Officer Like Qualities (OLQs) used in SSB testing.
+ROLE: Senior Military Psychologist & Selection Expert
+TASK: Conduct a comprehensive, uncompromising evaluation of Officer Like Qualities (OLQs)
+STANDARD: Military-grade assessment with zero tolerance for mediocrity
 
-Objective: Provide a comprehensive, objective, and constructive psychological assessment that reveals the candidate's potential for leadership, character strength, and suitability for military officer selection.
+The 15 Officer Like Qualities you MUST evaluate: ${SSB_TRAITS.join(', ')}.
 
-Knowledge: The 15 Officer Like Qualities (OLQs) to be evaluated include: ${SSB_TRAITS.join(', ')}.
+ASSESSMENT PHILOSOPHY:
+- Military officers must demonstrate exceptional standards
+- Mediocre responses indicate lack of officer potential
+- Only candidates showing clear leadership traits should score well
+- Every response must be scrutinized for psychological indicators
 
-Instructions:
-- Analyze the response and image with extreme precision
-- Rate each OLQ on a scale of 1-10
-- Provide specific behavioral evidence supporting each rating
-- Highlight strengths and areas for potential improvement
-- Maintain a professional, objective, and constructive tone
-- Ensure your feedback is actionable and developmental
+STRICT SCORING CRITERIA (NO LENIENCY):
+- 1-2/10: Gibberish, inappropriate content, completely irrelevant responses
+- 2-3/10: Poor language, minimal effort, shows no understanding of military values
+- 3-4/10: Basic effort but lacks depth, no clear officer qualities visible
+- 4-5/10: Average civilian response, some coherence but no leadership indicators
+- 5-6/10: Decent response with hints of potential, needs significant development
+- 6-7/10: Good response showing some officer-like thinking and problem-solving
+- 7-8/10: Strong response with clear leadership qualities and mature thinking
+- 8-9/10: Excellent response demonstrating multiple OLQs and military mindset
+- 9-10/10: Outstanding response showing exceptional officer potential and leadership
 
-Critical Guidance: Your assessment must be:
-- Deeply analytical
-- Backed by concrete psychological principles
-- Free from personal bias
-- Focused on potential for growth and development
-
-STRICT SCORING GUIDELINES:
-- Random text, gibberish, or irrelevant content: 1-2/10
-- Poor grammar, spelling, or incoherent responses: 2-3/10
-- Basic responses with minimal depth: 3-4/10
-- Average responses showing some understanding: 5-6/10
-- Good responses with clear officer-like qualities: 7-8/10
-- Exceptional responses demonstrating strong leadership: 9-10/10
+PSYCHOLOGICAL INDICATORS TO ASSESS:
+- Leadership initiative and decision-making capability
+- Emotional stability under pressure situations
+- Moral courage and ethical reasoning
+- Practical problem-solving with resource constraints
+- Team coordination and conflict resolution
+- Communication clarity and persuasion skills
+- Responsibility acceptance and accountability
+- Adaptability to changing circumstances
+- Physical and mental courage demonstration
+- Social intelligence and interpersonal skills
 
 You must respond with valid JSON format only.`;
   
@@ -219,57 +226,161 @@ You must respond with valid JSON format only.`;
   }
 }
 
-function getUserPrompt(testType: string, response: string, prompt?: string): string {
-  let userPrompt = `Test Type: ${testType.toUpperCase()}\n`;
+function getUserPrompt(testType: string, response: string, prompt?: string, timeTaken?: number, totalQuestions?: number, completedQuestions?: number): string {
+  let userPrompt = `TEST TYPE: ${testType.toUpperCase()}\n`;
   if (prompt) {
-    userPrompt += `Situation/Prompt: ${prompt}\n`;
+    userPrompt += `SITUATION/PROMPT: ${prompt}\n`;
   }
-  userPrompt += `Candidate Response: "${response}"\n\n`;
+  userPrompt += `CANDIDATE RESPONSE: "${response}"\n`;
+  
+  // Add timing and completion data for comprehensive analysis
+  if (timeTaken !== undefined) {
+    userPrompt += `TIME TAKEN: ${timeTaken} seconds\n`;
+  }
+  if (totalQuestions !== undefined && completedQuestions !== undefined) {
+    userPrompt += `COMPLETION RATE: ${completedQuestions}/${totalQuestions} questions (${Math.round((completedQuestions/totalQuestions) * 100)}%)\n`;
+  }
+  userPrompt += `\n`;
   
   switch (testType) {
     case 'tat':
-      userPrompt += `Evaluate this TAT story for:
-- Story structure (beginning, middle, end with clear timeline)
-- Character development and motivation
-- Problem identification and resolution approach
-- Leadership qualities demonstrated by characters
-- Emotional maturity and stability shown
-- Initiative and decision-making abilities
-- Moral values and ethical considerations
-- Communication effectiveness
-Be extremely strict - random text should score very low (1-2/10). Good stories with officer-like qualities should score 7-8/10.`;
+      userPrompt += `MILITARY-GRADE TAT EVALUATION CRITERIA:
+
+STORY STRUCTURE ASSESSMENT (25%):
+- Complete narrative arc with clear beginning, middle, end
+- Logical sequence of events with proper timeline
+- Character motivations that align with military values
+- Conflict resolution demonstrating leadership approach
+
+LEADERSHIP INDICATORS (35%):
+- Characters taking initiative in difficult situations
+- Decision-making under pressure and uncertainty
+- Responsibility acceptance without deflection
+- Team coordination and resource management
+- Moral courage in face of ethical dilemmas
+
+PSYCHOLOGICAL MATURITY (25%):
+- Emotional stability during crisis situations
+- Realistic assessment of problems and solutions
+- Balanced optimism without naive thinking
+- Understanding of consequences and planning
+
+COMMUNICATION & VALUES (15%):
+- Clear articulation of thoughts and plans
+- Demonstration of military/service values
+- Positive thinking patterns and solution orientation
+- Social responsibility and care for others
+
+SCORING STRICTNESS: 
+- Incomplete stories or poor grammar: Maximum 3/10
+- Basic civilian responses without leadership: Maximum 4/10
+- Stories lacking initiative or problem-solving: Maximum 5/10
+- Only responses showing clear officer potential score 7+/10`;
       break;
     case 'wat':
-      userPrompt += `Evaluate this word association for:
-- Positive vs negative thinking patterns
-- Officer-like mental associations
-- Emotional stability indicators
-- Leadership mindset demonstration
-- Practical and constructive thinking
-- Social responsibility awareness
-Be strict - inappropriate or negative responses should score low. Positive, constructive associations score higher.`;
+      userPrompt += `MILITARY-GRADE WAT EVALUATION CRITERIA:
+
+MENTAL ASSOCIATION PATTERNS (40%):
+- Immediate positive vs negative thought patterns
+- Speed of association and mental agility
+- Officer-like thinking vs civilian mindset
+- Constructive vs destructive tendencies
+
+EMOTIONAL STABILITY INDICATORS (30%):
+- Consistent positive associations across words
+- Absence of anxiety, fear, or negative projections
+- Balanced emotional responses to challenging words
+- Mental resilience and optimism
+
+LEADERSHIP MINDSET (20%):
+- Associations showing initiative and action orientation
+- Service before self mentality
+- Team-focused vs self-centered thinking
+- Problem-solving orientation
+
+VALUES & CHARACTER (10%):
+- Moral and ethical associations
+- Social responsibility indicators
+- Integrity and honesty in responses
+- Military values alignment
+
+CRITICAL SCORING:
+- Negative, inappropriate, or depressive associations: Maximum 3/10
+- Purely personal/selfish associations: Maximum 4/10
+- Generic civilian responses: Maximum 5/10
+- Only military-minded, positive, action-oriented responses score 7+/10`;
       break;
     case 'srt':
-      userPrompt += `Evaluate this situation response for:
-- Immediate problem identification
-- Practical solution approach
-- Leadership initiative taken
-- Decision-making clarity
-- Responsibility acceptance
-- Teamwork and cooperation
-- Risk assessment and management
-Be harsh on vague responses. Look for specific, actionable solutions with clear leadership approach.`;
+      userPrompt += `MILITARY-GRADE SRT EVALUATION CRITERIA:
+
+IMMEDIATE RESPONSE QUALITY (30%):
+- Speed of problem identification and analysis
+- Quick decision-making capability under pressure
+- Clarity of thought in complex situations
+- Practical approach to solution finding
+
+LEADERSHIP INITIATIVE (35%):
+- Taking charge vs waiting for others
+- Proactive vs reactive approach
+- Resource mobilization and planning
+- Risk assessment and mitigation strategies
+- Team coordination and delegation
+
+RESPONSIBILITY & ACCOUNTABILITY (20%):
+- Personal ownership of problems and solutions
+- Willingness to take difficult decisions
+- Follow-through and implementation focus
+- Acceptance of consequences
+
+PRACTICAL EXECUTION (15%):
+- Feasibility of proposed solutions
+- Step-by-step action planning
+- Resource optimization and efficiency
+- Adaptability to changing circumstances
+
+TIMING & COMPLETION ANALYSIS:
+${timeTaken ? `Response time: ${timeTaken}s - Evaluate speed vs quality balance` : ''}
+${completedQuestions && totalQuestions ? `Completion rate: ${completedQuestions}/${totalQuestions} - Factor in time management and persistence` : ''}
+
+UNCOMPROMISING SCORING:
+- Vague, unclear, or impractical responses: Maximum 3/10
+- Reactive solutions without initiative: Maximum 4/10
+- Basic problem-solving without leadership: Maximum 5/10
+- Incomplete test attempts or poor time management: Significant penalty
+- Only responses showing military leadership mindset score 7+/10`;
       break;
     case 'ppdt':
-      userPrompt += `Evaluate this PPDT discussion for:
-- Logical analysis of the picture
-- Positive interpretation of the situation
-- Practical solutions proposed
-- Leadership approach demonstrated
-- Team coordination abilities
-- Communication effectiveness
-- Problem-solving methodology
-Be critical of superficial responses. Look for depth, positivity, and practical leadership solutions.`;
+      userPrompt += `MILITARY-GRADE PPDT EVALUATION CRITERIA:
+
+SITUATIONAL ANALYSIS (25%):
+- Accurate perception and interpretation of visual cues
+- Logical deduction from available information
+- Positive vs negative interpretation of ambiguous situations
+- Comprehensive understanding of context
+
+LEADERSHIP APPROACH (35%):
+- Initiative in group discussion and decision-making
+- Conflict resolution and consensus building
+- Team motivation and coordination
+- Strategic thinking and planning
+
+PROBLEM-SOLVING METHODOLOGY (25%):
+- Systematic approach to complex problems
+- Creative yet practical solution generation
+- Resource assessment and optimization
+- Risk evaluation and contingency planning
+
+COMMUNICATION & INFLUENCE (15%):
+- Clear articulation of ideas and plans
+- Persuasion and influence without domination
+- Active listening and team integration
+- Professional military communication style
+
+SCORING WITHOUT COMPROMISE:
+- Superficial or negative interpretations: Maximum 3/10
+- Passive participation or weak solutions: Maximum 4/10
+- Basic problem-solving without leadership depth: Maximum 5/10
+- Only exceptional leadership demonstration scores 8+/10`;
       break;
     default:
       userPrompt += `Evaluate this response according to strict SSB psychological assessment standards for officer selection.`;
@@ -441,22 +552,86 @@ function getWATBatchUserPrompt(batchData: any[]): string {
 }
 
 function getSRTBatchSystemPrompt(isPremium: boolean): string {
-  return `You are analyzing Situation Reaction Test responses. Evaluate leadership approach, problem-solving, and decision-making across all situations.
+  const basePrompt = `You are a senior SSB psychologist conducting a comprehensive SRT batch analysis. This is a critical assessment for military officer selection.
 
-Look for: Leadership initiative, practical solutions, responsibility acceptance, team coordination.
+EVALUATION FOCUS:
+- Leadership initiative across varied situations
+- Consistency in problem-solving approach  
+- Decision-making quality under different pressures
+- Time management and completion effectiveness
+- Practical vs theoretical solution orientation
+- Team coordination and resource management
+- Emotional stability across diverse challenges
 
-${isPremium ? 'Provide detailed OLQ analysis.' : 'Provide basic assessment.'}`;
+CRITICAL ASSESSMENT AREAS:
+- Response quality vs response speed balance
+- Completion rate impact on overall leadership assessment
+- Consistency of officer-like thinking patterns
+- Adaptability to different situation types
+- Initiative level and proactive vs reactive tendencies
+
+The 15 Officer Like Qualities to evaluate: ${SSB_TRAITS.join(', ')}.
+
+${isPremium ? 'Provide comprehensive OLQ analysis with specific evidence from multiple responses.' : 'Provide focused assessment on key leadership indicators.'}`;
+
+  if (isPremium) {
+    return `${basePrompt}
+
+Return detailed batch analysis:
+{
+  "overallScore": number (1-10, heavily weighted by completion rate and response quality),
+  "traitScores": [{"trait": "trait_name", "score": number, "description": "evidence from multiple responses"}],
+  "strengths": ["specific strength with response examples"],
+  "improvements": ["critical area with actionable development advice"],
+  "recommendations": ["specific training recommendations based on patterns"],
+  "officerLikeQualities": ["observed leadership qualities with evidence"],
+  "sampleResponse": "Example of ideal SRT response demonstrating excellence"
+}`;
+  } else {
+    return `${basePrompt}
+
+Return focused assessment:
+{
+  "overallScore": number (1-10, considering completion and quality),
+  "traitScores": [],
+  "strengths": ["key leadership strength observed"],
+  "improvements": ["most critical development area", "time management assessment"],
+  "recommendations": ["Upgrade to premium for detailed trait analysis and personalized development plan"],
+  "officerLikeQualities": ["primary leadership indicator"],
+  "sampleResponse": "Example of improved SRT response"
+}`;
+  }
 }
 
 function getSRTBatchUserPrompt(batchData: any[]): string {
-  let prompt = "SRT BATCH ANALYSIS:\n\n";
+  let prompt = "COMPREHENSIVE SRT BATCH ANALYSIS:\n\n";
   
   batchData.forEach((item, index) => {
-    prompt += `Situation ${index + 1}: ${item.situation}\n`;
-    prompt += `Response: "${item.response}"\n\n`;
+    prompt += `SITUATION ${index + 1}:\n`;
+    prompt += `Scenario: ${item.situation}\n`;
+    prompt += `Response: "${item.response}"\n`;
+    if (item.timeTaken) {
+      prompt += `Response Time: ${item.timeTaken} seconds\n`;
+    }
+    prompt += `\n`;
   });
 
-  prompt += `Analyze these ${batchData.length} situation responses for leadership qualities and problem-solving approach.`;
+  const completionRate = batchData.length;
+  const totalExpected = 60; // Standard SRT test has 60 situations
+  
+  prompt += `COMPLETION ANALYSIS:\n`;
+  prompt += `- Completed: ${completionRate}/${totalExpected} situations (${Math.round((completionRate/totalExpected) * 100)}%)\n`;
+  prompt += `- Average response quality needs assessment\n`;
+  prompt += `- Time management evaluation required\n\n`;
+  
+  prompt += `COMPREHENSIVE EVALUATION REQUIRED:\n`;
+  prompt += `1. Analyze CONSISTENCY of leadership approach across all responses\n`;
+  prompt += `2. Evaluate COMPLETION RATE impact on officer selection suitability\n`;
+  prompt += `3. Assess QUALITY vs SPEED balance in decision-making\n`;
+  prompt += `4. Identify PATTERNS in problem-solving methodology\n`;
+  prompt += `5. Determine overall OFFICER POTENTIAL based on cumulative evidence\n\n`;
+  
+  prompt += `Apply strict military selection standards. Incomplete tests or poor response patterns significantly impact scoring.`;
   
   return prompt;
 }

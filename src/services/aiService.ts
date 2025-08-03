@@ -319,20 +319,21 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
   }
 
   async analyzeSRTBatch(
-    batchData: Array<{ situation: string; response: string }>,
-    isPremium: boolean = false
+    batchData: Array<{ situation: string; response: string; timeTaken?: number }>,
+    isPremium: boolean = false,
+    totalQuestions?: number,
+    completedQuestions?: number
   ): Promise<any> {
     try {
-      const systemPrompt = this.getSRTBatchSystemPrompt(isPremium);
-      const userPrompt = this.getSRTBatchUserPrompt(batchData);
-
       const { supabase } = await import('@/integrations/supabase/client');
       
       const { data, error } = await supabase.functions.invoke('ai-analysis', {
         body: {
           testType: 'srt_batch',
           batchData,
-          isPremium
+          isPremium,
+          totalQuestions,
+          completedQuestions
         }
       });
 
