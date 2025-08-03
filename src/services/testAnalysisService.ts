@@ -536,14 +536,31 @@ export class TestAnalysisService {
   async getSessionAnalysis(sessionId: string): Promise<any> {
     try {
       if (!sessionId) {
+        console.log('No session ID provided');
         return null;
       }
 
+      console.log('Looking for analysis with session ID:', sessionId);
+
+      // First check what analyses exist for this session
+      const { data: allAnalyses, error: allError } = await supabase
+        .from('ai_analyses')
+        .select('*')
+        .eq('test_session_id', sessionId);
+
+      console.log('All analyses for session:', allAnalyses);
+
+      if (allError) {
+        console.error('Error fetching all analyses:', allError);
+      }
+
+      // Look for any analysis for this session (not just session_summary)
       const { data, error } = await supabase
         .from('ai_analyses')
         .select('*')
         .eq('test_session_id', sessionId)
-        .eq('analysis_type', 'session_summary')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {
@@ -551,6 +568,7 @@ export class TestAnalysisService {
         return null;
       }
 
+      console.log('Found analysis:', data);
       return data;
     } catch (error) {
       console.error('Error getting session analysis:', error);
@@ -682,7 +700,7 @@ export class TestAnalysisService {
         .insert({
           user_id: userId,
           test_session_id: sessionId,
-          analysis_type: testType,
+          analysis_type: 'session_summary', // Use consistent analysis type for session results
           ai_provider: 'openai',
           raw_analysis: analysis,
           processed_feedback: analysis,
@@ -709,8 +727,8 @@ export class TestAnalysisService {
 
       console.log('Analysis stored successfully');
 
-      // Update usage tracking
-      await this.updateAnalysisUsage(userId, isPremium);
+      // Update usage tracking  
+      await this.updateAnalysisUsage(userId, !isPremium);
     } catch (error) {
       console.error('Failed to store comprehensive analysis:', error);
       throw error;
