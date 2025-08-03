@@ -29,11 +29,9 @@ interface AnalysisUsage {
 export class TestAnalysisService {
   // Get current authenticated user ID (for backward compatibility)
   private async getCurrentUserId(): Promise<string> {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) {
-      throw new Error('No authenticated user found');
-    }
-    return user.id;
+    // This method is kept for backward compatibility but not used
+    // The app now uses Clerk user IDs passed directly to methods
+    throw new Error('Use Clerk user ID directly instead of getCurrentUserId()');
   }
 
   // Create a new test session
