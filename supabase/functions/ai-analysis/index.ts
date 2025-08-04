@@ -311,109 +311,123 @@ CRITICAL SCORING:
 - Only military-minded, positive, action-oriented responses score 7+/10`;
       break;
     case 'srt':
-      userPrompt += `MILITARY-GRADE SRT EVALUATION CRITERIA:
+      userPrompt += `
+SRT RESPONSE ANALYSIS - Military Standards:
 
-IMMEDIATE RESPONSE QUALITY (30%):
-- Speed of problem identification and analysis
-- Quick decision-making capability under pressure
-- Clarity of thought in complex situations
-- Practical approach to solution finding
+1. PROBLEM UNDERSTANDING EVALUATION:
+   - Does the response show clear understanding of the situation?
+   - Is the problem identification accurate and complete?
+   - Quote specific parts showing situational awareness
 
-LEADERSHIP INITIATIVE (35%):
-- Taking charge vs waiting for others
-- Proactive vs reactive approach
-- Resource mobilization and planning
-- Risk assessment and mitigation strategies
-- Team coordination and delegation
+2. LEADERSHIP INITIATIVE ASSESSMENT:
+   - Does the candidate take charge immediately or wait for others?
+   - Is the approach proactive and decisive or reactive and hesitant?
+   - Identify specific action words that show leadership vs following
 
-RESPONSIBILITY & ACCOUNTABILITY (20%):
-- Personal ownership of problems and solutions
-- Willingness to take difficult decisions
-- Follow-through and implementation focus
-- Acceptance of consequences
+3. SOLUTION PRACTICALITY CHECK:
+   - Are the proposed solutions realistic and implementable?
+   - Does the response show step-by-step planning?
+   - Point to specific elements showing practical thinking vs theoretical approach
 
-PRACTICAL EXECUTION (15%):
-- Feasibility of proposed solutions
-- Step-by-step action planning
-- Resource optimization and efficiency
-- Adaptability to changing circumstances
+4. RESPONSIBILITY & EXECUTION EVALUATION:
+   - Does the candidate take personal ownership of the problem?
+   - Is there evidence of follow-through and accountability?
+   - Quote phrases showing commitment to implementation
 
-TIMING & COMPLETION ANALYSIS:
-${timeTaken ? `Response time: ${timeTaken}s - Evaluate speed vs quality balance` : ''}
-${completedQuestions && totalQuestions ? `Completion rate: ${completedQuestions}/${totalQuestions} - Factor in time management and persistence` : ''}
+5. TIME MANAGEMENT ANALYSIS:
+${timeTaken ? `   - Response time: ${timeTaken}s - Evaluate if quick response compromised quality` : ''}
+${completedQuestions && totalQuestions ? `   - Completion rate: ${completedQuestions}/${totalQuestions} - Assess persistence and time management` : ''}
 
-UNCOMPROMISING SCORING:
-- Vague, unclear, or impractical responses: Maximum 3/10
-- Reactive solutions without initiative: Maximum 4/10
-- Basic problem-solving without leadership: Maximum 5/10
-- Incomplete test attempts or poor time management: Significant penalty
-- Only responses showing military leadership mindset score 7+/10`;
+SCORING CRITERIA:
+- Vague, impractical, or victim-mentality responses: MAX 3/10
+- Basic problem-solving without leadership initiative: MAX 5/10
+- Good solutions with some leadership qualities: 6-7/10
+- Exceptional leadership demonstration with practical execution: 8-10/10`;
       break;
     case 'ppdt':
-      userPrompt += `MILITARY-GRADE PPDT EVALUATION CRITERIA:
+      userPrompt += `
+PPDT RESPONSE ANALYSIS - Military Standards:
 
-SITUATIONAL ANALYSIS (25%):
-- Accurate perception and interpretation of visual cues
-- Logical deduction from available information
-- Positive vs negative interpretation of ambiguous situations
-- Comprehensive understanding of context
+1. SITUATION PERCEPTION EVALUATION:
+   - Does the response show accurate interpretation of the image/scenario?
+   - Is the perception positive and constructive or negative?
+   - Quote specific descriptions that show perception quality
 
-LEADERSHIP APPROACH (35%):
-- Initiative in group discussion and decision-making
-- Conflict resolution and consensus building
-- Team motivation and coordination
-- Strategic thinking and planning
+2. LEADERSHIP DEMONSTRATION CHECK:
+   - Does the candidate naturally take initiative in the described scenario?
+   - Is there evidence of team coordination and motivation?
+   - Identify specific actions/words showing leadership vs following
 
-PROBLEM-SOLVING METHODOLOGY (25%):
-- Systematic approach to complex problems
-- Creative yet practical solution generation
-- Resource assessment and optimization
-- Risk evaluation and contingency planning
+3. PROBLEM-SOLVING ASSESSMENT:
+   - Is the approach systematic and well-planned?
+   - Are solutions practical and achievable?
+   - Point to specific problem-solving elements in the response
 
-COMMUNICATION & INFLUENCE (15%):
-- Clear articulation of ideas and plans
-- Persuasion and influence without domination
-- Active listening and team integration
-- Professional military communication style
+4. COMMUNICATION EFFECTIVENESS:
+   - Is the response clearly articulated and organized?
+   - Does it show ability to influence and persuade?
+   - Quote examples of effective vs ineffective communication
 
-SCORING WITHOUT COMPROMISE:
-- Superficial or negative interpretations: Maximum 3/10
-- Passive participation or weak solutions: Maximum 4/10
-- Basic problem-solving without leadership depth: Maximum 5/10
-- Only exceptional leadership demonstration scores 8+/10`;
+5. MILITARY MINDSET EVALUATION:
+   - Does the response reflect service orientation?
+   - Is there evidence of strategic thinking?
+   - Identify phrases showing military vs civilian approach
+
+SCORING CRITERIA:
+- Negative interpretation or passive role description: MAX 3/10
+- Basic problem description without leadership: MAX 5/10
+- Good leadership demonstration with practical solutions: 6-8/10
+- Outstanding military leadership with strategic thinking: 9-10/10`;
       break;
     default:
-      userPrompt += `Evaluate this response according to strict SSB psychological assessment standards for officer selection.`;
+      userPrompt += `
+GENERAL RESPONSE ANALYSIS - Military Standards:
+
+Evaluate this response for officer-like qualities, leadership potential, and psychological maturity.
+Provide specific evidence from their actual response to support your assessment.
+Be strict but constructive in your evaluation.`;
   }
+  
+  userPrompt += `
+
+MANDATORY ANALYSIS REQUIREMENTS:
+1. Quote specific phrases from the candidate's response in your feedback
+2. Explain exactly why each score was given with evidence
+3. Compare their response to what an ideal officer candidate would have written
+4. Provide a sample ideal response that demonstrates better military thinking
+5. Be constructively critical - help them understand their gaps
+
+Remember: Most responses should score 3-6/10. Only truly exceptional military leadership demonstration deserves 7+/10.`;
   
   return userPrompt;
 }
 
 function formatFeedback(analysis: any, isPremium: boolean): any {
-  // Ensure different default score if analysis fails
-  const fallbackScore = Math.floor(Math.random() * 3) + 3; // 3, 4, or 5
+  // Only use analysis if it exists and has valid data, otherwise return null
+  if (!analysis || typeof analysis !== 'object') {
+    return null;
+  }
+
   return {
-    overallScore: analysis.overallScore || fallbackScore,
-    traitScores: isPremium ? (analysis.traitScores || []) : [],
-    strengths: analysis.strengths || ['Attempted the test', 'Shows engagement'],
-    improvements: analysis.improvements || ['Provide more detailed responses', 'Focus on officer-like qualities'],
-    recommendations: analysis.recommendations || ['Practice structured responses', 'Upgrade to premium for detailed analysis'],
-    officerLikeQualities: analysis.officerLikeQualities || ['Shows basic effort'],
-    sampleResponse: analysis.sampleResponse || "A well-structured response would demonstrate clear thinking, practical solutions, and leadership qualities.",
+    overallScore: analysis.overallScore || analysis.overall_score || 0,
+    traitScores: isPremium ? (analysis.traitScores || analysis.trait_scores || []) : [],
+    strengths: analysis.strengths || [],
+    improvements: analysis.improvements || analysis.areas_for_improvement || [],
+    recommendations: analysis.recommendations || [],
+    officerLikeQualities: analysis.officerLikeQualities || analysis.officer_like_qualities || [],
+    sampleResponse: analysis.sampleResponse || analysis.sample_response || "",
   };
 }
 
 function getFallbackFeedback(): any {
-  // Generate varied fallback scores to avoid identical results
-  const baseScore = Math.floor(Math.random() * 3) + 3; // 3, 4, or 5
   return {
-    overallScore: baseScore,
+    overallScore: 2,
     traitScores: [],
-    strengths: ['Completed the test', 'Shows effort in responses'],
-    improvements: ['Provide more detailed responses', 'Focus on officer-like qualities', 'Show better problem-solving'],
-    recommendations: ['Practice writing more structured responses', 'Study officer-like qualities', 'Upgrade to premium for detailed analysis'],
-    officerLikeQualities: ['Shows basic effort', 'Demonstrates attempt'],
-    sampleResponse: "A well-structured response would demonstrate clear thinking, practical solutions, and leadership qualities.",
+    strengths: ['Attempted the test'],
+    improvements: ['Provide more detailed responses', 'Develop clearer thinking', 'Show better problem-solving skills'],
+    recommendations: ['Study officer-like qualities thoroughly', 'Practice structured response writing', 'Upgrade to premium for detailed analysis'],
+    officerLikeQualities: ['Basic effort shown'],
+    sampleResponse: "Unable to generate personalized feedback. Please try again or upgrade to premium for better analysis.",
   };
 }
 
