@@ -42,8 +42,9 @@ serve(async (req) => {
       );
     }
 
-    const openaiApiKey = Deno.env.get('openaiApiKey');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
+      console.error('OpenAI API key not found in environment variables');
       throw new Error('OpenAI API key not configured');
     }
 
@@ -96,7 +97,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${openaiApiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-2025-04-14',
         messages,
         temperature: 0.2,
         max_tokens: 3500,
