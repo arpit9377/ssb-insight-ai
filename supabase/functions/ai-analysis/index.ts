@@ -439,6 +439,8 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
   };
 
   try {
+    console.log(`Starting batch analysis for ${testType}, premium: ${isPremium}, items: ${batchData.length}`);
+    
     let systemPrompt: string;
     let userPrompt: string;
 
@@ -452,9 +454,11 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
       systemPrompt = getSRTBatchSystemPrompt(isPremium);
       userPrompt = getSRTBatchUserPrompt(batchData);
     } else {
+      console.error(`Invalid batch test type: ${testType}`);
       throw new Error('Invalid batch test type');
     }
 
+    console.log('Calling OpenAI API for batch analysis...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -474,13 +478,35 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`OpenAI API request failed: ${response.status} ${response.statusText}`, errorText);
       throw new Error(`OpenAI API request failed: ${response.statusText}`);
     }
 
     const data = await response.json();
-    const analysis = JSON.parse(data.choices[0].message.content);
+    console.log('OpenAI response received, parsing content...');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error('Invalid OpenAI response structure:', data);
+      throw new Error('Invalid OpenAI response structure');
+    }
 
-    return new Response(JSON.stringify(formatFeedback(analysis, isPremium)), {
+    const content = data.choices[0].message.content;
+    console.log('Raw OpenAI content:', content);
+    
+    let analysis;
+    try {
+      analysis = JSON.parse(content);
+      console.log('Parsed analysis:', analysis);
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response as JSON:', parseError, 'Content:', content);
+      throw new Error('Failed to parse analysis response');
+    }
+
+    const formattedFeedback = formatFeedback(analysis, isPremium);
+    console.log('Formatted feedback:', formattedFeedback);
+
+    return new Response(JSON.stringify(formattedFeedback), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
