@@ -198,16 +198,16 @@ You must respond with valid JSON format only.`;
     - Specific developmental recommendations
     - Clear identification of officer-like qualities observed
     
-    Return comprehensive analysis as JSON:
-    {
-      "overallScore": number (1-10, average of trait scores),
-      "traitScores": [{"trait": "trait_name", "score": number (1-10), "description": "detailed psychological analysis with evidence"}],
-      "strengths": ["specific strength with evidence", "specific strength with evidence"],
-      "improvements": ["specific area with actionable advice", "specific area with actionable advice"],
-      "recommendations": ["developmental recommendation with steps", "developmental recommendation with steps"],
-      "officerLikeQualities": ["observed quality with evidence", "observed quality with evidence"],
-      "sampleResponse": "A professionally written example response demonstrating excellence for this prompt"
-    }`;
+     Return comprehensive analysis as JSON:
+     {
+       "overallScore": 7,
+       "traitScores": [{"trait": "Leadership", "score": 8, "description": "detailed psychological analysis with evidence"}],
+       "strengths": ["specific strength with evidence", "specific strength with evidence"],
+       "improvements": ["specific area with actionable advice", "specific area with actionable advice"],
+       "recommendations": ["developmental recommendation with steps", "developmental recommendation with steps"],
+       "officerLikeQualities": ["observed quality with evidence", "observed quality with evidence"],
+       "sampleResponse": "A professionally written example response demonstrating excellence for this prompt"
+     }`;
   } else {
     return `${basePrompt}
     
@@ -216,7 +216,7 @@ You must respond with valid JSON format only.`;
     
     Return analysis as JSON:
     {
-      "overallScore": number (1-10, based on overall assessment),
+      "overallScore": 6,
       "traitScores": [],
       "strengths": ["key strength 1", "key strength 2"],
       "improvements": ["critical area 1", "critical area 2", "critical area 3"],
@@ -622,10 +622,10 @@ ${isPremium ? 'Provide comprehensive OLQ analysis with specific evidence from mu
   if (isPremium) {
     return `${basePrompt}
 
-Return detailed batch analysis:
+You must respond with valid JSON format only:
 {
-  "overallScore": number (1-10, heavily weighted by completion rate and response quality),
-  "traitScores": [{"trait": "trait_name", "score": number, "description": "evidence from multiple responses"}],
+  "overallScore": 7,
+  "traitScores": [{"trait": "Leadership", "score": 8, "description": "evidence from multiple responses"}],
   "strengths": ["specific strength with response examples"],
   "improvements": ["critical area with actionable development advice"],
   "recommendations": ["specific training recommendations based on patterns"],
@@ -635,9 +635,9 @@ Return detailed batch analysis:
   } else {
     return `${basePrompt}
 
-Return focused assessment:
+You must respond with valid JSON format only:
 {
-  "overallScore": number (1-10, considering completion and quality),
+  "overallScore": 6,
   "traitScores": [],
   "strengths": ["key leadership strength observed"],
   "improvements": ["most critical development area", "time management assessment"],
