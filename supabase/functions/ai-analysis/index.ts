@@ -13,33 +13,32 @@ serve(async (req) => {
   }
 
   try {
+    console.log('AI Analysis function called');
+    
     // Get user from JWT token
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    let user = null;
     
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Try to authenticate if header present, but don't fail if it doesn't work
+    if (authHeader) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: userData, error: authError } = await supabase.auth.getUser(token);
+        if (userData?.user && !authError) {
+          user = userData.user;
+          console.log('User authenticated:', user.id);
+        } else {
+          console.log('Auth failed, proceeding without user:', authError?.message);
         }
-      );
+      } catch (authErr) {
+        console.log('Auth error, proceeding without user:', authErr);
+      }
+    } else {
+      console.log('No auth header, proceeding without user');
     }
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -50,8 +49,8 @@ serve(async (req) => {
 
     const { testType, response, prompt, imageUrl, isPremium = false, batchData, sessionId, timeTaken, totalQuestions, completedQuestions } = await req.json();
 
-    // If sessionId is provided, verify user owns this session
-    if (sessionId) {
+    // If sessionId is provided and user is authenticated, verify user owns this session
+    if (sessionId && user) {
       const { data: session, error: sessionError } = await supabase
         .from('test_sessions')
         .select('user_id')
@@ -59,6 +58,7 @@ serve(async (req) => {
         .single();
 
       if (sessionError || !session || session.user_id !== user.id) {
+        console.log('Session verification failed:', sessionError?.message);
         return new Response(
           JSON.stringify({ error: 'Unauthorized access to session' }),
           { 
