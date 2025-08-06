@@ -29,16 +29,17 @@ const Dashboard = () => {
     if (!user) return;
 
     try {
-      // Get total tests completed by user
+      // Get total completed test sessions (not individual responses)
       const { count: testsCount } = await supabase
-        .from('user_responses')
+        .from('test_sessions')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
 
       // Get session analyses for average score calculation
       const { data: analyses } = await supabase
         .from('ai_analyses')
-        .select('processed_feedback, raw_analysis, test_type')
+        .select('processed_feedback, raw_analysis, overall_score, trait_scores')
         .eq('user_id', user.id)
         .eq('analysis_type', 'session_summary');
 
@@ -47,28 +48,37 @@ const Dashboard = () => {
 
       if (analyses && analyses.length > 0) {
         // Calculate average score from session analyses
-        const scoresWithFeedback = analyses.filter(a => a.processed_feedback || a.raw_analysis);
+        const scoresWithFeedback = analyses.filter(a => 
+          (a.processed_feedback || a.raw_analysis || a.overall_score)
+        );
+        
         if (scoresWithFeedback.length > 0) {
           const totalScore = scoresWithFeedback.reduce((sum, analysis) => {
-            const feedback = analysis.processed_feedback || analysis.raw_analysis || {};
-            const score = feedback.overallScore || 0;
+            // Try multiple sources for the score
+            const score = analysis.overall_score || 
+                         (analysis.processed_feedback?.overallScore) ||
+                         (analysis.raw_analysis?.overallScore) || 0;
             return sum + score;
           }, 0);
           avgScore = totalScore / scoresWithFeedback.length;
         }
 
-        // Count unique traits from all analyses
+        // Count unique traits from all analyses using the trait_scores column
         const allTraits = new Set();
         analyses.forEach(analysis => {
+          // Check trait_scores column first (array format)
+          if (analysis.trait_scores && Array.isArray(analysis.trait_scores)) {
+            analysis.trait_scores.forEach((trait: any) => {
+              if (trait.trait) allTraits.add(trait.trait);
+            });
+          }
+          
+          // Also check in processed_feedback and raw_analysis
           const feedback = analysis.processed_feedback || analysis.raw_analysis || {};
           if (feedback.traitScores && Array.isArray(feedback.traitScores)) {
             feedback.traitScores.forEach((trait: any) => {
               if (trait.trait) allTraits.add(trait.trait);
             });
-          }
-          // Also count from individual trait scores if they exist
-          if (feedback.traitScores && typeof feedback.traitScores === 'object' && !Array.isArray(feedback.traitScores)) {
-            Object.keys(feedback.traitScores).forEach(trait => allTraits.add(trait));
           }
         });
         traitsAnalyzed = allTraits.size;

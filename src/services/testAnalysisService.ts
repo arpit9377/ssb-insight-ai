@@ -512,9 +512,18 @@ export class TestAnalysisService {
     try {
       if (!userId) return [];
 
+      // Get analyses with test session data joined
       const { data, error } = await supabase
         .from('ai_analyses')
-        .select('*')
+        .select(`
+          *,
+          test_sessions (
+            test_type,
+            status,
+            total_questions,
+            completed_questions
+          )
+        `)
         .eq('user_id', userId)
         .eq('analysis_type', 'session_summary')
         .order('created_at', { ascending: false })
@@ -525,7 +534,13 @@ export class TestAnalysisService {
         return [];
       }
 
-      return data || [];
+      // Enrich data with test_type from joined session data
+      const enrichedData = (data || []).map(activity => ({
+        ...activity,
+        test_type: activity.test_sessions?.test_type || 'unknown'
+      }));
+
+      return enrichedData;
     } catch (error) {
       console.error('Error getting recent activity:', error);
       return [];
