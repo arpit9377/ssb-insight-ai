@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile = () => {
@@ -56,7 +56,7 @@ const Profile = () => {
         .from('profiles')
         .upsert({
           user_id: user.id,
-          email: user.emailAddresses[0]?.emailAddress || '',
+          email: user.email || '',
           full_name: profile.full_name,
           age: parseInt(profile.age) || 0,
           education: profile.education,
@@ -106,7 +106,7 @@ const Profile = () => {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                value={user?.emailAddresses[0]?.emailAddress || ''}
+                value={user?.email || ''}
                 disabled
                 className="bg-gray-50"
               />
