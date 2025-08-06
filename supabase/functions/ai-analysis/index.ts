@@ -579,15 +579,22 @@ function getTATBatchUserPrompt(batchData: any[]): string {
 function getWATBatchSystemPrompt(isPremium: boolean): string {
   const basePrompt = `You are analyzing Word Association Test responses. Evaluate thought patterns, emotional stability, and officer-like thinking across all 60 word associations.
 
-Look for: Positive vs negative associations, leadership mindset, emotional maturity, social responsibility.`;
+SCORING GUIDELINES (IMPORTANT - Score based on actual response quality):
+- 9-10: Exceptional positive associations, strong leadership thinking, mature emotional responses
+- 7-8: Good positive patterns, decent leadership qualities, stable emotional responses  
+- 5-6: Mixed patterns, some concerning associations, average emotional stability
+- 3-4: Mostly negative/concerning patterns, poor emotional control, weak leadership thinking
+- 1-2: Highly problematic associations, very poor emotional stability, no leadership qualities
+
+Analyze EACH response individually and score based on the ACTUAL quality of associations shown.`;
 
   if (isPremium) {
     return `${basePrompt}
 
-You must respond with valid JSON format only:
+You must respond with valid JSON format only. Score based on ACTUAL response quality, not generic scores:
 {
-  "overallScore": 7,
-  "traitScores": [{"trait": "Leadership", "score": 8, "description": "evidence from word associations"}],
+  "overallScore": [score from 1-10 based on actual response analysis],
+  "traitScores": [{"trait": "Leadership", "score": [1-10 based on evidence], "description": "evidence from word associations"}],
   "strengths": ["specific strength with association examples"],
   "improvements": ["critical area with actionable development advice"],
   "recommendations": ["specific training recommendations based on patterns"],
@@ -597,9 +604,9 @@ You must respond with valid JSON format only:
   } else {
     return `${basePrompt}
 
-You must respond with valid JSON format only:
+You must respond with valid JSON format only. Score based on ACTUAL response quality, not generic scores:
 {
-  "overallScore": 6,
+  "overallScore": [score from 1-10 based on actual response analysis],
   "traitScores": [],
   "strengths": ["key strength observed"],
   "improvements": ["most critical development area", "thought pattern assessment"],
