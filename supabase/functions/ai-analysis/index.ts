@@ -577,11 +577,37 @@ function getTATBatchUserPrompt(batchData: any[]): string {
 }
 
 function getWATBatchSystemPrompt(isPremium: boolean): string {
-  return `You are analyzing Word Association Test responses. Evaluate thought patterns, emotional stability, and officer-like thinking across all 60 word associations.
+  const basePrompt = `You are analyzing Word Association Test responses. Evaluate thought patterns, emotional stability, and officer-like thinking across all 60 word associations.
 
-Look for: Positive vs negative associations, leadership mindset, emotional maturity, social responsibility.
+Look for: Positive vs negative associations, leadership mindset, emotional maturity, social responsibility.`;
 
-${isPremium ? 'Provide detailed OLQ analysis.' : 'Provide basic assessment.'}`;
+  if (isPremium) {
+    return `${basePrompt}
+
+You must respond with valid JSON format only:
+{
+  "overallScore": 7,
+  "traitScores": [{"trait": "Leadership", "score": 8, "description": "evidence from word associations"}],
+  "strengths": ["specific strength with association examples"],
+  "improvements": ["critical area with actionable development advice"],
+  "recommendations": ["specific training recommendations based on patterns"],
+  "officerLikeQualities": ["observed quality with evidence"],
+  "sampleResponse": "Example of an improved word association pattern"
+}`;
+  } else {
+    return `${basePrompt}
+
+You must respond with valid JSON format only:
+{
+  "overallScore": 6,
+  "traitScores": [],
+  "strengths": ["key strength observed"],
+  "improvements": ["most critical development area", "thought pattern assessment"],
+  "recommendations": ["primary recommendation for improvement"],
+  "officerLikeQualities": ["main officer-like quality observed"],
+  "sampleResponse": "Example of better word associations"
+}`;
+  }
 }
 
 function getWATBatchUserPrompt(batchData: any[]): string {
