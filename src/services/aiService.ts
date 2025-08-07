@@ -14,56 +14,23 @@ interface AIFeedback {
   sampleResponse?: string;
 }
 
-const SSB_OLQS = [
-  // Factor 1: Planning & Organizing
-  'Effective Intelligence',
-  'Reasoning Ability',
-  'Organizing Ability',
-  'Power of Expression',
-  
-  // Factor 2: Social Adjustment
-  'Social Adaptability',
-  'Cooperation',
-  'Sense of Responsibility',
-  
-  // Factor 3: Social Effectiveness
-  'Initiative',
-  'Self-Confidence',
-  'Speed of Decision',
-  'Ability to Influence the Group',
-  'Liveliness',
-  
-  // Factor 4: Dynamic
-  'Determination',
+const SSB_TRAITS = [
+  'Leadership',
+  'Initiative', 
+  'Communication',
+  'Problem Solving',
+  'Teamwork',
+  'Decision Making',
+  'Emotional Stability',
+  'Confidence',
+  'Responsibility',
+  'Adaptability',
+  'Planning',
   'Courage',
-  'Stamina'
+  'Determination',
+  'Social Skills',
+  'Intelligence'
 ];
-
-const OLQ_FACTORS = {
-  'Planning & Organizing': [
-    'Effective Intelligence',
-    'Reasoning Ability', 
-    'Organizing Ability',
-    'Power of Expression'
-  ],
-  'Social Adjustment': [
-    'Social Adaptability',
-    'Cooperation',
-    'Sense of Responsibility'
-  ],
-  'Social Effectiveness': [
-    'Initiative',
-    'Self-Confidence',
-    'Speed of Decision',
-    'Ability to Influence the Group',
-    'Liveliness'
-  ],
-  'Dynamic': [
-    'Determination',
-    'Courage',
-    'Stamina'
-  ]
-};
 
 export class AIService {
   private currentProvider: 'openai';
@@ -121,15 +88,15 @@ export class AIService {
   private getEnhancedSystemPrompt(testType: string, isPremium: boolean): string {
     const basePrompt = `You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments, conducting a comprehensive evaluation of a candidate's Officer Like Qualities (OLQs) through their written response and accompanying image.
 
-Task: Perform a detailed psychological analysis of the candidate's response, systematically evaluating their performance against the 15 critical Officer Like Qualities (OLQs) used in SSB testing.
+Task: Perform a detailed psychological analysis of the candidate's response, systematically evaluating their performance against the 15 critical SSB traits used in psychological testing.
 
 Objective: Provide a comprehensive, objective, and constructive psychological assessment that reveals the candidate's potential for leadership, character strength, and suitability for military officer selection.
 
-Knowledge: The 15 Officer Like Qualities (OLQs) to be evaluated include: ${SSB_OLQS.join(', ')}.
+Knowledge: The 15 SSB traits to be evaluated include: ${SSB_TRAITS.join(', ')}.
 
 Instructions:
 - Analyze the response and image with extreme precision
-- Rate each OLQ on a scale of 1-10
+- Rate each trait on a scale of 1-10
 - Provide specific behavioral evidence supporting each rating
 - Highlight strengths and areas for potential improvement
 - Maintain a professional, objective, and constructive tone
@@ -386,12 +353,12 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
 
 Task: Analyze ${isPremium ? '13' : 'multiple'} TAT stories (12 pictures + 1 blank slide) and evaluate Officer Like Qualities.
 
-The 15 Officer Like Qualities: ${SSB_OLQS.join(', ')}.
+The 15 SSB traits: ${SSB_TRAITS.join(', ')}.
 
 STRICT SCORING GUIDELINES:
 - Evaluate story quality, character development, problem-solving approach
 - Look for consistent patterns across all stories
-- Score each OLQ based on cumulative evidence from all responses
+- Score each trait based on cumulative evidence from all responses
 - Consider creativity, leadership potential, and positive thinking patterns
 
 Return comprehensive analysis as JSON.`;
@@ -447,7 +414,7 @@ Return basic analysis:
 
 Look for: Positive vs negative associations, leadership mindset, emotional maturity, social responsibility.
 
-${isPremium ? 'Provide detailed OLQ analysis.' : 'Provide basic assessment.'}`;
+${isPremium ? 'Provide detailed trait analysis.' : 'Provide basic assessment.'}`;
   }
 
   private getWATBatchUserPrompt(batchData: any[]): string {
@@ -465,7 +432,7 @@ ${isPremium ? 'Provide detailed OLQ analysis.' : 'Provide basic assessment.'}`;
 
 Focus on: Initiative, responsibility, practical solutions, leadership potential.
 
-${isPremium ? 'Provide detailed OLQ scoring.' : 'Provide basic assessment.'}`;
+${isPremium ? 'Provide detailed trait scoring.' : 'Provide basic assessment.'}`;
   }
 
   private getSRTBatchUserPrompt(batchData: any[]): string {

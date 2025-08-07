@@ -288,11 +288,11 @@ const Dashboard = () => {
                   <Button 
                     variant="ghost" 
                     className="p-0 h-auto font-normal w-full text-left"
-                    onClick={() => navigate('/olq-analysis')}
+                    onClick={() => navigate('/trait-analysis')}
                   >
                     <div>
                       <p className="text-2xl font-bold text-gray-900">{userStats.traitsAnalyzed}</p>
-                      <p className="text-gray-600">OLQs Analyzed</p>
+                      <p className="text-gray-600">Traits Analyzed</p>
                     </div>
                   </Button>
                 </div>
