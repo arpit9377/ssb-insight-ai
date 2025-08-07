@@ -285,8 +285,16 @@ const Dashboard = () => {
               <div className="flex items-center">
                 <Brain className="h-8 w-8 text-purple-600" />
                 <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">{userStats.traitsAnalyzed}</p>
-                  <p className="text-gray-600">Traits Analyzed</p>
+                  <Button 
+                    variant="ghost" 
+                    className="p-0 h-auto font-normal w-full text-left"
+                    onClick={() => navigate('/olq-analysis')}
+                  >
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{userStats.traitsAnalyzed}</p>
+                      <p className="text-gray-600">OLQs Analyzed</p>
+                    </div>
+                  </Button>
                 </div>
               </div>
             </CardContent>

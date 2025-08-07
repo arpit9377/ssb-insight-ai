@@ -8,6 +8,7 @@ import Dashboard from '@/pages/Dashboard';
 import Profile from '@/pages/Profile';
 import TestModule from '@/pages/TestModule';
 import Progress from '@/pages/Progress';
+import OLQAnalysis from '@/pages/OLQAnalysis';
 import Subscription from '@/pages/Subscription';
 import AdminDashboard from '@/pages/AdminDashboard';
 import NotFound from '@/pages/NotFound';
@@ -32,6 +33,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/tests" element={<TestModule />} />
               <Route path="/progress" element={<Progress />} />
+              <Route path="/olq-analysis" element={<OLQAnalysis />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/test/tat" element={<TATTest />} />

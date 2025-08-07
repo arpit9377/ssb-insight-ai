@@ -215,18 +215,18 @@ const Progress = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Trait Analysis */}
+            {/* OLQ Analysis */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Brain className="h-5 w-5 mr-2" />
-                  Trait Analysis
+                  OLQ Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {stats.strongestTrait && (
                   <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <h4 className="font-medium text-green-800">Strongest Trait</h4>
+                    <h4 className="font-medium text-green-800">Strongest OLQ</h4>
                     <p className="text-green-700 capitalize">{stats.strongestTrait}</p>
                   </div>
                 )}
@@ -237,8 +237,15 @@ const Progress = () => {
                   </div>
                 )}
                 {!stats.strongestTrait && !stats.weakestTrait && (
-                  <p className="text-muted-foreground">Take more tests to see trait analysis</p>
+                  <p className="text-muted-foreground">Take more tests to see OLQ analysis</p>
                 )}
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/olq-analysis')}
+                  className="w-full"
+                >
+                  View Detailed OLQ Analysis
+                </Button>
               </CardContent>
             </Card>
 

@@ -14,23 +14,56 @@ interface AIFeedback {
   sampleResponse?: string;
 }
 
-const SSB_TRAITS = [
+const SSB_OLQS = [
+  // Factor 1: Planning & Organizing
   'Effective Intelligence',
-  'Reasoning Ability', 
-  'Emotional Stability',
-  'Social Adaptability',
-  'Moral and Character Stamina',
-  'Leadership',
-  'Initiative',
-  'Decisiveness',
-  'Courage',
-  'Determination',
-  'Sense of Responsibility',
-  'Self-Confidence',
-  'Cooperation',
+  'Reasoning Ability',
   'Organizing Ability',
-  'Communication Skills'
+  'Power of Expression',
+  
+  // Factor 2: Social Adjustment
+  'Social Adaptability',
+  'Cooperation',
+  'Sense of Responsibility',
+  
+  // Factor 3: Social Effectiveness
+  'Initiative',
+  'Self-Confidence',
+  'Speed of Decision',
+  'Ability to Influence the Group',
+  'Liveliness',
+  
+  // Factor 4: Dynamic
+  'Determination',
+  'Courage',
+  'Stamina'
 ];
+
+const OLQ_FACTORS = {
+  'Planning & Organizing': [
+    'Effective Intelligence',
+    'Reasoning Ability', 
+    'Organizing Ability',
+    'Power of Expression'
+  ],
+  'Social Adjustment': [
+    'Social Adaptability',
+    'Cooperation',
+    'Sense of Responsibility'
+  ],
+  'Social Effectiveness': [
+    'Initiative',
+    'Self-Confidence',
+    'Speed of Decision',
+    'Ability to Influence the Group',
+    'Liveliness'
+  ],
+  'Dynamic': [
+    'Determination',
+    'Courage',
+    'Stamina'
+  ]
+};
 
 export class AIService {
   private currentProvider: 'openai';
@@ -92,7 +125,7 @@ Task: Perform a detailed psychological analysis of the candidate's response, sys
 
 Objective: Provide a comprehensive, objective, and constructive psychological assessment that reveals the candidate's potential for leadership, character strength, and suitability for military officer selection.
 
-Knowledge: The 15 Officer Like Qualities (OLQs) to be evaluated include: ${SSB_TRAITS.join(', ')}.
+Knowledge: The 15 Officer Like Qualities (OLQs) to be evaluated include: ${SSB_OLQS.join(', ')}.
 
 Instructions:
 - Analyze the response and image with extreme precision
@@ -353,7 +386,7 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
 
 Task: Analyze ${isPremium ? '13' : 'multiple'} TAT stories (12 pictures + 1 blank slide) and evaluate Officer Like Qualities.
 
-The 15 Officer Like Qualities: ${SSB_TRAITS.join(', ')}.
+The 15 Officer Like Qualities: ${SSB_OLQS.join(', ')}.
 
 STRICT SCORING GUIDELINES:
 - Evaluate story quality, character development, problem-solving approach
