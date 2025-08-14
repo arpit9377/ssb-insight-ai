@@ -130,8 +130,40 @@ const TestResultsPage = () => {
             </CardContent>
           </Card>
 
-          {/* Sample Response */}
-          {feedback.sampleResponse && (
+          {/* Word-by-Word Suggestions */}
+          {feedback.wordSuggestions && feedback.wordSuggestions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-purple-600" />
+                  How Your Responses Could Be Improved
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  {feedback.wordSuggestions.map((suggestion: any, index: number) => (
+                    <AccordionItem key={index} value={`word-${index}`}>
+                      <AccordionTrigger className="text-left">
+                        <div className="flex flex-col items-start">
+                          <span className="font-semibold">{suggestion.word}</span>
+                          <span className="text-sm text-gray-600">Your response: "{suggestion.response}"</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <p className="text-purple-900 font-medium mb-2">Better approach:</p>
+                          <p className="text-purple-800 italic leading-relaxed">"{suggestion.betterResponse}"</p>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sample Response (fallback) */}
+          {feedback.sampleResponse && (!feedback.wordSuggestions || feedback.wordSuggestions.length === 0) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

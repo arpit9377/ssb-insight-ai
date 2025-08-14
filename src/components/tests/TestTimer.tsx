@@ -24,9 +24,11 @@ const TestTimer: React.FC<TestTimerProps> = ({
   useEffect(() => {
     if (!isActive) return;
 
+    let timerActive = true;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
+        if (prev <= 1 && timerActive) {
+          timerActive = false;
           onTimeUp?.();
           return 0;
         }
@@ -34,8 +36,11 @@ const TestTimer: React.FC<TestTimerProps> = ({
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [isActive]); // Removed onTimeUp from dependencies to prevent restarts
+    return () => {
+      timerActive = false;
+      clearInterval(timer);
+    };
+  }, [isActive, onTimeUp]); // Include onTimeUp to ensure fresh callback
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

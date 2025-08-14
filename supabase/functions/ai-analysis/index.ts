@@ -380,6 +380,7 @@ function formatFeedback(analysis: any, isPremium: boolean): any {
     recommendations: analysis.recommendations || [],
     officerLikeQualities: analysis.officerLikeQualities || analysis.officer_like_qualities || [],
     sampleResponse: analysis.sampleResponse || analysis.sample_response || "",
+    wordSuggestions: analysis.wordSuggestions || [],
   };
 }
 
@@ -571,7 +572,8 @@ You must respond with valid JSON format only:
   "improvements": ["critical area with actionable development advice"],
   "recommendations": ["specific training recommendations based on patterns"],
   "officerLikeQualities": ["observed quality with evidence"],
-  "sampleResponse": "Word -> Positive association that demonstrates leadership thinking and action-oriented mindset (use general statements, no 'I' references)"
+  "sampleResponse": "Word -> Positive association that demonstrates leadership thinking and action-oriented mindset (use general statements, no 'I' references)",
+  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response showing positive association"}]
 }`;
   } else {
     return `${basePrompt}
@@ -584,7 +586,8 @@ You must respond with valid JSON format only:
   "improvements": ["most critical development area", "thought pattern assessment"],
   "recommendations": ["primary recommendation for improvement"],
   "officerLikeQualities": ["main officer-like quality observed"],
-  "sampleResponse": "Word -> Better association that shows positive, action-oriented thinking (no 'I' statements)"
+  "sampleResponse": "Word -> Better association that shows positive, action-oriented thinking (no 'I' statements)",
+  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response"}]
 }`;
   }
 }
