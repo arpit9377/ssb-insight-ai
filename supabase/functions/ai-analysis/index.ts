@@ -550,6 +550,14 @@ FAIR SCORING GUIDELINES:
 - 2-3: Mostly negative/concerning patterns, poor emotional control
 - 1: Highly problematic associations, very poor responses
 
+SUGGESTION FORMATTING RULES:
+- Use short, positive, action-oriented language
+- Avoid "I" statements or self-references completely
+- Frame suggestions in general manner, not personal statements
+- Example: "Challenges create opportunities" NOT "I see challenges as opportunities"
+- Focus on clarity, optimism, responsibility, and action
+- Align with Officer Like Qualities: leadership, courage, determination, etc.
+
 Analyze EACH response individually and score based on ACTUAL quality shown.`;
 
   if (isPremium) {
@@ -563,7 +571,7 @@ You must respond with valid JSON format only:
   "improvements": ["critical area with actionable development advice"],
   "recommendations": ["specific training recommendations based on patterns"],
   "officerLikeQualities": ["observed quality with evidence"],
-  "sampleResponse": "Example of an improved word association pattern"
+  "sampleResponse": "Word -> Positive association that demonstrates leadership thinking and action-oriented mindset (use general statements, no 'I' references)"
 }`;
   } else {
     return `${basePrompt}
@@ -576,7 +584,7 @@ You must respond with valid JSON format only:
   "improvements": ["most critical development area", "thought pattern assessment"],
   "recommendations": ["primary recommendation for improvement"],
   "officerLikeQualities": ["main officer-like quality observed"],
-  "sampleResponse": "Example of better word associations"
+  "sampleResponse": "Word -> Better association that shows positive, action-oriented thinking (no 'I' statements)"
 }`;
   }
 }
