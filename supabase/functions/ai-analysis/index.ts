@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -126,67 +127,61 @@ serve(async (req) => {
 });
 
 const SSB_TRAITS = [
-  'Effective Intelligence',
-  'Reasoning Ability', 
-  'Emotional Stability',
-  'Social Adaptability',
-  'Moral and Character Stamina',
   'Leadership',
-  'Initiative',
-  'Decisiveness',
+  'Initiative', 
+  'Communication',
+  'Problem Solving',
+  'Teamwork',
+  'Decision Making',
+  'Emotional Stability',
+  'Confidence',
+  'Responsibility',
+  'Adaptability',
+  'Planning',
   'Courage',
   'Determination',
-  'Sense of Responsibility',
-  'Self-Confidence',
-  'Cooperation',
-  'Organizing Ability',
-  'Communication Skills'
+  'Social Skills',
+  'Intelligence'
 ];
 
 function getSystemPrompt(testType: string, isPremium: boolean): string {
-  const basePrompt = `You are a highly experienced SSB (Services Selection Board) psychologist with 15+ years of experience in military officer selection. You conduct extremely rigorous psychological assessments that determine a candidate's suitability for military leadership positions.
+  const basePrompt = `You are a highly experienced SSB (Services Selection Board) psychologist with 15+ years of experience in military officer selection. You conduct rigorous psychological assessments that determine a candidate's suitability for military leadership positions.
 
 ROLE: Senior Military Psychologist & Selection Expert
-TASK: Conduct a comprehensive, uncompromising evaluation of Officer Like Qualities (OLQs)
-STANDARD: Military-grade assessment with zero tolerance for mediocrity
+TASK: Conduct a comprehensive evaluation of Officer Like Qualities (OLQs)
+STANDARD: Professional military assessment standards
 
-The 15 Officer Like Qualities you MUST evaluate: ${SSB_TRAITS.join(', ')}.
+The 15 traits you MUST evaluate: ${SSB_TRAITS.join(', ')}.
 
 ASSESSMENT PHILOSOPHY:
-- Military officers must demonstrate exceptional standards
-- Mediocre responses indicate lack of officer potential
-- Only candidates showing clear leadership traits should score well
-- Every response must be scrutinized for psychological indicators
+- Recognize genuine effort and positive qualities in responses
+- Look for potential and areas of strength alongside areas for improvement  
+- Provide constructive feedback that encourages development
+- Score fairly based on actual content and demonstration of officer-like thinking
 
-STRICT SCORING CRITERIA (NO LENIENCY):
-- 1-2/10: Gibberish, inappropriate content, completely irrelevant responses
-- 2-3/10: Poor language, minimal effort, shows no understanding of military values
-- 3-4/10: Basic effort but lacks depth, no clear officer qualities visible
-- 4-5/10: Average civilian response, some coherence but no leadership indicators
-- 5-6/10: Decent response with hints of potential, needs significant development
-- 6-7/10: Good response showing some officer-like thinking and problem-solving
-- 7-8/10: Strong response with clear leadership qualities and mature thinking
-- 8-9/10: Excellent response demonstrating multiple OLQs and military mindset
-- 9-10/10: Outstanding response showing exceptional officer potential and leadership
+BALANCED SCORING CRITERIA:
+- 1-2/10: Inappropriate content, gibberish, or completely irrelevant responses
+- 3-4/10: Minimal effort, poor understanding, lacks basic structure
+- 5-6/10: Average responses showing some understanding and effort
+- 7-8/10: Good responses with clear officer-like thinking and problem-solving
+- 9-10/10: Exceptional responses demonstrating strong leadership potential
 
 PSYCHOLOGICAL INDICATORS TO ASSESS:
 - Leadership initiative and decision-making capability
-- Emotional stability under pressure situations
-- Moral courage and ethical reasoning
-- Practical problem-solving with resource constraints
-- Team coordination and conflict resolution
-- Communication clarity and persuasion skills
+- Practical problem-solving approach
+- Communication clarity and organization
 - Responsibility acceptance and accountability
-- Adaptability to changing circumstances
-- Physical and mental courage demonstration
-- Social intelligence and interpersonal skills
+- Team coordination and social skills
+- Adaptability and planning abilities
+- Emotional stability and confidence
+- Moral courage and determination
 
 You must respond with valid JSON format only.`;
   
   if (isPremium) {
     return `${basePrompt}
     
-    Analyze the ${testType.toUpperCase()} response against all 15 SSB traits.
+    Analyze the ${testType.toUpperCase()} response against all 15 traits.
     
     For each trait, provide:
     - Score (1-10) with detailed psychological justification
@@ -245,160 +240,128 @@ function getUserPrompt(testType: string, response: string, prompt?: string, time
   
   switch (testType) {
     case 'tat':
-      userPrompt += `MILITARY-GRADE TAT EVALUATION CRITERIA:
+      userPrompt += `TAT EVALUATION CRITERIA:
 
-STORY STRUCTURE ASSESSMENT (25%):
-- Complete narrative arc with clear beginning, middle, end
-- Logical sequence of events with proper timeline
-- Character motivations that align with military values
-- Conflict resolution demonstrating leadership approach
+STORY STRUCTURE (25%):
+- Complete narrative with beginning, middle, end
+- Logical sequence and character development
+- Clear conflict and resolution
 
-LEADERSHIP INDICATORS (35%):
-- Characters taking initiative in difficult situations
-- Decision-making under pressure and uncertainty
-- Responsibility acceptance without deflection
-- Team coordination and resource management
-- Moral courage in face of ethical dilemmas
+LEADERSHIP QUALITIES (35%):
+- Initiative and decision-making
+- Problem-solving approach
+- Team coordination and responsibility
+- Positive thinking patterns
 
 PSYCHOLOGICAL MATURITY (25%):
-- Emotional stability during crisis situations
-- Realistic assessment of problems and solutions
-- Balanced optimism without naive thinking
-- Understanding of consequences and planning
+- Emotional stability and realistic thinking
+- Understanding of consequences
+- Balanced optimism
 
-COMMUNICATION & VALUES (15%):
-- Clear articulation of thoughts and plans
-- Demonstration of military/service values
-- Positive thinking patterns and solution orientation
-- Social responsibility and care for others
+COMMUNICATION (15%):
+- Clear articulation and organization
+- Demonstration of values
+- Constructive approach
 
-SCORING STRICTNESS: 
-- Incomplete stories or poor grammar: Maximum 3/10
-- Basic civilian responses without leadership: Maximum 4/10
-- Stories lacking initiative or problem-solving: Maximum 5/10
-- Only responses showing clear officer potential score 7+/10`;
+IMPORTANT: Score based on actual content quality. A well-structured story with good leadership demonstration should score 7-8/10. Only gibberish or inappropriate content should score very low.`;
       break;
     case 'wat':
-      userPrompt += `MILITARY-GRADE WAT EVALUATION CRITERIA:
+      userPrompt += `WAT EVALUATION CRITERIA:
 
-MENTAL ASSOCIATION PATTERNS (40%):
-- Immediate positive vs negative thought patterns
-- Speed of association and mental agility
-- Officer-like thinking vs civilian mindset
-- Constructive vs destructive tendencies
+MENTAL ASSOCIATIONS (40%):
+- Positive vs negative thought patterns
+- Speed and appropriateness of associations
+- Officer-like mindset demonstration
 
-EMOTIONAL STABILITY INDICATORS (30%):
-- Consistent positive associations across words
-- Absence of anxiety, fear, or negative projections
-- Balanced emotional responses to challenging words
-- Mental resilience and optimism
+EMOTIONAL STABILITY (30%):
+- Consistent positive responses
+- Absence of extreme negativity
+- Balanced emotional patterns
 
 LEADERSHIP MINDSET (20%):
-- Associations showing initiative and action orientation
-- Service before self mentality
-- Team-focused vs self-centered thinking
+- Action-oriented associations
+- Service and team focus
 - Problem-solving orientation
 
-VALUES & CHARACTER (10%):
+VALUES (10%):
 - Moral and ethical associations
-- Social responsibility indicators
-- Integrity and honesty in responses
-- Military values alignment
+- Social responsibility
+- Integrity indicators
 
-CRITICAL SCORING:
-- Negative, inappropriate, or depressive associations: Maximum 3/10
-- Purely personal/selfish associations: Maximum 4/10
-- Generic civilian responses: Maximum 5/10
-- Only military-minded, positive, action-oriented responses score 7+/10`;
+IMPORTANT: Score fairly - positive, appropriate associations should score well (6-8/10). Only inappropriate or consistently negative responses score low.`;
       break;
     case 'srt':
-      userPrompt += `
-SRT RESPONSE ANALYSIS - Military Standards:
+      userPrompt += `SRT RESPONSE EVALUATION:
 
-1. PROBLEM UNDERSTANDING EVALUATION:
-   - Does the response show clear understanding of the situation?
-   - Is the problem identification accurate and complete?
-   - Quote specific parts showing situational awareness
+1. PROBLEM UNDERSTANDING:
+   - Clear grasp of the situation
+   - Accurate problem identification
+   - Situational awareness demonstration
 
-2. LEADERSHIP INITIATIVE ASSESSMENT:
-   - Does the candidate take charge immediately or wait for others?
-   - Is the approach proactive and decisive or reactive and hesitant?
-   - Identify specific action words that show leadership vs following
+2. LEADERSHIP INITIATIVE:
+   - Taking charge and responsibility
+   - Proactive vs reactive approach
+   - Decision-making capability
 
-3. SOLUTION PRACTICALITY CHECK:
-   - Are the proposed solutions realistic and implementable?
-   - Does the response show step-by-step planning?
-   - Point to specific elements showing practical thinking vs theoretical approach
+3. PRACTICAL SOLUTIONS:
+   - Realistic and implementable approaches
+   - Step-by-step planning
+   - Resource consideration
 
-4. RESPONSIBILITY & EXECUTION EVALUATION:
-   - Does the candidate take personal ownership of the problem?
-   - Is there evidence of follow-through and accountability?
-   - Quote phrases showing commitment to implementation
+4. EXECUTION FOCUS:
+   - Personal ownership and accountability
+   - Follow-through commitment
+   - Result-oriented thinking
 
-5. TIME MANAGEMENT ANALYSIS:
-${timeTaken ? `   - Response time: ${timeTaken}s - Evaluate if quick response compromised quality` : ''}
-${completedQuestions && totalQuestions ? `   - Completion rate: ${completedQuestions}/${totalQuestions} - Assess persistence and time management` : ''}
+BALANCED SCORING:
+- Well-thought responses with clear leadership approach: 7-8/10
+- Decent responses showing some initiative: 6-7/10
+- Basic responses with minimal leadership: 4-5/10
+- Poor or irrelevant responses: 2-3/10
 
-SCORING CRITERIA:
-- Vague, impractical, or victim-mentality responses: MAX 3/10
-- Basic problem-solving without leadership initiative: MAX 5/10
-- Good solutions with some leadership qualities: 6-7/10
-- Exceptional leadership demonstration with practical execution: 8-10/10`;
+${timeTaken ? `Response Time: ${timeTaken}s - Consider quality vs speed balance` : ''}
+${completedQuestions && totalQuestions ? `Completion: ${completedQuestions}/${totalQuestions} - Factor in persistence` : ''}
+
+IMPORTANT: Focus on the actual leadership qualities demonstrated in the response. Don't default to 5/10 - score based on genuine merit.`;
       break;
     case 'ppdt':
-      userPrompt += `
-PPDT RESPONSE ANALYSIS - Military Standards:
+      userPrompt += `PPDT RESPONSE EVALUATION:
 
-1. SITUATION PERCEPTION EVALUATION:
-   - Does the response show accurate interpretation of the image/scenario?
-   - Is the perception positive and constructive or negative?
-   - Quote specific descriptions that show perception quality
+1. SITUATION PERCEPTION:
+   - Accurate interpretation of scenario
+   - Positive and constructive viewpoint
+   - Realistic assessment
 
-2. LEADERSHIP DEMONSTRATION CHECK:
-   - Does the candidate naturally take initiative in the described scenario?
-   - Is there evidence of team coordination and motivation?
-   - Identify specific actions/words showing leadership vs following
+2. LEADERSHIP DEMONSTRATION:
+   - Natural initiative taking
+   - Team coordination abilities
+   - Motivational approach
 
-3. PROBLEM-SOLVING ASSESSMENT:
-   - Is the approach systematic and well-planned?
-   - Are solutions practical and achievable?
-   - Point to specific problem-solving elements in the response
+3. PROBLEM-SOLVING:
+   - Systematic and organized thinking
+   - Practical solution approach
+   - Strategic consideration
 
-4. COMMUNICATION EFFECTIVENESS:
-   - Is the response clearly articulated and organized?
-   - Does it show ability to influence and persuade?
-   - Quote examples of effective vs ineffective communication
+4. COMMUNICATION:
+   - Clear articulation
+   - Persuasive presentation
+   - Organized thought process
 
-5. MILITARY MINDSET EVALUATION:
-   - Does the response reflect service orientation?
-   - Is there evidence of strategic thinking?
-   - Identify phrases showing military vs civilian approach
-
-SCORING CRITERIA:
-- Negative interpretation or passive role description: MAX 3/10
-- Basic problem description without leadership: MAX 5/10
-- Good leadership demonstration with practical solutions: 6-8/10
-- Outstanding military leadership with strategic thinking: 9-10/10`;
+FAIR SCORING: Good responses with clear leadership demonstration should score 7-8/10. Only poor or negative interpretations should score low.`;
       break;
     default:
-      userPrompt += `
-GENERAL RESPONSE ANALYSIS - Military Standards:
-
-Evaluate this response for officer-like qualities, leadership potential, and psychological maturity.
-Provide specific evidence from their actual response to support your assessment.
-Be strict but constructive in your evaluation.`;
+      userPrompt += `Evaluate this response for officer-like qualities, leadership potential, and psychological maturity. Score fairly based on actual content quality.`;
   }
   
   userPrompt += `
 
-MANDATORY ANALYSIS REQUIREMENTS:
-1. Quote specific phrases from the candidate's response in your feedback
-2. Explain exactly why each score was given with evidence
-3. Compare their response to what an ideal officer candidate would have written
-4. Provide a sample ideal response that demonstrates better military thinking
-5. Be constructively critical - help them understand their gaps
-
-Remember: Most responses should score 3-6/10. Only truly exceptional military leadership demonstration deserves 7+/10.`;
+CRITICAL INSTRUCTIONS:
+1. Analyze the actual content and quality of the response
+2. Look for genuine officer-like qualities and leadership potential
+3. Score based on merit - don't default to average scores
+4. Provide specific evidence from their response
+5. Be encouraging yet constructive in feedback
+6. Remember: A thoughtful, well-structured response deserves a good score (7-8/10)`;
   
   return userPrompt;
 }
@@ -422,13 +385,13 @@ function formatFeedback(analysis: any, isPremium: boolean): any {
 
 function getFallbackFeedback(): any {
   return {
-    overallScore: 2,
+    overallScore: 6,
     traitScores: [],
-    strengths: ['Attempted the test'],
-    improvements: ['Provide more detailed responses', 'Develop clearer thinking', 'Show better problem-solving skills'],
-    recommendations: ['Study officer-like qualities thoroughly', 'Practice structured response writing', 'Upgrade to premium for detailed analysis'],
-    officerLikeQualities: ['Basic effort shown'],
-    sampleResponse: "Unable to generate personalized feedback. Please try again or upgrade to premium for better analysis.",
+    strengths: ['Attempted the test', 'Showed engagement'],
+    improvements: ['Provide more detailed responses', 'Show clearer leadership thinking', 'Include practical solutions'],
+    recommendations: ['Practice structured response writing', 'Study officer-like qualities', 'Upgrade to premium for detailed analysis'],
+    officerLikeQualities: ['Basic effort shown', 'Engagement with the task'],
+    sampleResponse: "A well-structured response would demonstrate clear thinking, practical solutions, and leadership qualities.",
   };
 }
 
@@ -523,13 +486,14 @@ function getTATBatchSystemPrompt(isPremium: boolean): string {
 
 Task: Analyze ${isPremium ? '13' : 'multiple'} TAT stories (12 pictures + 1 blank slide) and evaluate Officer Like Qualities.
 
-The 15 Officer Like Qualities: ${SSB_TRAITS.join(', ')}.
+The 15 traits: ${SSB_TRAITS.join(', ')}.
 
-STRICT SCORING GUIDELINES:
+BALANCED SCORING GUIDELINES:
 - Evaluate story quality, character development, problem-solving approach
 - Look for consistent patterns across all stories
-- Score each OLQ based on cumulative evidence from all responses
+- Score each trait based on cumulative evidence from all responses
 - Consider creativity, leadership potential, and positive thinking patterns
+- Recognize good effort and genuine leadership qualities
 
 Return comprehensive analysis as JSON.`;
 
@@ -571,7 +535,7 @@ function getTATBatchUserPrompt(batchData: any[]): string {
     prompt += `Response: "${item.response}"\n\n`;
   });
 
-  prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses.`;
+  prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses. Score fairly based on actual content quality.`;
   
   return prompt;
 }
@@ -579,19 +543,19 @@ function getTATBatchUserPrompt(batchData: any[]): string {
 function getWATBatchSystemPrompt(isPremium: boolean): string {
   const basePrompt = `You are analyzing Word Association Test responses. Evaluate thought patterns, emotional stability, and officer-like thinking across all 60 word associations.
 
-SCORING GUIDELINES (IMPORTANT - Score based on actual response quality):
-- 9-10: Exceptional positive associations, strong leadership thinking, mature emotional responses
-- 7-8: Good positive patterns, decent leadership qualities, stable emotional responses  
-- 5-6: Mixed patterns, some concerning associations, average emotional stability
-- 3-4: Mostly negative/concerning patterns, poor emotional control, weak leadership thinking
-- 1-2: Highly problematic associations, very poor emotional stability, no leadership qualities
+FAIR SCORING GUIDELINES:
+- 8-10: Exceptional positive associations, strong leadership thinking, mature responses
+- 6-7: Good positive patterns, decent leadership qualities, stable responses  
+- 4-5: Mixed patterns, some concerning areas, average stability
+- 2-3: Mostly negative/concerning patterns, poor emotional control
+- 1: Highly problematic associations, very poor responses
 
-Analyze EACH response individually and score based on the ACTUAL quality of associations shown.`;
+Analyze EACH response individually and score based on ACTUAL quality shown.`;
 
   if (isPremium) {
     return `${basePrompt}
 
-You must respond with valid JSON format only. Score based on ACTUAL response quality, not generic scores:
+You must respond with valid JSON format only:
 {
   "overallScore": [score from 1-10 based on actual response analysis],
   "traitScores": [{"trait": "Leadership", "score": [1-10 based on evidence], "description": "evidence from word associations"}],
@@ -604,7 +568,7 @@ You must respond with valid JSON format only. Score based on ACTUAL response qua
   } else {
     return `${basePrompt}
 
-You must respond with valid JSON format only. Score based on ACTUAL response quality, not generic scores:
+You must respond with valid JSON format only:
 {
   "overallScore": [score from 1-10 based on actual response analysis],
   "traitScores": [],
@@ -624,41 +588,38 @@ function getWATBatchUserPrompt(batchData: any[]): string {
     prompt += `Word ${index + 1}: ${item.word} -> ${item.response}\n`;
   });
 
-  prompt += `\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities.`;
+  prompt += `\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities. Score based on actual content quality, not generic averages.`;
   
   return prompt;
 }
 
 function getSRTBatchSystemPrompt(isPremium: boolean): string {
-  const basePrompt = `You are a senior SSB psychologist conducting a comprehensive SRT batch analysis. This is a critical assessment for military officer selection.
+  const basePrompt = `You are a senior SSB psychologist conducting SRT batch analysis for military officer selection.
 
 EVALUATION FOCUS:
 - Leadership initiative across varied situations
 - Consistency in problem-solving approach  
-- Decision-making quality under different pressures
+- Decision-making quality and practical solutions
 - Time management and completion effectiveness
-- Practical vs theoretical solution orientation
-- Team coordination and resource management
-- Emotional stability across diverse challenges
+- Officer-like thinking patterns and responsibility
 
-CRITICAL ASSESSMENT AREAS:
-- Response quality vs response speed balance
-- Completion rate impact on overall leadership assessment
-- Consistency of officer-like thinking patterns
-- Adaptability to different situation types
-- Initiative level and proactive vs reactive tendencies
+FAIR SCORING APPROACH:
+- Look for genuine leadership qualities and practical solutions
+- Recognize good effort and structured thinking
+- Score based on actual demonstration of officer potential
+- Don't default to average scores - reward good responses appropriately
 
-The 15 Officer Like Qualities to evaluate: ${SSB_TRAITS.join(', ')}.
+The 15 traits to evaluate: ${SSB_TRAITS.join(', ')}.
 
-${isPremium ? 'Provide comprehensive OLQ analysis with specific evidence from multiple responses.' : 'Provide focused assessment on key leadership indicators.'}`;
+${isPremium ? 'Provide comprehensive trait analysis with specific evidence from responses.' : 'Provide focused assessment on key leadership indicators.'}`;
 
   if (isPremium) {
     return `${basePrompt}
 
 You must respond with valid JSON format only:
 {
-  "overallScore": 7,
-  "traitScores": [{"trait": "Leadership", "score": 8, "description": "evidence from multiple responses"}],
+  "overallScore": [score 1-10 based on actual leadership demonstration],
+  "traitScores": [{"trait": "Leadership", "score": [1-10], "description": "evidence from multiple responses"}],
   "strengths": ["specific strength with response examples"],
   "improvements": ["critical area with actionable development advice"],
   "recommendations": ["specific training recommendations based on patterns"],
@@ -670,7 +631,7 @@ You must respond with valid JSON format only:
 
 You must respond with valid JSON format only:
 {
-  "overallScore": 6,
+  "overallScore": [score 1-10 based on actual leadership demonstration],
   "traitScores": [],
   "strengths": ["key leadership strength observed"],
   "improvements": ["most critical development area", "time management assessment"],
@@ -682,7 +643,7 @@ You must respond with valid JSON format only:
 }
 
 function getSRTBatchUserPrompt(batchData: any[]): string {
-  let prompt = "COMPREHENSIVE SRT BATCH ANALYSIS:\n\n";
+  let prompt = "SRT BATCH EVALUATION:\n\n";
   
   batchData.forEach((item, index) => {
     prompt += `SITUATION ${index + 1}:\n`;
@@ -695,21 +656,15 @@ function getSRTBatchUserPrompt(batchData: any[]): string {
   });
 
   const completionRate = batchData.length;
-  const totalExpected = 60; // Standard SRT test has 60 situations
+  const totalExpected = 60;
   
-  prompt += `COMPLETION ANALYSIS:\n`;
-  prompt += `- Completed: ${completionRate}/${totalExpected} situations (${Math.round((completionRate/totalExpected) * 100)}%)\n`;
-  prompt += `- Average response quality needs assessment\n`;
-  prompt += `- Time management evaluation required\n\n`;
+  prompt += `EVALUATION REQUIREMENTS:\n`;
+  prompt += `- Completed: ${completionRate}/${totalExpected} situations\n`;
+  prompt += `- Analyze leadership approach consistency\n`;
+  prompt += `- Evaluate practical problem-solving quality\n`;
+  prompt += `- Assess officer potential based on actual responses\n\n`;
   
-  prompt += `COMPREHENSIVE EVALUATION REQUIRED:\n`;
-  prompt += `1. Analyze CONSISTENCY of leadership approach across all responses\n`;
-  prompt += `2. Evaluate COMPLETION RATE impact on officer selection suitability\n`;
-  prompt += `3. Assess QUALITY vs SPEED balance in decision-making\n`;
-  prompt += `4. Identify PATTERNS in problem-solving methodology\n`;
-  prompt += `5. Determine overall OFFICER POTENTIAL based on cumulative evidence\n\n`;
-  
-  prompt += `Apply strict military selection standards. Incomplete tests or poor response patterns significantly impact scoring.`;
+  prompt += `IMPORTANT: Score fairly based on actual content quality. Well-structured responses with clear leadership thinking should score well (7-8/10). Don't default to 5/10 - reward genuine merit.`;
   
   return prompt;
 }
