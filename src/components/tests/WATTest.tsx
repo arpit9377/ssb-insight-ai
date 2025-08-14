@@ -213,7 +213,7 @@ const WATTest = () => {
               isActive={true}
               onTimeUp={handleTimeUp}
               showWarning={true}
-              key={currentWordIndex} // This ensures timer resets for each word
+              key={`timer-${currentWordIndex}-${startTime}`} // More unique key to force reset
             />
 
             <div className="bg-blue-50 p-4 rounded-lg">

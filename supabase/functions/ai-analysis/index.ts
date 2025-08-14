@@ -599,7 +599,14 @@ function getWATBatchUserPrompt(batchData: any[]): string {
     prompt += `Word ${index + 1}: ${item.word} -> ${item.response}\n`;
   });
 
-  prompt += `\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities. Score based on actual content quality, not generic averages.`;
+  prompt += `\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities. Score based on actual content quality, not generic averages.
+
+For wordSuggestions, provide improved responses that:
+- Use the exact word in a complete, meaningful sentence
+- Show positive, leadership-oriented thinking
+- Demonstrate officer-like qualities (courage, determination, responsibility)
+- Frame the word in an action-oriented context
+- Example: For "Challenge" -> "Challenge creates opportunities for growth and leadership"`;
   
   return prompt;
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 
@@ -16,31 +15,33 @@ const TestTimer: React.FC<TestTimerProps> = ({
   showWarning = true 
 }) => {
   const [timeLeft, setTimeLeft] = useState(totalTime);
+  const [hasCalledTimeUp, setHasCalledTimeUp] = useState(false);
 
+  // Reset timer when totalTime or isActive changes
   useEffect(() => {
     setTimeLeft(totalTime);
-  }, [totalTime]);
+    setHasCalledTimeUp(false);
+  }, [totalTime, isActive]);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || hasCalledTimeUp) return;
 
-    let timerActive = true;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1 && timerActive) {
-          timerActive = false;
-          onTimeUp?.();
-          return 0;
+        const newTimeLeft = Math.max(0, prev - 1);
+        
+        // Call onTimeUp only once when timer reaches 0
+        if (newTimeLeft === 0 && prev > 0 && !hasCalledTimeUp) {
+          setHasCalledTimeUp(true);
+          setTimeout(() => onTimeUp?.(), 100); // Small delay to prevent race conditions
         }
-        return prev - 1;
+        
+        return newTimeLeft;
       });
     }, 1000);
 
-    return () => {
-      timerActive = false;
-      clearInterval(timer);
-    };
-  }, [isActive, onTimeUp]); // Include onTimeUp to ensure fresh callback
+    return () => clearInterval(timer);
+  }, [isActive, hasCalledTimeUp, onTimeUp]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -49,10 +50,11 @@ const TestTimer: React.FC<TestTimerProps> = ({
   };
 
   const getProgressPercentage = () => {
-    return ((totalTime - timeLeft) / totalTime) * 100;
+    const progress = ((totalTime - timeLeft) / totalTime) * 100;
+    return Math.min(100, Math.max(0, progress)); // Clamp between 0-100%
   };
 
-  const isWarningTime = timeLeft <= 30; // Last 30 seconds
+  const isWarningTime = timeLeft <= 30 && timeLeft > 10; // Last 30 seconds but not critical
   const isCriticalTime = timeLeft <= 10; // Last 10 seconds
 
   return (
@@ -75,7 +77,7 @@ const TestTimer: React.FC<TestTimerProps> = ({
           }`}>
             {formatTime(timeLeft)}
           </span>
-          {showWarning && isWarningTime && (
+          {showWarning && (isWarningTime || isCriticalTime) && (
             <span className={`text-xs font-medium ${
               isCriticalTime ? 'text-red-600' : 'text-yellow-600'
             }`}>
@@ -83,7 +85,7 @@ const TestTimer: React.FC<TestTimerProps> = ({
             </span>
           )}
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
           <div 
             className={`h-2 rounded-full transition-all duration-1000 ${
               isCriticalTime ? 'bg-red-500' : 

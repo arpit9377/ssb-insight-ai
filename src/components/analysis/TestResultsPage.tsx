@@ -150,9 +150,15 @@ const TestResultsPage = () => {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="bg-purple-50 p-4 rounded-lg">
-                          <p className="text-purple-900 font-medium mb-2">Better approach:</p>
-                          <p className="text-purple-800 italic leading-relaxed">"{suggestion.betterResponse}"</p>
+                        <div className="space-y-3">
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <p className="text-gray-700 font-medium text-sm">Your response:</p>
+                            <p className="text-gray-800 italic">"{suggestion.response}"</p>
+                          </div>
+                          <div className="bg-purple-50 p-3 rounded-lg">
+                            <p className="text-purple-900 font-medium text-sm">Better approach:</p>
+                            <p className="text-purple-800 italic leading-relaxed">"{suggestion.betterResponse}"</p>
+                          </div>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
