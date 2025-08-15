@@ -4,6 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Index from '@/pages/Index';
+import About from '@/pages/About';
+import Services from '@/pages/Services';
+import Pricing from '@/pages/Pricing';
+import Contact from '@/pages/Contact';
+import Terms from '@/pages/Terms';
+import Privacy from '@/pages/Privacy';
+import Refunds from '@/pages/Refunds';
+import ShippingPolicy from '@/pages/ShippingPolicy';
+import FAQ from '@/pages/FAQ';
 import Dashboard from '@/pages/Dashboard';
 import Profile from '@/pages/Profile';
 import TestModule from '@/pages/TestModule';
@@ -29,6 +38,15 @@ function App() {
           <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/refunds" element={<Refunds />} />
+              <Route path="/shipping" element={<ShippingPolicy />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/tests" element={<TestModule />} />
