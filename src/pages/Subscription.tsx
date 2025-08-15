@@ -24,7 +24,7 @@ const Subscription = () => {
     name: user?.firstName + ' ' + user?.lastName || '',
     email: user?.emailAddresses?.[0]?.emailAddress || '',
     phone: '',
-    amount: '299',
+    amount: '799',
     screenshot: null as File | null
   });
 
@@ -249,8 +249,12 @@ const Subscription = () => {
               </div>
               <CardTitle>Paid Access</CardTitle>
               <CardDescription>
-                <span className="text-3xl font-bold text-gray-900">₹299</span>
+                <span className="text-3xl font-bold text-gray-900">₹799</span>
                 <span className="text-gray-600">/30 days</span>
+                <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-700">
+                  <p className="font-medium">💡 Help us improve!</p>
+                  <p>Your subscription helps fund AI improvements, new features, and better test content to enhance your preparation experience.</p>
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -302,18 +306,18 @@ const Subscription = () => {
                   <h3 className="font-semibold text-lg">Payment Instructions:</h3>
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p className="font-medium mb-2">Step 1: Make Payment</p>
-                    <p className="text-sm text-gray-700 mb-3">Pay ₹299 using any of these methods:</p>
+                    <p className="text-sm text-gray-700 mb-3">Pay ₹799 to support app development & get premium access:</p>
                     
                     <div className="bg-gray-100 p-4 rounded text-center">
-                      <p className="text-sm mb-3 font-medium">UPI QR Code - Pay ₹299</p>
+                      <p className="text-sm mb-3 font-medium">UPI QR Code - Pay ₹799</p>
                       <div className="mx-auto w-64 h-64 bg-white rounded-lg border shadow-sm overflow-hidden">
                         <img 
                           src="/lovable-uploads/11ba7e15-1b61-43f3-a9e4-acff7822456b.png" 
-                          alt="PhonePe QR Code for ₹299 payment"
+                          alt="PhonePe QR Code for ₹799 payment"
                           className="w-full h-full object-contain"
                         />
                       </div>
-                      <p className="text-xs text-gray-600 mt-2">Scan using any UPI app to pay ₹299</p>
+                      <p className="text-xs text-gray-600 mt-2">Scan using any UPI app to pay ₹799</p>
                     </div>
                   </div>
                   
@@ -421,6 +425,9 @@ const Subscription = () => {
         <div className="text-center text-gray-600">
           <p className="mb-2">
             <strong>Manual Verification Process:</strong> Payment verification takes 1-2 hours during business hours.
+          </p>
+          <p className="text-sm mb-2">
+            Your subscription helps us maintain servers, improve AI analysis, and create better test content for your success.
           </p>
           <p className="text-sm">
             For immediate assistance, contact us at support@psychsir.ai or WhatsApp: +91 9876543210
