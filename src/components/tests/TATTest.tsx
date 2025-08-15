@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
+import { testLimitService } from '@/services/testLimitService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
@@ -179,6 +180,12 @@ const TATTest = () => {
 
       // Send all responses for batch analysis
       await testAnalysisService.analyzeTATSession(user.id, sessionId, isPremium, images, finalResponses);
+
+      // Decrement test count
+      const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'tat');
+      if (!decrementSuccess) {
+        console.warn('Failed to decrement TAT test limit');
+      }
 
       toast.success('Test completed and analyzed successfully!');
       

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
+import { testLimitService } from '@/services/testLimitService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
@@ -162,6 +163,12 @@ const SRTTest = () => {
 
       // Send only answered situations for batch analysis
       await testAnalysisService.analyzeSRTBatch(user.id, sessionId, isPremium, answeredSituations, Object.values(responses));
+
+      // Decrement test count
+      const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'srt');
+      if (!decrementSuccess) {
+        console.warn('Failed to decrement SRT test limit');
+      }
 
       toast.success(`Test completed! Analyzed ${completedCount} responses successfully.`);
       

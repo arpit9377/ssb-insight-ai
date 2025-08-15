@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
+import { testLimitService } from '@/services/testLimitService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
@@ -188,6 +189,12 @@ const PPDTTest = () => {
       console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
 
       await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
+
+      // Decrement test count
+      const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'ppdt');
+      if (!decrementSuccess) {
+        console.warn('Failed to decrement PPDT test limit');
+      }
 
       toast.success('Test completed and analyzed successfully!');
       

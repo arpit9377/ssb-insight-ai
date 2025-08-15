@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
+import { testLimitService } from '@/services/testLimitService';
 import { setupTestTables } from '@/services/databaseSetup';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
@@ -148,6 +149,12 @@ const WATTest = () => {
 
       // Send all responses for batch analysis
       await testAnalysisService.analyzeWATBatch(user.id, sessionId, isPremium, actualWords, actualResponses);
+
+      // Decrement test count
+      const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'wat');
+      if (!decrementSuccess) {
+        console.warn('Failed to decrement WAT test limit');
+      }
 
       toast.success('Test completed and analyzed successfully!');
       
