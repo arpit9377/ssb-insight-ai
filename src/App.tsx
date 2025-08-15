@@ -16,6 +16,7 @@ import FAQ from '@/pages/FAQ';
 import Dashboard from '@/pages/Dashboard';
 import Profile from '@/pages/Profile';
 import TestModule from '@/pages/TestModule';
+import Tests from '@/pages/Tests';
 import Progress from '@/pages/Progress';
 import TraitAnalysis from '@/pages/TraitAnalysis';
 import Subscription from '@/pages/Subscription';
@@ -49,7 +50,7 @@ function App() {
               <Route path="/faq" element={<FAQ />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/tests" element={<TestModule />} />
+              <Route path="/tests" element={<Tests />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/trait-analysis" element={<TraitAnalysis />} />
               <Route path="/subscription" element={<Subscription />} />

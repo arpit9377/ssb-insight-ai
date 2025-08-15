@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const Profile = () => {
   const { user } = useAuthContext();
@@ -82,7 +83,12 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <AppLayout 
+      title="Profile" 
+      showBackButton={true}
+      backTo="/dashboard"
+    >
+    <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>
@@ -151,6 +157,7 @@ const Profile = () => {
         </CardContent>
       </Card>
     </div>
+    </AppLayout>
   );
 };
 

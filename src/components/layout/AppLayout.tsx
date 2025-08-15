@@ -2,16 +2,18 @@ import React from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { MobileNavigation } from './MobileNavigation';
 import { MobileHeader } from './MobileHeader';
+import { BackButton } from './BackButton';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AppLayoutProps {
   children: React.ReactNode;
   title?: string;
   showBackButton?: boolean;
+  backTo?: string;
   headerActions?: React.ReactNode;
 }
 
-export function AppLayout({ children, title, showBackButton, headerActions }: AppLayoutProps) {
+export function AppLayout({ children, title, showBackButton, backTo, headerActions }: AppLayoutProps) {
   const isMobile = useIsMobile();
 
   return (
@@ -31,6 +33,7 @@ export function AppLayout({ children, title, showBackButton, headerActions }: Ap
           
           <main className="flex-1 overflow-auto">
             <div className="p-4 md:p-6 lg:p-8">
+              {showBackButton && <BackButton to={backTo} />}
               {children}
             </div>
           </main>

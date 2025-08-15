@@ -96,7 +96,7 @@ export function MobileNavigation() {
         {/* Test Modules - Only for authenticated users */}
         {user && (
           <SidebarGroup>
-            <SidebarGroupLabel>Quick Tests</SidebarGroupLabel>
+            <SidebarGroupLabel>Tests</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {testItems.map((item) => (
@@ -171,26 +171,20 @@ export function MobileNavigation() {
       <SidebarFooter className="p-4">
         <div className="space-y-2">
           <SignedOut>
-            {open ? (
-              <div className="space-y-2">
-                <SignInButton mode="modal">
-                  <Button variant="outline" size="sm" className="w-full">
-                    Sign In
-                  </Button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <Button size="sm" className="w-full">
-                    Get Started
-                  </Button>
-                </SignUpButton>
-              </div>
-            ) : (
+            <div className="space-y-2">
               <SignInButton mode="modal">
-                <Button variant="outline" size="sm" className="w-full p-2">
-                  <User className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="w-full">
+                  <User className="h-4 w-4 mr-2" />
+                  {open && <span>Sign In</span>}
                 </Button>
               </SignInButton>
-            )}
+              <SignUpButton mode="modal">
+                <Button size="sm" className="w-full">
+                  <User className="h-4 w-4 mr-2" />
+                  {open && <span>Get Started</span>}
+                </Button>
+              </SignUpButton>
+            </div>
           </SignedOut>
           <SignedIn>
             {open ? (
