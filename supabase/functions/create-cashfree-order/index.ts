@@ -19,8 +19,14 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Edge function started, checking environment variables...');
+    console.log('Cashfree App ID exists:', !!cashfreeAppId);
+    console.log('Cashfree Secret Key exists:', !!cashfreeSecretKey);
+    console.log('Supabase URL exists:', !!supabaseUrl);
+    
     // Get the authorization header
     const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '') || supabaseAnonKey;
+    console.log('Auth header received:', !!authHeader);
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
