@@ -304,27 +304,16 @@ const Subscription = () => {
                     <p className="font-medium mb-2">Step 1: Make Payment</p>
                     <p className="text-sm text-gray-700 mb-3">Pay ₹299 using any of these methods:</p>
                     
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium">PhonePe/GPay:</span>
-                        <span className="font-mono bg-gray-100 px-2 py-1 rounded">9876543210</span>
+                    <div className="bg-gray-100 p-4 rounded text-center">
+                      <p className="text-sm mb-3 font-medium">UPI QR Code - Pay ₹299</p>
+                      <div className="mx-auto w-64 h-64 bg-white rounded-lg border shadow-sm overflow-hidden">
+                        <img 
+                          src="/lovable-uploads/11ba7e15-1b61-43f3-a9e4-acff7822456b.png" 
+                          alt="PhonePe QR Code for ₹299 payment"
+                          className="w-full h-full object-contain"
+                        />
                       </div>
-                      
-                      <div className="bg-gray-100 p-3 rounded text-center">
-                        <p className="text-sm mb-2">UPI QR Code:</p>
-                        <div className="w-32 h-32 bg-white mx-auto flex items-center justify-center border-2 border-dashed border-gray-300">
-                          <QrCode className="h-16 w-16 text-gray-400" />
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">Scan to pay ₹299</p>
-                      </div>
-                      
-                      <div className="text-sm">
-                        <p><strong>Bank Transfer:</strong></p>
-                        <p>Account: PsychSir.ai</p>
-                        <p>IFSC: HDFC0001234</p>
-                        <p>Account No: 12345678901234</p>
-                      </div>
+                      <p className="text-xs text-gray-600 mt-2">Scan using any UPI app to pay ₹299</p>
                     </div>
                   </div>
                   

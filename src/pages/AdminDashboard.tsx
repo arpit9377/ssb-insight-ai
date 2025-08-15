@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   CheckCircle, 
   XCircle, 
@@ -13,12 +14,15 @@ import {
   Shield,
   Eye,
   Search,
-  Filter
+  Filter,
+  Upload,
+  ImageIcon
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { testLimitService } from '@/services/testLimitService';
+import ContentManagement from '@/components/admin/ContentManagement';
 
 const AdminDashboard = () => {
   const { user } = useAuthContext();
@@ -210,245 +214,258 @@ const AdminDashboard = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage payment requests and user subscriptions</p>
+          <p className="text-gray-600">Manage payment requests, user subscriptions, and test content</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Users className="h-8 w-8 text-blue-600" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                  <p className="text-gray-600">Total Requests</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="payments" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="payments">Payment Management</TabsTrigger>
+            <TabsTrigger value="content">Content Management</TabsTrigger>
+          </TabsList>
           
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Clock className="h-8 w-8 text-yellow-600" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-                  <p className="text-gray-600">Pending</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
-                  <p className="text-gray-600">Approved</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <XCircle className="h-8 w-8 text-red-600" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
-                  <p className="text-gray-600">Rejected</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-green-600" />
-                <div className="ml-4">
-                  <p className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue}</p>
-                  <p className="text-gray-600">Revenue</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="payments" className="mt-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <Users className="h-8 w-8 text-blue-600" />
+                    <div className="ml-4">
+                      <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                      <p className="text-gray-600">Total Requests</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <Clock className="h-8 w-8 text-yellow-600" />
+                    <div className="ml-4">
+                      <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                      <p className="text-gray-600">Pending</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                    <div className="ml-4">
+                      <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+                      <p className="text-gray-600">Approved</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <XCircle className="h-8 w-8 text-red-600" />
+                    <div className="ml-4">
+                      <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
+                      <p className="text-gray-600">Rejected</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <DollarSign className="h-8 w-8 text-green-600" />
+                    <div className="ml-4">
+                      <p className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue}</p>
+                      <p className="text-gray-600">Revenue</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by name, email, or phone..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+            {/* Filters */}
+            <Card className="mb-6">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search by name, email, or phone..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="w-48">
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Requests */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Requests List */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Payment Requests</h2>
+                {loading ? (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p>Loading payment requests...</p>
+                    </CardContent>
+                  </Card>
+                ) : filteredRequests.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-gray-500">No payment requests found</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  filteredRequests.map((request) => (
+                    <Card key={request.id} className={`cursor-pointer hover:shadow-md transition-shadow ${selectedRequest?.id === request.id ? 'border-blue-500' : ''}`}>
+                      <CardContent className="p-4" onClick={() => setSelectedRequest(request)}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-semibold">{request.user_name}</h3>
+                            <p className="text-sm text-gray-600">{request.user_email}</p>
+                            <p className="text-sm text-gray-600">{request.phone_number}</p>
+                          </div>
+                          <Badge variant={
+                            request.status === 'approved' ? 'default' :
+                            request.status === 'rejected' ? 'destructive' : 'secondary'
+                          }>
+                            {request.status}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">₹{request.amount_paid}</span>
+                          <span className="text-sm text-gray-500">
+                            {new Date(request.requested_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
-              <div className="w-48">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
+
+              {/* Request Details */}
+              <div className="lg:sticky lg:top-4">
+                <h2 className="text-xl font-semibold mb-4">Request Details</h2>
+                {selectedRequest ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Payment Request #{selectedRequest.id.slice(0, 8)}</CardTitle>
+                      <CardDescription>
+                        Submitted on {new Date(selectedRequest.requested_at).toLocaleString()}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">User Information</h4>
+                        <p><strong>Name:</strong> {selectedRequest.user_name}</p>
+                        <p><strong>Email:</strong> {selectedRequest.user_email}</p>
+                        <p><strong>Phone:</strong> {selectedRequest.phone_number}</p>
+                        <p><strong>Amount:</strong> ₹{selectedRequest.amount_paid}</p>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-2">Payment Screenshot</h4>
+                        <img 
+                          src={selectedRequest.payment_screenshot_url} 
+                          alt="Payment Screenshot"
+                          className="w-full max-w-sm rounded-lg border"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => window.open(selectedRequest.payment_screenshot_url, '_blank')}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Full Size
+                        </Button>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-2">Admin Notes</h4>
+                        <Textarea
+                          value={adminNotes}
+                          onChange={(e) => setAdminNotes(e.target.value)}
+                          placeholder="Add notes about this payment request..."
+                          rows={3}
+                        />
+                      </div>
+
+                      {selectedRequest.status === 'pending' && (
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => handleApprovePayment(selectedRequest.id, selectedRequest.user_id)}
+                            disabled={processingId === selectedRequest.id}
+                            className="flex-1"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleRejectPayment(selectedRequest.id)}
+                            disabled={processingId === selectedRequest.id}
+                            className="flex-1"
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+
+                      {selectedRequest.status !== 'pending' && (
+                        <div className="bg-gray-50 p-3 rounded">
+                          <p className="font-medium">Status: {selectedRequest.status}</p>
+                          {selectedRequest.processed_at && (
+                            <p className="text-sm text-gray-600">
+                              Processed on: {new Date(selectedRequest.processed_at).toLocaleString()}
+                            </p>
+                          )}
+                          {selectedRequest.admin_notes && (
+                            <p className="text-sm mt-1">
+                              <strong>Notes:</strong> {selectedRequest.admin_notes}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-gray-500">Select a payment request to view details</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Requests */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Requests List */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Payment Requests</h2>
-            {loading ? (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <p>Loading payment requests...</p>
-                </CardContent>
-              </Card>
-            ) : filteredRequests.length === 0 ? (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <p className="text-gray-500">No payment requests found</p>
-                </CardContent>
-              </Card>
-            ) : (
-              filteredRequests.map((request) => (
-                <Card key={request.id} className={`cursor-pointer hover:shadow-md transition-shadow ${selectedRequest?.id === request.id ? 'border-blue-500' : ''}`}>
-                  <CardContent className="p-4" onClick={() => setSelectedRequest(request)}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold">{request.user_name}</h3>
-                        <p className="text-sm text-gray-600">{request.user_email}</p>
-                        <p className="text-sm text-gray-600">{request.phone_number}</p>
-                      </div>
-                      <Badge variant={
-                        request.status === 'approved' ? 'default' :
-                        request.status === 'rejected' ? 'destructive' : 'secondary'
-                      }>
-                        {request.status}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">₹{request.amount_paid}</span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(request.requested_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* Request Details */}
-          <div className="lg:sticky lg:top-4">
-            <h2 className="text-xl font-semibold mb-4">Request Details</h2>
-            {selectedRequest ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment Request #{selectedRequest.id.slice(0, 8)}</CardTitle>
-                  <CardDescription>
-                    Submitted on {new Date(selectedRequest.requested_at).toLocaleString()}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-medium mb-2">User Information</h4>
-                    <p><strong>Name:</strong> {selectedRequest.user_name}</p>
-                    <p><strong>Email:</strong> {selectedRequest.user_email}</p>
-                    <p><strong>Phone:</strong> {selectedRequest.phone_number}</p>
-                    <p><strong>Amount:</strong> ₹{selectedRequest.amount_paid}</p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-2">Payment Screenshot</h4>
-                    <img 
-                      src={selectedRequest.payment_screenshot_url} 
-                      alt="Payment Screenshot"
-                      className="w-full max-w-sm rounded-lg border"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => window.open(selectedRequest.payment_screenshot_url, '_blank')}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Full Size
-                    </Button>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-2">Admin Notes</h4>
-                    <Textarea
-                      value={adminNotes}
-                      onChange={(e) => setAdminNotes(e.target.value)}
-                      placeholder="Add notes about this payment request..."
-                      rows={3}
-                    />
-                  </div>
-
-                  {selectedRequest.status === 'pending' && (
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={() => handleApprovePayment(selectedRequest.id, selectedRequest.user_id)}
-                        disabled={processingId === selectedRequest.id}
-                        className="flex-1"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Approve
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleRejectPayment(selectedRequest.id)}
-                        disabled={processingId === selectedRequest.id}
-                        className="flex-1"
-                      >
-                        <XCircle className="h-4 w-4 mr-1" />
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-
-                  {selectedRequest.status !== 'pending' && (
-                    <div className="bg-gray-50 p-3 rounded">
-                      <p className="font-medium">Status: {selectedRequest.status}</p>
-                      {selectedRequest.processed_at && (
-                        <p className="text-sm text-gray-600">
-                          Processed on: {new Date(selectedRequest.processed_at).toLocaleString()}
-                        </p>
-                      )}
-                      {selectedRequest.admin_notes && (
-                        <p className="text-sm mt-1">
-                          <strong>Notes:</strong> {selectedRequest.admin_notes}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <p className="text-gray-500">Select a payment request to view details</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+          </TabsContent>
+          
+          <TabsContent value="content" className="mt-6">
+            <ContentManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
