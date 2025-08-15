@@ -2,15 +2,19 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, Target, Users, BookOpen, Clock, CheckCircle } from 'lucide-react';
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useUser();
 
   // Use the same hardcoded key as in main.tsx
   const PUBLISHABLE_KEY = "pk_test_cXVpZXQtd3Jlbi05My5jbGVyay5hY2NvdW50cy5kZXYk";
   const isClerkAvailable = !!PUBLISHABLE_KEY;
+  
+  // Check if current user is admin
+  const isAdmin = user?.emailAddresses?.[0]?.emailAddress === 'editkarde@gmail.com';
 
   const features = [
     {
@@ -57,8 +61,11 @@ const Index = () => {
             <div className="flex items-center space-x-6">
               <Button variant="ghost" onClick={() => navigate('/about')}>About</Button>
               <Button variant="ghost" onClick={() => navigate('/services')}>Services</Button>
-              <Button variant="ghost" onClick={() => navigate('/pricing')}>Pricing</Button>
+              <Button variant="ghost" onClick={() => navigate('/subscription')}>Subscription</Button>
               <Button variant="ghost" onClick={() => navigate('/contact')}>Contact</Button>
+              {isAdmin && (
+                <Button variant="ghost" onClick={() => navigate('/admin')}>Admin</Button>
+              )}
               {isClerkAvailable ? (
                 <>
                   <SignedOut>
@@ -209,7 +216,7 @@ const Index = () => {
               <div className="space-y-2">
                 <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/about')}>About</Button>
                 <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/services')}>Services</Button>
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/pricing')}>Pricing</Button>
+                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/subscription')}>Subscription</Button>
                 <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/contact')}>Contact</Button>
               </div>
             </div>
