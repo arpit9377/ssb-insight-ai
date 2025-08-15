@@ -51,7 +51,7 @@ serve(async (req) => {
 
     console.log('Creating Cashfree order:', orderData);
 
-    const response = await fetch('https://sandbox-api.cashfree.com/pg/orders', {
+    const response = await fetch('https://sandbox.cashfree.com/pg/orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
