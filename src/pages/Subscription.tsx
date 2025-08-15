@@ -2,224 +2,439 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Star, Zap, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Check, Crown, Upload, Phone, QrCode, Loader2, AlertCircle, CheckCircle, Star } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { paymentService, subscriptionPlans } from '@/services/paymentService';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { testLimitService } from '@/services/testLimitService';
+import { deviceFingerprintingService } from '@/services/deviceFingerprinting';
 
 const Subscription = () => {
-  const { user, subscription, checkSubscription } = useAuthContext();
+  const { user } = useAuthContext();
   const { toast } = useToast();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [userLimits, setUserLimits] = useState<any>(null);
+  const [paymentRequest, setPaymentRequest] = useState<any>(null);
+  
+  const [formData, setFormData] = useState({
+    name: user?.firstName + ' ' + user?.lastName || '',
+    email: user?.emailAddresses?.[0]?.emailAddress || '',
+    phone: '',
+    amount: '299',
+    screenshot: null as File | null
+  });
 
-  const handleSubscribe = async (planId: string) => {
-    console.log('Subscribe button clicked for plan:', planId);
-    console.log('Current user object:', user);
-    console.log('User authenticated:', !!user);
-    
-    if (planId === 'free') {
-      console.log('Free plan selected - showing toast');
-      toast({
-        title: "Free Plan",
-        description: "You are already on the free plan.",
-      });
-      return;
+  React.useEffect(() => {
+    if (user) {
+      loadUserData();
     }
+  }, [user]);
 
-    if (!user) {
-      console.log('No user found - showing auth required toast');
+  const loadUserData = async () => {
+    if (!user) return;
+    
+    try {
+      // Get current test limits
+      const limits = await testLimitService.getTestLimits(user.id);
+      setUserLimits(limits);
+
+      // Check for existing payment request
+      const { data: existingRequest } = await supabase
+        .from('payment_requests')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingRequest) {
+        setPaymentRequest(existingRequest);
+      }
+
+      // Record device fingerprint
+      await deviceFingerprintingService.recordFingerprint(user.id);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user || !formData.screenshot) {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to subscribe to a plan.",
+        title: "Error",
+        description: "Please fill all fields and upload payment screenshot",
         variant: "destructive"
       });
       return;
     }
 
-    console.log('Starting payment process for user:', user.id);
-    console.log('User email:', user.emailAddresses?.[0]?.emailAddress);
-    setLoadingPlan(planId);
-    
+    setLoading(true);
     try {
-      const userEmail = user.emailAddresses?.[0]?.emailAddress || '';
-      console.log('Processing payment with email:', userEmail);
+      // Upload screenshot to Supabase storage
+      const fileExt = formData.screenshot.name.split('.').pop();
+      const fileName = `payment_${user.id}_${Date.now()}.${fileExt}`;
       
-      console.log('About to call processPayment...');
-      await paymentService.processPayment(planId, user.id, userEmail);
-      
-      console.log('Payment processed successfully');
-      // Refresh subscription status after successful payment
-      await checkSubscription();
-      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('test-images')
+        .upload(`payment-screenshots/${fileName}`, formData.screenshot);
+
+      if (uploadError) throw uploadError;
+
+      const screenshotUrl = `https://katdnpqytskvsrweqtjn.supabase.co/storage/v1/object/public/test-images/${uploadData.path}`;
+
+      // Create payment request
+      const { error } = await supabase
+        .from('payment_requests')
+        .insert({
+          user_id: user.id,
+          user_name: formData.name,
+          user_email: formData.email,
+          phone_number: formData.phone,
+          amount_paid: parseInt(formData.amount),
+          payment_screenshot_url: screenshotUrl,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
       toast({
-        title: "Payment Initiated",
-        description: "Please complete the payment process.",
+        title: "Payment Request Submitted!",
+        description: "Your payment will be verified within 1-2 hours. You'll receive an email confirmation once approved."
       });
+
+      setShowPaymentForm(false);
+      loadUserData(); // Refresh data
     } catch (error) {
-      console.error('Subscription error details:', error);
-      
-      // Show more specific error messages
-      let errorMessage = "Failed to process payment. Please try again.";
-      if (error instanceof Error) {
-        if (error.message.includes('dns error') || error.message.includes('network')) {
-          errorMessage = "Network error: Unable to connect to payment gateway. Please check your internet connection and try again.";
-        } else if (error.message.includes('Failed to create payment order')) {
-          errorMessage = "Unable to create payment order. Please try again or contact support.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
+      console.error('Error submitting payment:', error);
       toast({
-        title: "Payment Failed",
-        description: errorMessage,
+        title: "Submission Failed",
+        description: "Failed to submit payment request. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setLoadingPlan(null);
+      setLoading(false);
     }
   };
 
-  const getIcon = (planId: string) => {
-    switch (planId) {
-      case 'free': return <Crown className="h-6 w-6" />;
-      case 'basic': return <Zap className="h-6 w-6" />;
-      case 'premium': return <Star className="h-6 w-6" />;
-      default: return <Crown className="h-6 w-6" />;
-    }
-  };
-
-  const getColor = (planId: string) => {
-    switch (planId) {
-      case 'free': return 'bg-green-500';
-      case 'basic': return 'bg-blue-500';
-      case 'premium': return 'bg-purple-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const isCurrentPlan = (planId: string) => {
-    if (planId === 'free') {
-      return !subscription || subscription?.status !== 'active';
-    }
-    return subscription?.plan_type === planId && subscription?.status === 'active';
-  };
+  const isCurrentlyPaid = userLimits?.subscription_type === 'paid';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Plan
+            Subscription & Payment
           </h1>
           <p className="text-xl text-gray-600">
-            Select the perfect plan for your SSB preparation journey
+            Get unlimited access to all psychological tests
           </p>
         </div>
 
-        {subscription && subscription.status === 'active' && (
-          <Card className="mb-8 border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="text-green-800">Current Subscription</CardTitle>
+        {/* Current Status Card */}
+        <Card className="mb-8 border-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {isCurrentlyPaid ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-yellow-600" />
+              )}
+              Current Status: {isCurrentlyPaid ? 'Paid User' : 'Free User'}
+            </CardTitle>
+            {userLimits && (
               <CardDescription>
-                You are currently subscribed to the {subscription.plan_type} plan
-                {subscription.current_period_end && (
-                  <span className="block mt-1">
-                    Valid until: {new Date(subscription.current_period_end).toLocaleDateString()}
-                  </span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="text-center">
+                    <p className="font-medium">TAT Tests</p>
+                    <p className="text-2xl font-bold text-blue-600">{userLimits.tat}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium">PPDT Tests</p>
+                    <p className="text-2xl font-bold text-green-600">{userLimits.ppdt}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium">WAT Tests</p>
+                    <p className="text-2xl font-bold text-purple-600">{userLimits.wat}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium">SRT Tests</p>
+                    <p className="text-2xl font-bold text-orange-600">{userLimits.srt}</p>
+                  </div>
+                </div>
+                {userLimits.subscription_expires_at && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Valid until: {new Date(userLimits.subscription_expires_at).toLocaleDateString()}
+                  </p>
                 )}
               </CardDescription>
-            </CardHeader>
+            )}
+          </CardHeader>
+        </Card>
+
+        {/* Pending Payment Request */}
+        {paymentRequest && (
+          <Card className="mb-8 border-yellow-200 bg-yellow-50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
+                <h3 className="font-semibold text-yellow-800">Payment Under Review</h3>
+              </div>
+              <p className="text-yellow-700">
+                Your payment request of ₹{paymentRequest.amount_paid} is being processed. 
+                You'll receive email confirmation within 1-2 hours once verified.
+              </p>
+              <p className="text-sm text-yellow-600 mt-1">
+                Submitted on: {new Date(paymentRequest.requested_at).toLocaleString()}
+              </p>
+            </CardContent>
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {subscriptionPlans.map((plan) => (
-            <Card 
-              key={plan.id} 
-              className={`relative ${isCurrentPlan(plan.id) ? 'border-green-500 shadow-lg' : ''} ${plan.popular ? 'border-purple-500 shadow-lg' : ''} ${plan.comingSoon ? 'opacity-60' : ''}`}
-            >
-              {plan.popular && !isCurrentPlan(plan.id) && !plan.comingSoon && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Most Popular
-                  </span>
-                </div>
-              )}
-              
-              {plan.comingSoon && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gray-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Coming Soon
-                  </span>
-                </div>
-              )}
-              
-              {isCurrentPlan(plan.id) && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Current Plan
-                  </span>
-                </div>
-              )}
-              
-              <CardHeader className="text-center">
-                <div className={`w-12 h-12 rounded-lg ${getColor(plan.id)} flex items-center justify-center mx-auto mb-4 ${plan.comingSoon ? 'bg-gray-400' : ''}`}>
-                  <div className="text-white">
-                    {getIcon(plan.id)}
-                  </div>
-                </div>
-                <CardTitle className={`text-2xl ${plan.comingSoon ? 'text-gray-500' : ''}`}>{plan.name}</CardTitle>
-                <CardDescription>
-                  <span className={`text-3xl font-bold ${plan.comingSoon ? 'text-gray-500' : 'text-gray-900'}`}>
-                    {plan.price === 0 ? 'Free' : `₹${plan.price}`}
-                  </span>
-                  {plan.price > 0 && <span className={`${plan.comingSoon ? 'text-gray-400' : 'text-gray-600'}`}>/month</span>}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-3">
-                      <Check className={`h-5 w-5 flex-shrink-0 ${plan.comingSoon ? 'text-gray-400' : 'text-green-500'}`} />
-                      <span className={`${plan.comingSoon ? 'text-gray-500' : 'text-gray-700'}`}>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <Button 
-                  className={`w-full ${plan.popular && !plan.comingSoon ? 'bg-purple-600 hover:bg-purple-700' : ''} ${plan.comingSoon ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed' : ''}`}
-                  onClick={() => !plan.comingSoon && handleSubscribe(plan.id)}
-                  disabled={isCurrentPlan(plan.id) || loadingPlan === plan.id || plan.comingSoon}
-                  variant={plan.popular && !plan.comingSoon ? 'default' : 'outline'}
-                >
-                  {plan.comingSoon ? (
-                    'Coming Soon'
-                  ) : loadingPlan === plan.id ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : isCurrentPlan(plan.id) ? (
-                    'Current Plan'
-                  ) : plan.id === 'free' ? (
-                    'Current Plan'
-                  ) : (
-                    'Subscribe Now'
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Payment Plans */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {/* Free Plan */}
+          <Card className={`${!isCurrentlyPaid ? 'border-green-500 shadow-lg' : ''}`}>
+            <CardHeader className="text-center">
+              <div className="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center mx-auto mb-4">
+                <Crown className="h-6 w-6 text-white" />
+              </div>
+              <CardTitle>Free Plan</CardTitle>
+              <CardDescription>
+                <span className="text-3xl font-bold text-gray-900">₹0</span>
+                <span className="text-gray-600">/forever</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center space-x-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>2 tests from each module (8 total)</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Basic AI feedback</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Progress tracking</span>
+                </li>
+              </ul>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                disabled={!isCurrentlyPaid}
+              >
+                {!isCurrentlyPaid ? 'Current Plan' : 'Downgrade (Not Available)'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Paid Plan */}
+          <Card className={`border-blue-500 shadow-lg ${isCurrentlyPaid ? 'border-green-500' : ''}`}>
+            <CardHeader className="text-center">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  Recommended
+                </span>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-blue-500 flex items-center justify-center mx-auto mb-4 mt-4">
+                <Star className="h-6 w-6 text-white" />
+              </div>
+              <CardTitle>Paid Access</CardTitle>
+              <CardDescription>
+                <span className="text-3xl font-bold text-gray-900">₹299</span>
+                <span className="text-gray-600">/30 days</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center space-x-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>30 tests from each module (120 total)</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Detailed AI analysis & feedback</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Advanced progress tracking</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Personality insights</span>
+                </li>
+              </ul>
+              <Button 
+                className="w-full"
+                onClick={() => setShowPaymentForm(true)}
+                disabled={isCurrentlyPaid || !!paymentRequest}
+              >
+                {isCurrentlyPaid ? 'Current Plan' : paymentRequest ? 'Payment Pending' : 'Upgrade Now'}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">
-            All plans are billed monthly. Cancel anytime from your account settings.
+        {/* Payment Form Modal */}
+        {showPaymentForm && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="h-5 w-5" />
+                Complete Your Payment
+              </CardTitle>
+              <CardDescription>
+                Manual payment verification - Access will be granted within 1-2 hours
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Payment Instructions */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Payment Instructions:</h3>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="font-medium mb-2">Step 1: Make Payment</p>
+                    <p className="text-sm text-gray-700 mb-3">Pay ₹299 using any of these methods:</p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">PhonePe/GPay:</span>
+                        <span className="font-mono bg-gray-100 px-2 py-1 rounded">9876543210</span>
+                      </div>
+                      
+                      <div className="bg-gray-100 p-3 rounded text-center">
+                        <p className="text-sm mb-2">UPI QR Code:</p>
+                        <div className="w-32 h-32 bg-white mx-auto flex items-center justify-center border-2 border-dashed border-gray-300">
+                          <QrCode className="h-16 w-16 text-gray-400" />
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">Scan to pay ₹299</p>
+                      </div>
+                      
+                      <div className="text-sm">
+                        <p><strong>Bank Transfer:</strong></p>
+                        <p>Account: PsychSir.ai</p>
+                        <p>IFSC: HDFC0001234</p>
+                        <p>Account No: 12345678901234</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <p className="font-medium mb-2">Step 2: Submit Proof</p>
+                    <p className="text-sm text-gray-700">
+                      Fill the form and upload payment screenshot for verification.
+                      Access will be granted within 1-2 hours after verification.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Payment Form */}
+                <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="amount">Amount Paid</Label>
+                    <Input
+                      id="amount"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                      required
+                      readOnly
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="screenshot">Payment Screenshot *</Label>
+                    <Input
+                      id="screenshot"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setFormData({...formData, screenshot: e.target.files?.[0] || null})}
+                      required
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Upload screenshot of successful payment transaction
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setShowPaymentForm(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={loading}
+                      className="flex-1"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Submit for Verification
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="text-center text-gray-600">
+          <p className="mb-2">
+            <strong>Manual Verification Process:</strong> Payment verification takes 1-2 hours during business hours.
           </p>
-          <p className="text-sm text-gray-500">
-            Secure payment processing powered by Cashfree
+          <p className="text-sm">
+            For immediate assistance, contact us at support@psychsir.ai or WhatsApp: +91 9876543210
           </p>
         </div>
       </div>

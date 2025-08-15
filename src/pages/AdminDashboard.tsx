@@ -1,334 +1,455 @@
-
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
-import { useAuth, useUser } from '@clerk/clerk-react';
-import StatsCards from '@/components/admin/StatsCards';
-import ImageUploadForm from '@/components/admin/ImageUploadForm';
-import WordUploadForm from '@/components/admin/WordUploadForm';
-import SituationUploadForm from '@/components/admin/SituationUploadForm';
-import BulkUploadForm from '@/components/admin/BulkUploadForm';
-import ContentManagement from '@/components/admin/ContentManagement';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Users, 
+  DollarSign, 
+  Shield,
+  Eye,
+  Search,
+  Filter
+} from 'lucide-react';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { testLimitService } from '@/services/testLimitService';
 
 const AdminDashboard = () => {
-  const { getToken } = useAuth();
-  const { user } = useUser();
+  const { user } = useAuthContext();
+  const { toast } = useToast();
+  const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalTests: 0,
-    activeSubscriptions: 0,
-    revenue: 0,
-    clerkUsers: 0,
-    totalTestSessions: 0,
-    completedTestSessions: 0,
-    totalAnalyses: 0,
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    totalRevenue: 0
   });
-  const [users, setUsers] = useState([]);
-  const [testImages, setTestImages] = useState([]);
-  const [watWords, setWatWords] = useState([]);
-  const [srtSituations, setSrtSituations] = useState([]);
+
+  // Check if user is admin (you can modify this logic)
+  const isAdmin = user?.primaryEmailAddress?.emailAddress === 'editkarde@gmail.com';
 
   useEffect(() => {
-    loadStats();
-    loadUsers();
-    loadTestImages();
-    loadWatWords();
-    loadSrtSituations();
-    loadClerkUsers();
-    createUserProfileIfNeeded();
-  }, [user]);
-
-  const createUserProfileIfNeeded = async () => {
-    if (!user) return;
-
-    try {
-      // Check if profile already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!existingProfile) {
-        // Create new profile with proper user_id (not UUID format)
-        const { error } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: user.id, // Use Clerk user ID directly
-            email: user.primaryEmailAddress?.emailAddress || '',
-            full_name: user.fullName || '',
-            subscription_status: 'free'
-          });
-
-        if (error) {
-          console.error('Error creating user profile:', error);
-        } else {
-          console.log('User profile created successfully');
-          loadStats(); // Refresh stats after creating profile
-        }
-      }
-    } catch (error) {
-      console.error('Error checking/creating user profile:', error);
+    if (isAdmin) {
+      loadPaymentRequests();
+      loadStats();
     }
-  };
+  }, [isAdmin]);
 
-  const loadClerkUsers = async () => {
+  const loadPaymentRequests = async () => {
     try {
-      const token = await getToken();
-      if (!token) {
-        console.log('No token available, using fallback count');
-        // Fallback: just use a basic count since we have at least one user (the current user)
-        setStats(prev => ({ ...prev, clerkUsers: 1 }));
-        return;
-      }
+      const { data, error } = await supabase
+        .from('payment_requests')
+        .select('*')
+        .order('requested_at', { ascending: false });
 
-      // Try to get user count from Clerk API
-      const response = await fetch('https://api.clerk.com/v1/users?limit=1', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const totalCount = parseInt(response.headers.get('x-total-count') || '1');
-        setStats(prev => ({ ...prev, clerkUsers: totalCount }));
-      } else {
-        console.log('Clerk API request failed, using fallback');
-        setStats(prev => ({ ...prev, clerkUsers: 1 }));
-      }
+      if (error) throw error;
+      setPaymentRequests(data || []);
     } catch (error) {
-      console.error('Error loading Clerk users:', error);
-      // Fallback: use profile count or minimum of 1
-      const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      setStats(prev => ({ ...prev, clerkUsers: Math.max(count || 0, 1) }));
+      console.error('Error loading payment requests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load payment requests",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const loadStats = async () => {
     try {
-      // Get profile count
-      const { count: userCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { data, error } = await supabase
+        .from('payment_requests')
+        .select('status, amount_paid');
 
-      // Get total user responses count
-      const { count: testCount } = await supabase
-        .from('user_responses')
-        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
 
-      // Get total test sessions count
-      const { count: sessionCount } = await supabase
-        .from('test_sessions')
-        .select('*', { count: 'exact', head: true });
+      const newStats = {
+        total: data?.length || 0,
+        pending: data?.filter(r => r.status === 'pending').length || 0,
+        approved: data?.filter(r => r.status === 'approved').length || 0,
+        rejected: data?.filter(r => r.status === 'rejected').length || 0,
+        totalRevenue: data?.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.amount_paid, 0) || 0
+      };
 
-      // Get completed test sessions count
-      const { count: completedSessionCount } = await supabase
-        .from('test_sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed');
-
-      // Get total AI analyses count
-      const { count: analysesCount } = await supabase
-        .from('ai_analyses')
-        .select('*', { count: 'exact', head: true });
-
-      // Get active subscriptions count
-      const { count: subCount } = await supabase
-        .from('subscriptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      setStats(prev => ({
-        ...prev,
-        totalUsers: userCount || 0,
-        totalTests: testCount || 0,
-        totalTestSessions: sessionCount || 0,
-        completedTestSessions: completedSessionCount || 0,
-        totalAnalyses: analysesCount || 0,
-        activeSubscriptions: subCount || 0,
-        revenue: (subCount || 0) * 499,
-      }));
+      setStats(newStats);
     } catch (error) {
       console.error('Error loading stats:', error);
     }
   };
 
-  const loadUsers = async () => {
+  const handleApprovePayment = async (requestId: string, userId: string) => {
+    setProcessingId(requestId);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Update payment request status
+      const { error: updateError } = await supabase
+        .from('payment_requests')
+        .update({
+          status: 'approved',
+          processed_at: new Date().toISOString(),
+          processed_by: user?.id,
+          admin_notes: adminNotes
+        })
+        .eq('id', requestId);
 
-      if (data) {
-        setUsers(data);
+      if (updateError) throw updateError;
+
+      // Activate paid subscription for user
+      const success = await testLimitService.activatePaidSubscription(userId);
+      
+      if (!success) {
+        throw new Error('Failed to activate subscription');
       }
+
+      toast({
+        title: "Payment Approved",
+        description: "User subscription has been activated successfully"
+      });
+
+      loadPaymentRequests();
+      loadStats();
+      setSelectedRequest(null);
+      setAdminNotes('');
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error approving payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve payment",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingId(null);
     }
   };
 
-  const loadTestImages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('test_images')
-        .select('*')
-        .order('test_type', { ascending: true });
+  const handleRejectPayment = async (requestId: string) => {
+    if (!adminNotes.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide rejection reason in admin notes",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      if (data) {
-        setTestImages(data);
-      }
+    setProcessingId(requestId);
+    try {
+      const { error } = await supabase
+        .from('payment_requests')
+        .update({
+          status: 'rejected',
+          processed_at: new Date().toISOString(),
+          processed_by: user?.id,
+          admin_notes: adminNotes
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Payment Rejected",
+        description: "Payment request has been rejected"
+      });
+
+      loadPaymentRequests();
+      loadStats();
+      setSelectedRequest(null);
+      setAdminNotes('');
     } catch (error) {
-      console.error('Error loading test images:', error);
+      console.error('Error rejecting payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject payment",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingId(null);
     }
   };
 
-  const loadWatWords = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('wat_words')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const filteredRequests = paymentRequests.filter(request => {
+    const matchesSearch = searchTerm === '' || 
+      request.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.phone_number.includes(searchTerm);
+    
+    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
-      if (data) {
-        setWatWords(data);
-      }
-    } catch (error) {
-      console.error('Error loading WAT words:', error);
-    }
-  };
-
-  const loadSrtSituations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('srt_situations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        setSrtSituations(data);
-      }
-    } catch (error) {
-      console.error('Error loading SRT situations:', error);
-    }
-  };
-
-  const refreshContent = () => {
-    loadTestImages();
-    loadWatWords();
-    loadSrtSituations();
-    loadStats();
-  };
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center p-8">
+            <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+            <p className="text-gray-600">You don't have admin permissions to access this page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600">Manage your PsychSir.ai platform</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+          <p className="text-gray-600">Manage payment requests and user subscriptions</p>
+        </div>
 
-      <StatsCards stats={stats} />
-
-      <Tabs defaultValue="upload" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="upload">Upload Materials</TabsTrigger>
-          <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
-          <TabsTrigger value="manage">Manage Content</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="upload">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ImageUploadForm onImageUploaded={refreshContent} />
-            <WordUploadForm onWordAdded={refreshContent} wordCount={watWords.length} />
-            <SituationUploadForm onSituationAdded={refreshContent} situationCount={srtSituations.length} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="bulk-upload">
-          <div className="grid grid-cols-1 gap-6">
-            <BulkUploadForm onUploadComplete={refreshContent} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="manage">
-          <ContentManagement 
-            testImages={testImages}
-            watWords={watWords}
-            srtSituations={srtSituations}
-            onContentDeleted={refreshContent}
-          />
-        </TabsContent>
-
-        <TabsContent value="users">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Users</CardTitle>
-              <CardDescription>Latest user registrations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {users.map((user: any) => (
-                  <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{user.full_name || 'No name'}</p>
-                      <p className="text-sm text-gray-600">{user.email}</p>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                  <p className="text-gray-600">Total Requests</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Clock className="h-8 w-8 text-yellow-600" />
+                <div className="ml-4">
+                  <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                  <p className="text-gray-600">Pending</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+                  <p className="text-gray-600">Approved</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <XCircle className="h-8 w-8 text-red-600" />
+                <div className="ml-4">
+                  <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
+                  <p className="text-gray-600">Rejected</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <DollarSign className="h-8 w-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue}</p>
+                  <p className="text-gray-600">Revenue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by name, email, or phone..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="w-48">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Requests */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Requests List */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Payment Requests</h2>
+            {loading ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <p>Loading payment requests...</p>
+                </CardContent>
+              </Card>
+            ) : filteredRequests.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <p className="text-gray-500">No payment requests found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredRequests.map((request) => (
+                <Card key={request.id} className={`cursor-pointer hover:shadow-md transition-shadow ${selectedRequest?.id === request.id ? 'border-blue-500' : ''}`}>
+                  <CardContent className="p-4" onClick={() => setSelectedRequest(request)}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-semibold">{request.user_name}</h3>
+                        <p className="text-sm text-gray-600">{request.user_email}</p>
+                        <p className="text-sm text-gray-600">{request.phone_number}</p>
+                      </div>
+                      <Badge variant={
+                        request.status === 'approved' ? 'default' :
+                        request.status === 'rejected' ? 'destructive' : 'secondary'
+                      }>
+                        {request.status}
+                      </Badge>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">
-                        Joined: {new Date(user.created_at).toLocaleDateString()}
-                      </p>
-                      <p className="text-sm font-medium capitalize">{user.subscription_status}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">₹{request.amount_paid}</span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(request.requested_at).toLocaleDateString()}
+                      </span>
                     </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          {/* Request Details */}
+          <div className="lg:sticky lg:top-4">
+            <h2 className="text-xl font-semibold mb-4">Request Details</h2>
+            {selectedRequest ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Payment Request #{selectedRequest.id.slice(0, 8)}</CardTitle>
+                  <CardDescription>
+                    Submitted on {new Date(selectedRequest.requested_at).toLocaleString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">User Information</h4>
+                    <p><strong>Name:</strong> {selectedRequest.user_name}</p>
+                    <p><strong>Email:</strong> {selectedRequest.user_email}</p>
+                    <p><strong>Phone:</strong> {selectedRequest.phone_number}</p>
+                    <p><strong>Amount:</strong> ₹{selectedRequest.amount_paid}</p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-              <CardDescription>Platform performance metrics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium mb-2">Content Statistics</h3>
-                  <p className="text-sm text-gray-600">PPDT Images: {testImages.filter(img => img.test_type === 'ppdt').length}</p>
-                  <p className="text-sm text-gray-600">TAT Images: {testImages.filter(img => img.test_type === 'tat').length}</p>
-                  <p className="text-sm text-gray-600">WAT Words: {watWords.length}</p>
-                  <p className="text-sm text-gray-600">SRT Situations: {srtSituations.length}</p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium mb-2">Test Engagement</h3>
-                  <p className="text-sm text-gray-600">Total Test Sessions: {stats.totalTestSessions}</p>
-                  <p className="text-sm text-gray-600">Completed Sessions: {stats.completedTestSessions}</p>
-                  <p className="text-sm text-gray-600">Completion Rate: {stats.totalTestSessions > 0 ? Math.round((stats.completedTestSessions / stats.totalTestSessions) * 100) : 0}%</p>
-                  <p className="text-sm text-gray-600">Total Responses: {stats.totalTests}</p>
-                  <p className="text-sm text-gray-600">AI Analyses: {stats.totalAnalyses}</p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-medium mb-2">Revenue & Users</h3>
-                  <p className="text-sm text-gray-600">Total Clerk Users: {stats.clerkUsers}</p>
-                  <p className="text-sm text-gray-600">Profile Users: {stats.totalUsers}</p>
-                  <p className="text-sm text-gray-600">Active Subscriptions: {stats.activeSubscriptions}</p>
-                  <p className="text-sm text-gray-600">Monthly Revenue: ₹{stats.revenue.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">Conversion Rate: {stats.clerkUsers > 0 ? Math.round((stats.activeSubscriptions / stats.clerkUsers) * 100) : 0}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  <div>
+                    <h4 className="font-medium mb-2">Payment Screenshot</h4>
+                    <img 
+                      src={selectedRequest.payment_screenshot_url} 
+                      alt="Payment Screenshot"
+                      className="w-full max-w-sm rounded-lg border"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => window.open(selectedRequest.payment_screenshot_url, '_blank')}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Full Size
+                    </Button>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Admin Notes</h4>
+                    <Textarea
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      placeholder="Add notes about this payment request..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {selectedRequest.status === 'pending' && (
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => handleApprovePayment(selectedRequest.id, selectedRequest.user_id)}
+                        disabled={processingId === selectedRequest.id}
+                        className="flex-1"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleRejectPayment(selectedRequest.id)}
+                        disabled={processingId === selectedRequest.id}
+                        className="flex-1"
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+
+                  {selectedRequest.status !== 'pending' && (
+                    <div className="bg-gray-50 p-3 rounded">
+                      <p className="font-medium">Status: {selectedRequest.status}</p>
+                      {selectedRequest.processed_at && (
+                        <p className="text-sm text-gray-600">
+                          Processed on: {new Date(selectedRequest.processed_at).toLocaleString()}
+                        </p>
+                      )}
+                      {selectedRequest.admin_notes && (
+                        <p className="text-sm mt-1">
+                          <strong>Notes:</strong> {selectedRequest.admin_notes}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-gray-500">Select a payment request to view details</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

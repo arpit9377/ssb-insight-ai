@@ -7,23 +7,38 @@ import { UserButton } from '@clerk/clerk-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { testAnalysisService } from '@/services/testAnalysisService';
+import { testLimitService } from '@/services/testLimitService';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, subscription } = useAuthContext();
+  const { toast } = useToast();
   const [userStats, setUserStats] = useState({
     testsCompleted: 0,
     avgScore: 0,
     traitsAnalyzed: 0,
   });
+  const [testLimits, setTestLimits] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
     if (user) {
       loadUserStats();
       loadRecentActivity();
+      loadTestLimits();
     }
   }, [user]);
+
+  const loadTestLimits = async () => {
+    if (!user) return;
+    try {
+      const limits = await testLimitService.getTestLimits(user.id);
+      setTestLimits(limits);
+    } catch (error) {
+      console.error('Error loading test limits:', error);
+    }
+  };
 
   const loadUserStats = async () => {
     if (!user) return;
@@ -151,7 +166,26 @@ const Dashboard = () => {
     }
   ];
 
-  const handleTestStart = (testId: string) => {
+  const handleTestStart = async (testId: string) => {
+    if (!user) return;
+    
+    // Check if user has remaining tests
+    const canTake = await testLimitService.checkTestAvailability(user.id, testId);
+    if (!canTake) {
+      const limits = await testLimitService.getTestLimits(user.id);
+      const remaining = limits?.[testId as keyof typeof limits] || 0;
+      
+      if (typeof remaining === 'number' && remaining <= 0) {
+        toast({
+          title: "No Tests Remaining",
+          description: `You have used all your ${testId.toUpperCase()} tests. Please upgrade to continue.`,
+          variant: "destructive"
+        });
+        navigate('/subscription');
+        return;
+      }
+    }
+    
     navigate(`/test/${testId}`);
   };
 
@@ -254,6 +288,41 @@ const Dashboard = () => {
           </Card>
         )}
 
+        {/* Test Limits Display */}
+        {testLimits && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Your Test Limits</CardTitle>
+              <CardDescription>
+                {testLimits.subscription_type === 'paid' ? 
+                  `Paid Access - Valid until ${new Date(testLimits.subscription_expires_at).toLocaleDateString()}` :
+                  'Free Access - Upgrade for unlimited tests'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-blue-600">{testLimits.tat}</p>
+                  <p className="text-sm text-gray-600">TAT Tests Left</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">{testLimits.ppdt}</p>
+                  <p className="text-sm text-gray-600">PPDT Tests Left</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-purple-600">{testLimits.wat}</p>
+                  <p className="text-sm text-gray-600">WAT Tests Left</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600">{testLimits.srt}</p>
+                  <p className="text-sm text-gray-600">SRT Tests Left</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -305,7 +374,7 @@ const Dashboard = () => {
                 <BarChart3 className="h-8 w-8 text-orange-600" />
                 <div className="ml-4">
                   <p className="text-2xl font-bold text-gray-900">
-                    {isPrivilegedUser ? 'Testing' : subscription ? 'Premium' : 'Free'}
+                    {isPrivilegedUser ? 'Testing' : testLimits?.subscription_type === 'paid' ? 'Paid' : 'Free'}
                   </p>
                   <p className="text-gray-600">Plan Status</p>
                 </div>
@@ -338,10 +407,15 @@ const Dashboard = () => {
                     <Button 
                       className="w-full" 
                       onClick={() => handleTestStart(test.id)}
-                      disabled={!test.available}
+                      disabled={!test.available && !isPrivilegedUser}
                     >
-                      {test.available ? 'Start Practice' : 'Premium Only'}
+                      {test.available || isPrivilegedUser ? 'Start Practice' : 'Premium Only'}
                     </Button>
+                    {testLimits && (
+                      <p className="text-xs text-center mt-1 text-gray-500">
+                        {testLimits[test.id] || 0} tests remaining
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
