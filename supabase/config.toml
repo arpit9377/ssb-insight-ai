@@ -36,11 +36,14 @@ refresh_token_rotation_enabled = true
 refresh_token_reuse_interval = 10
 enable_signup = true
 
-[functions.create-razorpay-order]
+[functions.create-cashfree-order]
 verify_jwt = true
 
-[functions.verify-razorpay-payment] 
+[functions.verify-cashfree-payment] 
 verify_jwt = true
+
+[functions.cashfree-webhook]
+verify_jwt = false
 
 [functions.ai-analysis]
 verify_jwt = true

@@ -69,7 +69,7 @@ class PaymentService {
       }
 
       const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js'; // Use production URL for live
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'; // Updated to v3 SDK
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
@@ -136,38 +136,40 @@ class PaymentService {
       // Create order
       const orderData = await this.createCashfreeOrder(planId, userId, plan.price);
 
-      // Configure Cashfree options
-      const options = {
-        key: orderData.keyId,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'SSB Preparation Platform',
-        description: `${plan.name} Subscription`,
-        order_id: orderData.orderId,
-        prefill: {
-          email: userEmail,
-        },
-        theme: {
-          color: '#3b82f6'
-        },
-        handler: async (response: any) => {
-          try {
-            await this.verifyPayment(response, userId);
-            window.location.reload(); // Refresh to show updated subscription
-          } catch (error) {
-            console.error('Payment verification failed:', error);
-            alert('Payment verification failed. Please contact support.');
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            console.log('Payment cancelled by user');
-          }
-        }
+      // Initialize Cashfree object
+      const cashfree = window.Cashfree({
+        mode: 'sandbox' // Use 'production' for live environment
+      });
+
+      // Configure checkout options
+      const checkoutOptions = {
+        paymentSessionId: orderData.sessionId,
+        returnUrl: window.location.origin + '/subscription?payment=success'
       };
 
-      const cashfree = new window.Cashfree(options);
-      cashfree.open();
+      // Open checkout
+      const result = await cashfree.checkout(checkoutOptions);
+      
+      if (result.error) {
+        console.error('Checkout error:', result.error);
+        throw new Error('Payment checkout failed');
+      }
+
+      if (result.redirect) {
+        // Payment was successful, verify it
+        try {
+          await this.verifyPayment({
+            orderId: orderData.orderId,
+            paymentId: result.paymentDetails?.paymentId,
+            signature: result.paymentDetails?.signature
+          }, userId);
+          
+          window.location.reload(); // Refresh to show updated subscription
+        } catch (error) {
+          console.error('Payment verification failed:', error);
+          alert('Payment verification failed. Please contact support.');
+        }
+      }
 
     } catch (error) {
       console.error('Payment processing error:', error);

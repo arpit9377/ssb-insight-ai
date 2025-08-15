@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -152,15 +152,16 @@ export type Database = {
       subscriptions: {
         Row: {
           amount: number | null
+          cashfree_order_id: string | null
+          cashfree_order_token: string | null
+          cashfree_payment_id: string | null
+          cashfree_signature: string | null
           created_at: string
           currency: string | null
           current_period_end: string | null
           current_period_start: string | null
           id: string
           plan_type: string
-          razorpay_order_id: string | null
-          razorpay_payment_id: string | null
-          razorpay_signature: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -169,15 +170,16 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          cashfree_order_id?: string | null
+          cashfree_order_token?: string | null
+          cashfree_payment_id?: string | null
+          cashfree_signature?: string | null
           created_at?: string
           currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           plan_type?: string
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          razorpay_signature?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -186,15 +188,16 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          cashfree_order_id?: string | null
+          cashfree_order_token?: string | null
+          cashfree_payment_id?: string | null
+          cashfree_signature?: string | null
           created_at?: string
           currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           plan_type?: string
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          razorpay_signature?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -371,7 +374,7 @@ export type Database = {
     }
     Functions: {
       increment_usage_count: {
-        Args: { table_name: string; row_id: string }
+        Args: { row_id: string; table_name: string }
         Returns: undefined
       }
     }
