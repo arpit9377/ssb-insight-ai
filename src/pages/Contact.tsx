@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Brain, Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const Contact = () => {
   const navigate = useNavigate();
@@ -58,42 +59,25 @@ const Contact = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Brain className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">PsychSir.ai</h1>
-            </div>
-            <div className="flex items-center space-x-6">
-              <Button variant="ghost" onClick={() => navigate('/')}>Home</Button>
-              <Button variant="ghost" onClick={() => navigate('/about')}>About</Button>
-              <Button variant="ghost" onClick={() => navigate('/services')}>Services</Button>
-              <Button variant="ghost" onClick={() => navigate('/pricing')}>Pricing</Button>
-              <Button onClick={() => navigate('/dashboard')}>Get Started</Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">
+    <AppLayout 
+      title="Contact Us" 
+      showBackButton={true}
+      backTo="/"
+    >
+      <div className="space-y-16">
+        {/* Hero Section */}
+        <section className="text-center">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Contact Us
-          </h2>
+          </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Have questions about our platform or need help with your preparation? 
             We're here to help you succeed in your SSB journey.
           </p>
-        </div>
-      </section>
+        </section>
 
-      {/* Contact Form and Info */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Contact Form and Info */}
+        <section>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
             <Card>
@@ -221,47 +205,9 @@ const Contact = () => {
               </Card>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="md:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-                <Brain className="h-8 w-8 text-blue-400" />
-                <h3 className="text-2xl font-bold">PsychSir.ai</h3>
-              </div>
-              <p className="text-gray-400 max-w-md">
-                Empowering future officers with AI-powered psychological test preparation
-              </p>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-              <div className="space-y-2">
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/')}>Home</Button>
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/about')}>About</Button>
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/services')}>Services</Button>
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/pricing')}>Pricing</Button>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Legal</h4>
-              <div className="space-y-2">
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/terms')}>Terms & Conditions</Button>
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/privacy')}>Privacy Policy</Button>
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/refunds')}>Refunds</Button>
-                <Button variant="link" className="text-gray-400 hover:text-white p-0 h-auto" onClick={() => navigate('/faq')}>FAQ</Button>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PsychSir.ai. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+        </section>
+      </div>
+    </AppLayout>
   );
 };
 

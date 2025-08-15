@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { testLimitService } from '@/services/testLimitService';
 import { deviceFingerprintingService } from '@/services/deviceFingerprinting';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const Subscription = () => {
   const { user } = useAuthContext();
@@ -126,8 +127,13 @@ const Subscription = () => {
   const isCurrentlyPaid = userLimits?.subscription_type === 'paid';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <AppLayout 
+      title="Subscription & Payment" 
+      showBackButton={true}
+      backTo="/dashboard"
+    >
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Subscription & Payment
@@ -435,6 +441,7 @@ const Subscription = () => {
         </div>
       </div>
     </div>
+    </AppLayout>
   );
 };
 

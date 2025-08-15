@@ -174,14 +174,14 @@ export function MobileNavigation() {
             <div className="space-y-2">
               <SignInButton mode="modal">
                 <Button variant="outline" size="sm" className="w-full">
-                  <User className="h-4 w-4 mr-2" />
-                  {open && <span>Sign In</span>}
+                  <User className="h-4 w-4" />
+                  {open && <span className="ml-2">Sign In</span>}
                 </Button>
               </SignInButton>
               <SignUpButton mode="modal">
                 <Button size="sm" className="w-full">
-                  <User className="h-4 w-4 mr-2" />
-                  {open && <span>Get Started</span>}
+                  <User className="h-4 w-4" />
+                  {open && <span className="ml-2">Get Started</span>}
                 </Button>
               </SignUpButton>
             </div>
