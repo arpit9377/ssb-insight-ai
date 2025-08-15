@@ -69,7 +69,7 @@ const FAQ = () => {
         },
         {
           question: "What payment methods do you accept?",
-          answer: "We accept all major credit/debit cards, UPI, net banking, and digital wallets through our secure payment processor Razorpay."
+          answer: "We accept all major credit/debit cards, UPI, net banking, and digital wallets through our secure payment processor Cashfree."
         }
       ]
     },
@@ -90,7 +90,7 @@ const FAQ = () => {
         },
         {
           question: "What if I face technical issues?",
-          answer: "Our technical support team is available Monday-Friday, 9 AM-6 PM IST. Contact us at support@psychsir.ai or +91 98765 43210 for assistance."
+          answer: "Our technical support team is available Monday-Friday, 9 AM-6 PM IST. Contact us at support@psychsir.ai or +91 8319635728 for assistance."
         }
       ]
     },
@@ -242,7 +242,7 @@ const FAQ = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-900">Phone Support</p>
-                <p>+91 98765 43210</p>
+                <p>+91 8319635728</p>
                 <p>Mon-Fri, 9 AM - 6 PM IST</p>
               </div>
               <div>

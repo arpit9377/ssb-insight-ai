@@ -40,13 +40,13 @@ const Contact = () => {
     {
       icon: Phone,
       title: 'Phone',
-      value: '+91 98765 43210',
+      value: '+91 8319635728',
       description: 'Mon-Fri from 9am to 6pm'
     },
     {
       icon: MapPin,
       title: 'Address',
-      value: 'Bangalore, Karnataka, India',
+      value: 'Delhi, India',
       description: 'Our headquarters'
     },
     {
@@ -213,7 +213,7 @@ const Contact = () => {
                     you can also reach us through:
                   </p>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-600">• WhatsApp: +91 98765 43210</p>
+                    <p className="text-sm text-gray-600">• WhatsApp: +91 8319635728</p>
                     <p className="text-sm text-gray-600">• Telegram: @PsychSirSupport</p>
                     <p className="text-sm text-gray-600">• Live Chat: Available on our website</p>
                   </div>

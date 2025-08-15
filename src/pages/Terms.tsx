@@ -127,7 +127,7 @@ const Terms = () => {
                     features and pricing. All prices are in Indian Rupees (INR).
                   </p>
                   <p>
-                    <strong>4.2 Payment Processing:</strong> Payments are processed securely through Razorpay. 
+                    <strong>4.2 Payment Processing:</strong> Payments are processed securely through Cashfree. 
                     We do not store your credit card information.
                   </p>
                   <p>
@@ -253,7 +253,7 @@ const Terms = () => {
                   <p>
                     These terms shall be governed by and construed in accordance with the laws of India. 
                     Any disputes arising from these terms or your use of our service shall be subject to 
-                    the exclusive jurisdiction of the courts in Bangalore, Karnataka, India.
+                    the exclusive jurisdiction of the courts in Delhi, India.
                   </p>
                   <p>
                     Before pursuing legal action, we encourage you to contact us to resolve any disputes amicably.
@@ -273,8 +273,8 @@ const Terms = () => {
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p><strong>Email:</strong> legal@psychsir.ai</p>
-                    <p><strong>Address:</strong> Bangalore, Karnataka, India</p>
-                    <p><strong>Phone:</strong> +91 98765 43210</p>
+                    <p><strong>Address:</strong> Delhi, India</p>
+                    <p><strong>Phone:</strong> +91 8319635728</p>
                   </div>
                 </div>
               </CardContent>

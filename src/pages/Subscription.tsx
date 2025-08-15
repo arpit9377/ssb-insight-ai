@@ -194,7 +194,7 @@ const Subscription = () => {
             All plans are billed monthly. Cancel anytime from your account settings.
           </p>
           <p className="text-sm text-gray-500">
-            Secure payment processing powered by Razorpay
+            Secure payment processing powered by Cashfree
           </p>
         </div>
       </div>

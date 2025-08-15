@@ -274,7 +274,7 @@ const Refunds = () => {
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p><strong>Email:</strong> billing@psychsir.ai</p>
                     <p><strong>Support:</strong> support@psychsir.ai</p>
-                    <p><strong>Phone:</strong> +91 98765 43210</p>
+                    <p><strong>Phone:</strong> +91 8319635728</p>
                     <p><strong>Hours:</strong> Monday-Friday, 9:00 AM - 6:00 PM IST</p>
                   </div>
                   <p className="text-sm text-gray-500 mt-4">

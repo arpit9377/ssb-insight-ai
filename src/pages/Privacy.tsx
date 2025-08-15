@@ -64,7 +64,7 @@ const Privacy = () => {
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Name, email address, and contact information</li>
                     <li>Account credentials and authentication data</li>
-                    <li>Payment information (processed securely through Razorpay)</li>
+                    <li>Payment information (processed securely through Cashfree)</li>
                     <li>Profile information and preferences</li>
                   </ul>
                   
@@ -166,7 +166,7 @@ const Privacy = () => {
                   
                   <p><strong>4.2 Limited Sharing:</strong></p>
                   <ul className="list-disc pl-6 space-y-2">
-                    <li>With service providers (Supabase, Razorpay) under strict confidentiality agreements</li>
+                    <li>With service providers (Supabase, Cashfree) under strict confidentiality agreements</li>
                     <li>Anonymized data with research partners for educational purposes</li>
                     <li>When required by law or legal process</li>
                     <li>To protect our rights, property, or safety</li>
@@ -175,7 +175,7 @@ const Privacy = () => {
                   <p><strong>4.3 Third-Party Services:</strong></p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Supabase for database and authentication services</li>
-                    <li>Razorpay for payment processing</li>
+                    <li>Cashfree for payment processing</li>
                     <li>Analytics tools for usage monitoring</li>
                   </ul>
                 </div>
@@ -309,8 +309,8 @@ const Privacy = () => {
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p><strong>Email:</strong> privacy@psychsir.ai</p>
-                    <p><strong>Address:</strong> Bangalore, Karnataka, India</p>
-                    <p><strong>Phone:</strong> +91 98765 43210</p>
+                    <p><strong>Address:</strong> Delhi, India</p>
+                    <p><strong>Phone:</strong> +91 8319635728</p>
                     <p><strong>Data Protection Officer:</strong> dpo@psychsir.ai</p>
                   </div>
                 </div>

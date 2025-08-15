@@ -56,29 +56,29 @@ export const subscriptionPlans: SubscriptionPlan[] = [
 
 declare global {
   interface Window {
-    Razorpay: any;
+    Cashfree: any;
   }
 }
 
 class PaymentService {
-  private loadRazorpayScript(): Promise<boolean> {
+  private loadCashfreeScript(): Promise<boolean> {
     return new Promise((resolve) => {
-      if (window.Razorpay) {
+      if (window.Cashfree) {
         resolve(true);
         return;
       }
 
       const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js'; // Use production URL for live
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
   }
 
-  async createRazorpayOrder(planId: string, userId: string, amount: number) {
+  async createCashfreeOrder(planId: string, userId: string, amount: number) {
     try {
-      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+      const { data, error } = await supabase.functions.invoke('create-cashfree-order', {
         body: {
           amount,
           currency: 'INR',
@@ -88,7 +88,7 @@ class PaymentService {
       });
 
       if (error) {
-        console.error('Error creating Razorpay order:', error);
+        console.error('Error creating Cashfree order:', error);
         throw new Error('Failed to create payment order');
       }
 
@@ -101,7 +101,7 @@ class PaymentService {
 
   async verifyPayment(paymentData: any, userId: string) {
     try {
-      const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
+      const { data, error } = await supabase.functions.invoke('verify-cashfree-payment', {
         body: {
           ...paymentData,
           userId
@@ -127,16 +127,16 @@ class PaymentService {
         throw new Error('Invalid plan selected');
       }
 
-      // Load Razorpay script
-      const scriptLoaded = await this.loadRazorpayScript();
+      // Load Cashfree script
+      const scriptLoaded = await this.loadCashfreeScript();
       if (!scriptLoaded) {
         throw new Error('Failed to load payment gateway');
       }
 
       // Create order
-      const orderData = await this.createRazorpayOrder(planId, userId, plan.price);
+      const orderData = await this.createCashfreeOrder(planId, userId, plan.price);
 
-      // Configure Razorpay options
+      // Configure Cashfree options
       const options = {
         key: orderData.keyId,
         amount: orderData.amount,
@@ -166,8 +166,8 @@ class PaymentService {
         }
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      const cashfree = new window.Cashfree(options);
+      cashfree.open();
 
     } catch (error) {
       console.error('Payment processing error:', error);

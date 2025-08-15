@@ -191,7 +191,7 @@ const Pricing = () => {
             </div>
             <div className="p-6 border rounded-lg">
               <h4 className="font-semibold text-gray-900 mb-2">What payment methods do you accept?</h4>
-              <p className="text-gray-600">We accept all major credit/debit cards, UPI, net banking, and digital wallets through Razorpay.</p>
+              <p className="text-gray-600">We accept all major credit/debit cards, UPI, net banking, and digital wallets through Cashfree.</p>
             </div>
             <div className="p-6 border rounded-lg">
               <h4 className="font-semibient text-gray-900 mb-2">Do you offer student discounts?</h4>

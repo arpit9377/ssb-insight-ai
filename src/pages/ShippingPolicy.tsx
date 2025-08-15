@@ -275,7 +275,7 @@ const ShippingPolicy = () => {
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p><strong>Technical Support:</strong> support@psychsir.ai</p>
                     <p><strong>General Inquiries:</strong> info@psychsir.ai</p>
-                    <p><strong>Phone:</strong> +91 98765 43210</p>
+                    <p><strong>Phone:</strong> +91 8319635728</p>
                     <p><strong>Support Hours:</strong> Monday-Friday, 9:00 AM - 6:00 PM IST</p>
                   </div>
                   <p className="text-sm text-gray-500 mt-4">
