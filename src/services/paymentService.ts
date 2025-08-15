@@ -77,7 +77,11 @@ class PaymentService {
   }
 
   async createCashfreeOrder(planId: string, userId: string, amount: number) {
+    console.log('createCashfreeOrder called with:', { planId, userId, amount });
+    
     try {
+      console.log('Invoking create-cashfree-order edge function...');
+      
       const { data, error } = await supabase.functions.invoke('create-cashfree-order', {
         body: {
           amount,
@@ -87,11 +91,14 @@ class PaymentService {
         }
       });
 
+      console.log('Edge function response:', { data, error });
+
       if (error) {
         console.error('Error creating Cashfree order:', error);
-        throw new Error('Failed to create payment order');
+        throw new Error(`Failed to create payment order: ${error.message}`);
       }
 
+      console.log('Order created successfully:', data);
       return data;
     } catch (error) {
       console.error('Payment order creation error:', error);
