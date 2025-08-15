@@ -61,72 +61,6 @@ declare global {
 }
 
 class PaymentService {
-  private loadCashfreeScript(): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (window.Cashfree) {
-        resolve(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'; // Updated to v3 SDK
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  }
-
-  async createCashfreeOrder(planId: string, userId: string, amount: number) {
-    console.log('createCashfreeOrder called with:', { planId, userId, amount });
-    
-    try {
-      console.log('Invoking create-cashfree-order edge function...');
-      
-      const { data, error } = await supabase.functions.invoke('create-cashfree-order', {
-        body: {
-          amount,
-          currency: 'INR',
-          planType: planId,
-          userId
-        }
-      });
-
-      console.log('Edge function response:', { data, error });
-
-      if (error) {
-        console.error('Error creating Cashfree order:', error);
-        throw new Error(`Failed to create payment order: ${error.message}`);
-      }
-
-      console.log('Order created successfully:', data);
-      return data;
-    } catch (error) {
-      console.error('Payment order creation error:', error);
-      throw error;
-    }
-  }
-
-  async verifyPayment(paymentData: any, userId: string) {
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-cashfree-payment', {
-        body: {
-          ...paymentData,
-          userId
-        }
-      });
-
-      if (error) {
-        console.error('Error verifying payment:', error);
-        throw new Error('Payment verification failed');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      throw error;
-    }
-  }
-
   async processPayment(planId: string, userId: string, userEmail: string) {
     try {
       const plan = subscriptionPlans.find(p => p.id === planId);
@@ -134,48 +68,25 @@ class PaymentService {
         throw new Error('Invalid plan selected');
       }
 
-      // Load Cashfree script
-      const scriptLoaded = await this.loadCashfreeScript();
-      if (!scriptLoaded) {
-        throw new Error('Failed to load payment gateway');
-      }
-
-      // Create order
-      const orderData = await this.createCashfreeOrder(planId, userId, plan.price);
-
-      // Initialize Cashfree object
-      const cashfree = window.Cashfree({
-        mode: 'sandbox' // Use 'production' for live environment
+      console.log('Creating Stripe checkout session...');
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          planId,
+          amount: plan.price
+        }
       });
 
-      // Configure checkout options
-      const checkoutOptions = {
-        paymentSessionId: orderData.sessionId,
-        returnUrl: window.location.origin + '/subscription?payment=success'
-      };
-
-      // Open checkout
-      const result = await cashfree.checkout(checkoutOptions);
-      
-      if (result.error) {
-        console.error('Checkout error:', result.error);
-        throw new Error('Payment checkout failed');
+      if (error) {
+        console.error('Error creating checkout session:', error);
+        throw new Error(`Failed to create checkout session: ${error.message}`);
       }
 
-      if (result.redirect) {
-        // Payment was successful, verify it
-        try {
-          await this.verifyPayment({
-            orderId: orderData.orderId,
-            paymentId: result.paymentDetails?.paymentId,
-            signature: result.paymentDetails?.signature
-          }, userId);
-          
-          window.location.reload(); // Refresh to show updated subscription
-        } catch (error) {
-          console.error('Payment verification failed:', error);
-          alert('Payment verification failed. Please contact support.');
-        }
+      if (data?.url) {
+        // Open Stripe checkout in a new tab
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No checkout URL received');
       }
 
     } catch (error) {
