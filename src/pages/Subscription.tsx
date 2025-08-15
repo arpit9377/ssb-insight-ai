@@ -13,6 +13,8 @@ const Subscription = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleSubscribe = async (planId: string) => {
+    console.log('Subscribe button clicked for plan:', planId);
+    
     if (planId === 'free') {
       toast({
         title: "Free Plan",
@@ -30,12 +32,16 @@ const Subscription = () => {
       return;
     }
 
+    console.log('Starting payment process for user:', user.id);
     setLoadingPlan(planId);
     
     try {
       const userEmail = user.emailAddresses?.[0]?.emailAddress || '';
+      console.log('Processing payment with email:', userEmail);
+      
       await paymentService.processPayment(planId, user.id, userEmail);
       
+      console.log('Payment processed successfully');
       // Refresh subscription status after successful payment
       await checkSubscription();
       
@@ -44,10 +50,23 @@ const Subscription = () => {
         description: "Please complete the payment process.",
       });
     } catch (error) {
-      console.error('Subscription error:', error);
+      console.error('Subscription error details:', error);
+      
+      // Show more specific error messages
+      let errorMessage = "Failed to process payment. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes('dns error') || error.message.includes('network')) {
+          errorMessage = "Network error: Unable to connect to payment gateway. Please check your internet connection and try again.";
+        } else if (error.message.includes('Failed to create payment order')) {
+          errorMessage = "Unable to create payment order. Please try again or contact support.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
