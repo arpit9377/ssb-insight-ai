@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { testLimitService } from '@/services/testLimitService';
 import ContentManagement from '@/components/admin/ContentManagement';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const AdminDashboard = () => {
   const { user } = useAuthContext();
@@ -197,21 +198,32 @@ const AdminDashboard = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="text-center p-8">
-            <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-gray-600">You don't have admin permissions to access this page.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <AppLayout 
+        title="Access Denied" 
+        showBackButton={true}
+        backTo="/dashboard"
+      >
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardContent className="text-center p-8">
+              <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+              <p className="text-gray-600">You don't have admin permissions to access this page.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <AppLayout 
+      title="Admin Dashboard" 
+      showBackButton={true}
+      backTo="/dashboard"
+    >
+    <div className="bg-gray-50">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
           <p className="text-gray-600">Manage payment requests, user subscriptions, and test content</p>
@@ -468,6 +480,7 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
     </div>
+    </AppLayout>
   );
 };
 
