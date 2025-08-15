@@ -14,8 +14,11 @@ const Subscription = () => {
 
   const handleSubscribe = async (planId: string) => {
     console.log('Subscribe button clicked for plan:', planId);
+    console.log('Current user object:', user);
+    console.log('User authenticated:', !!user);
     
     if (planId === 'free') {
+      console.log('Free plan selected - showing toast');
       toast({
         title: "Free Plan",
         description: "You are already on the free plan.",
@@ -24,6 +27,7 @@ const Subscription = () => {
     }
 
     if (!user) {
+      console.log('No user found - showing auth required toast');
       toast({
         title: "Authentication Required",
         description: "Please sign in to subscribe to a plan.",
@@ -33,12 +37,14 @@ const Subscription = () => {
     }
 
     console.log('Starting payment process for user:', user.id);
+    console.log('User email:', user.emailAddresses?.[0]?.emailAddress);
     setLoadingPlan(planId);
     
     try {
       const userEmail = user.emailAddresses?.[0]?.emailAddress || '';
       console.log('Processing payment with email:', userEmail);
       
+      console.log('About to call processPayment...');
       await paymentService.processPayment(planId, user.id, userEmail);
       
       console.log('Payment processed successfully');
