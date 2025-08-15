@@ -86,6 +86,87 @@ export type Database = {
           },
         ]
       }
+      device_fingerprints: {
+        Row: {
+          created_at: string | null
+          fingerprint_hash: string
+          id: string
+          ip_address: unknown | null
+          last_seen_at: string | null
+          screen_resolution: string | null
+          timezone: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          fingerprint_hash: string
+          id?: string
+          ip_address?: unknown | null
+          last_seen_at?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          fingerprint_hash?: string
+          id?: string
+          ip_address?: unknown | null
+          last_seen_at?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_requests: {
+        Row: {
+          admin_notes: string | null
+          amount_paid: number
+          id: string
+          payment_screenshot_url: string
+          phone_number: string
+          processed_at: string | null
+          processed_by: string | null
+          requested_at: string | null
+          status: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_paid: number
+          id?: string
+          payment_screenshot_url: string
+          phone_number: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string | null
+          status?: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_paid?: number
+          id?: string
+          payment_screenshot_url?: string
+          phone_number?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string | null
+          status?: string | null
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -95,7 +176,16 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          last_test_reset_date: string | null
+          payment_screenshot_url: string | null
+          phone_number: string | null
+          subscription_expires_at: string | null
           subscription_status: string | null
+          subscription_type: string | null
+          tests_remaining_ppdt: number | null
+          tests_remaining_srt: number | null
+          tests_remaining_tat: number | null
+          tests_remaining_wat: number | null
           updated_at: string
           user_id: string
         }
@@ -107,7 +197,16 @@ export type Database = {
           email: string
           full_name?: string | null
           id?: string
+          last_test_reset_date?: string | null
+          payment_screenshot_url?: string | null
+          phone_number?: string | null
+          subscription_expires_at?: string | null
           subscription_status?: string | null
+          subscription_type?: string | null
+          tests_remaining_ppdt?: number | null
+          tests_remaining_srt?: number | null
+          tests_remaining_tat?: number | null
+          tests_remaining_wat?: number | null
           updated_at?: string
           user_id: string
         }
@@ -119,7 +218,16 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          last_test_reset_date?: string | null
+          payment_screenshot_url?: string | null
+          phone_number?: string | null
+          subscription_expires_at?: string | null
           subscription_status?: string | null
+          subscription_type?: string | null
+          tests_remaining_ppdt?: number | null
+          tests_remaining_srt?: number | null
+          tests_remaining_tat?: number | null
+          tests_remaining_wat?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -373,6 +481,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_paid_subscription: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      decrement_test_limit: {
+        Args: { target_user_id: string; test_type: string }
+        Returns: boolean
+      }
+      get_test_limits: {
+        Args: { target_user_id: string }
+        Returns: Json
+      }
       increment_usage_count: {
         Args: { row_id: string; table_name: string }
         Returns: undefined
