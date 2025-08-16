@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Check, Crown, Upload, Phone, QrCode, Loader2, AlertCircle, CheckCircle, Star } from 'lucide-react';
-import { QRCodeDownload } from '@/components/QRCodeDownload';
+import { Check, Crown, Upload, Phone, QrCode, Loader2, AlertCircle, CheckCircle, Star, Download } from 'lucide-react';
+import { SignInButton, SignUpButton } from '@clerk/clerk-react';
+
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +24,7 @@ const Subscription = () => {
   const [paymentRequest, setPaymentRequest] = useState<any>(null);
   
   const [formData, setFormData] = useState({
-    name: user?.firstName + ' ' + user?.lastName || '',
+    name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
     email: user?.emailAddresses?.[0]?.emailAddress || '',
     phone: '',
     amount: '799',
@@ -33,6 +34,12 @@ const Subscription = () => {
   React.useEffect(() => {
     if (user) {
       loadUserData();
+      // Update form data when user changes
+      setFormData(prev => ({
+        ...prev,
+        name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+        email: user?.emailAddresses?.[0]?.emailAddress || '',
+      }));
     }
   }, [user]);
 
@@ -127,6 +134,52 @@ const Subscription = () => {
 
   const isCurrentlyPaid = userLimits?.subscription_type === 'paid';
 
+  const downloadQRCode = () => {
+    const link = document.createElement('a');
+    link.href = '/lovable-uploads/11ba7e15-1b61-43f3-a9e4-acff7822456b.png';
+    link.download = 'payment_qr_code.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // If user is not logged in, show login prompt
+  if (!user) {
+    return (
+      <AppLayout 
+        title="Subscription & Payment" 
+        showBackButton={true}
+        backTo="/dashboard"
+      >
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center">
+          <Card className="max-w-md mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2 mb-4">
+                <Crown className="h-6 w-6 text-blue-600" />
+                Access Premium Features
+              </CardTitle>
+              <CardDescription>
+                Please sign in or create an account to manage your subscription and access premium features.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SignInButton mode="modal">
+                <Button variant="outline" className="w-full">
+                  Sign In
+                </Button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <Button className="w-full">
+                  Create Account
+                </Button>
+              </SignUpButton>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout 
       title="Subscription & Payment" 
@@ -136,16 +189,9 @@ const Subscription = () => {
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-            <h1 className="text-4xl font-bold text-gray-900">
-              Subscription & Payment
-            </h1>
-            <QRCodeDownload 
-              url={window.location.href}
-              title="Subscription Page"
-              size={200}
-            />
-          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Subscription & Payment
+          </h1>
           <p className="text-xl text-gray-600">
             Get unlimited access to all psychological tests
           </p>
@@ -332,6 +378,15 @@ const Subscription = () => {
                         />
                       </div>
                       <p className="text-xs text-gray-600 mt-2">Scan using any UPI app to pay ₹799</p>
+                      <Button 
+                        onClick={downloadQRCode}
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-3 gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download QR Code
+                      </Button>
                     </div>
                   </div>
                   
