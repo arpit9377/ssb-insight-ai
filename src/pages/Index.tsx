@@ -102,6 +102,9 @@ const Index = () => {
                     <SignInButton mode="modal">
                       <Button variant="outline" size="sm">Sign In</Button>
                     </SignInButton>
+                    <SignUpButton mode="modal">
+                      <Button size="sm">Sign Up</Button>
+                    </SignUpButton>
                   </SignedOut>
                   <SignedIn>
                     <Button size="sm" onClick={() => navigate('/dashboard')}>

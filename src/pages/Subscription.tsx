@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Check, Crown, Upload, Phone, QrCode, Loader2, AlertCircle, CheckCircle, Star } from 'lucide-react';
+import { QRCodeDownload } from '@/components/QRCodeDownload';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -135,9 +136,16 @@ const Subscription = () => {
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Subscription & Payment
-          </h1>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+            <h1 className="text-4xl font-bold text-gray-900">
+              Subscription & Payment
+            </h1>
+            <QRCodeDownload 
+              url={window.location.href}
+              title="Subscription Page"
+              size={200}
+            />
+          </div>
           <p className="text-xl text-gray-600">
             Get unlimited access to all psychological tests
           </p>
@@ -395,19 +403,19 @@ const Subscription = () => {
                     </p>
                   </div>
                   
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button 
                       type="button" 
                       variant="outline" 
                       onClick={() => setShowPaymentForm(false)}
-                      className="flex-1"
+                      className="w-full sm:flex-1"
                     >
                       Cancel
                     </Button>
                     <Button 
                       type="submit" 
-                      disabled={loading}
-                      className="flex-1"
+                      disabled={loading || !formData.screenshot}
+                      className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700"
                     >
                       {loading ? (
                         <>
