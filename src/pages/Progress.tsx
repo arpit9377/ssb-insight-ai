@@ -154,7 +154,154 @@ const Progress = () => {
             <h1 className="text-3xl font-bold">Your Progress</h1>
           </div>
 
-          {/* ... keep existing code (all sections) ... */}
+          {/* Stats Overview */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalTests}</div>
+                <p className="text-xs text-muted-foreground">
+                  Completed tests
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Average Score</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.averageScore || 'N/A'}</div>
+                <p className="text-xs text-muted-foreground">
+                  Out of 10
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">This Week</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.testsThisWeek}</div>
+                <p className="text-xs text-muted-foreground">
+                  Tests completed
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Best Trait</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold truncate">{stats.strongestTrait || 'N/A'}</div>
+                <p className="text-xs text-muted-foreground">
+                  Strongest area
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Performance */}
+          {stats.recentScores.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Recent Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {stats.recentScores.map((score, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="text-sm font-medium w-16">Test {index + 1}</div>
+                      <div className="flex-1">
+                        <ProgressBar value={(score / 10) * 100} className="h-2" />
+                      </div>
+                      <div className="text-sm font-bold w-12">{score}/10</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Test Types Breakdown */}
+          {Object.keys(stats.testsByType).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  Test Types Completed
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  {Object.entries(stats.testsByType).map(([testType, count]) => (
+                    <div key={testType} className="text-center p-4 bg-muted/50 rounded-lg">
+                      <div className="text-2xl font-bold text-primary">{count}</div>
+                      <div className="text-sm font-medium uppercase tracking-wider">
+                        {testType}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Trait Analysis */}
+          {stats.strongestTrait && stats.weakestTrait && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-green-600">Strongest Trait</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl font-bold">{stats.strongestTrait}</div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This is your most developed characteristic based on your test results.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-orange-600">Area for Growth</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl font-bold">{stats.weakestTrait}</div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Focus on developing this trait for overall improvement.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* No Data Message */}
+          {stats.totalTests === 0 && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Progress Data Yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start taking tests to see your progress and insights here.
+                </p>
+                <Button onClick={() => navigate('/tests')}>
+                  Take Your First Test
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
       </div>
