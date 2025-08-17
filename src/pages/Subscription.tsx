@@ -75,7 +75,10 @@ const Subscription = () => {
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !formData.screenshot) {
+    console.log('Payment submit started, user:', user?.id);
+    console.log('Form data:', { ...formData, screenshot: formData.screenshot ? 'File selected' : 'No file' });
+    
+    if (!user || !formData.screenshot || !formData.name || !formData.email || !formData.phone) {
       toast({
         title: "Error",
         description: "Please fill all fields and upload payment screenshot",
@@ -90,28 +93,42 @@ const Subscription = () => {
       const fileExt = formData.screenshot.name.split('.').pop();
       const fileName = `payment_${user.id}_${Date.now()}.${fileExt}`;
       
+      console.log('Uploading file:', fileName);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('test-images')
         .upload(`payment-screenshots/${fileName}`, formData.screenshot);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       const screenshotUrl = `https://katdnpqytskvsrweqtjn.supabase.co/storage/v1/object/public/test-images/${uploadData.path}`;
+      console.log('File uploaded successfully:', screenshotUrl);
 
-      // Create payment request
-      const { error } = await supabase
+      // Create payment request with detailed logging
+      const paymentData = {
+        user_id: user.id,
+        user_name: formData.name.trim(),
+        user_email: formData.email.trim(),
+        phone_number: formData.phone.trim(),
+        amount_paid: parseInt(formData.amount),
+        payment_screenshot_url: screenshotUrl,
+        status: 'pending'
+      };
+      
+      console.log('Inserting payment request:', paymentData);
+      const { data: insertData, error: insertError } = await supabase
         .from('payment_requests')
-        .insert({
-          user_id: user.id,
-          user_name: formData.name,
-          user_email: formData.email,
-          phone_number: formData.phone,
-          amount_paid: parseInt(formData.amount),
-          payment_screenshot_url: screenshotUrl,
-          status: 'pending'
-        });
+        .insert(paymentData)
+        .select();
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw insertError;
+      }
+
+      console.log('Payment request created successfully:', insertData);
 
       toast({
         title: "Payment Request Submitted!",
@@ -119,12 +136,13 @@ const Subscription = () => {
       });
 
       setShowPaymentForm(false);
+      setFormData(prev => ({ ...prev, screenshot: null }));
       loadUserData(); // Refresh data
     } catch (error) {
       console.error('Error submitting payment:', error);
       toast({
         title: "Submission Failed",
-        description: "Failed to submit payment request. Please try again.",
+        description: error.message || "Failed to submit payment request. Please try again.",
         variant: "destructive"
       });
     } finally {
