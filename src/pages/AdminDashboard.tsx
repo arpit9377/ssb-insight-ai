@@ -141,6 +141,9 @@ const AdminDashboard = () => {
   };
 
   const handleRejectPayment = async (requestId: string) => {
+    console.log('Reject payment called with requestId:', requestId);
+    console.log('Admin notes:', adminNotes);
+    
     if (!adminNotes.trim()) {
       toast({
         title: "Error",
@@ -152,6 +155,7 @@ const AdminDashboard = () => {
 
     setProcessingId(requestId);
     try {
+      console.log('Updating payment request to rejected status...');
       const { error } = await supabase
         .from('payment_requests')
         .update({
@@ -162,11 +166,15 @@ const AdminDashboard = () => {
         })
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
 
+      console.log('Payment request rejected successfully');
       toast({
         title: "Payment Rejected",
-        description: "Payment request has been rejected"
+        description: "Payment request has been rejected successfully"
       });
 
       loadPaymentRequests();
@@ -177,7 +185,7 @@ const AdminDashboard = () => {
       console.error('Error rejecting payment:', error);
       toast({
         title: "Error",
-        description: "Failed to reject payment",
+        description: `Failed to reject payment: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -436,7 +444,12 @@ const AdminDashboard = () => {
                           </Button>
                           <Button
                             variant="destructive"
-                            onClick={() => handleRejectPayment(selectedRequest.id)}
+                            onClick={() => {
+                              console.log('Reject button clicked');
+                              console.log('Selected request ID:', selectedRequest.id);
+                              console.log('User ID for auth:', user?.id);
+                              handleRejectPayment(selectedRequest.id);
+                            }}
                             disabled={processingId === selectedRequest.id}
                             className="flex-1"
                           >

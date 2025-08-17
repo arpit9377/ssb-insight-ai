@@ -51,15 +51,15 @@ const Subscription = () => {
       const limits = await testLimitService.getTestLimits(user.id);
       setUserLimits(limits);
 
-      // Check for existing payment request
+      // Check for existing payment request (pending or rejected)
       const { data: existingRequest } = await supabase
         .from('payment_requests')
         .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'rejected'])
         .order('requested_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existingRequest) {
         setPaymentRequest(existingRequest);
@@ -256,21 +256,65 @@ const Subscription = () => {
           </CardHeader>
         </Card>
 
-        {/* Pending Payment Request */}
+        {/* Payment Request Status */}
         {paymentRequest && (
-          <Card className="mb-8 border-yellow-200 bg-yellow-50">
+          <Card className={`mb-8 ${
+            paymentRequest.status === 'pending' 
+              ? 'border-yellow-200 bg-yellow-50' 
+              : 'border-red-200 bg-red-50'
+          }`}>
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-2">
-                <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
-                <h3 className="font-semibold text-yellow-800">Payment Under Review</h3>
+                {paymentRequest.status === 'pending' ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
+                    <h3 className="font-semibold text-yellow-800">Payment Under Review</h3>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <h3 className="font-semibold text-red-800">Payment Request Rejected</h3>
+                  </>
+                )}
               </div>
-              <p className="text-yellow-700">
-                Your payment request of ₹{paymentRequest.amount_paid} is being processed. 
-                You'll receive email confirmation within 1-2 hours once verified.
-              </p>
-              <p className="text-sm text-yellow-600 mt-1">
-                Submitted on: {new Date(paymentRequest.requested_at).toLocaleString()}
-              </p>
+              
+              {paymentRequest.status === 'pending' ? (
+                <div>
+                  <p className="text-yellow-700">
+                    Your payment request of ₹{paymentRequest.amount_paid} is being processed. 
+                    You'll receive email confirmation within 1-2 hours once verified.
+                  </p>
+                  <p className="text-sm text-yellow-600 mt-1">
+                    Submitted on: {new Date(paymentRequest.requested_at).toLocaleString()}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-red-700 mb-2">
+                    Your payment request of ₹{paymentRequest.amount_paid} has been rejected.
+                  </p>
+                  {paymentRequest.admin_notes && (
+                    <div className="bg-red-100 p-3 rounded mb-3">
+                      <p className="font-medium text-red-800 mb-1">Rejection Reason:</p>
+                      <p className="text-red-700 text-sm">{paymentRequest.admin_notes}</p>
+                    </div>
+                  )}
+                  <p className="text-sm text-red-600 mb-3">
+                    Processed on: {new Date(paymentRequest.processed_at).toLocaleString()}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setPaymentRequest(null);
+                      setShowPaymentForm(true);
+                    }}
+                    className="text-red-700 border-red-300 hover:bg-red-100"
+                  >
+                    Submit New Payment Request
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -357,9 +401,13 @@ const Subscription = () => {
               <Button 
                 className="w-full"
                 onClick={() => setShowPaymentForm(true)}
-                disabled={isCurrentlyPaid || !!paymentRequest}
+                disabled={isCurrentlyPaid || (paymentRequest && paymentRequest.status === 'pending')}
               >
-                {isCurrentlyPaid ? 'Current Plan' : paymentRequest ? 'Payment Pending' : 'Upgrade Now'}
+                {isCurrentlyPaid 
+                  ? 'Current Plan' 
+                  : (paymentRequest && paymentRequest.status === 'pending') 
+                    ? 'Payment Pending' 
+                    : 'Upgrade Now'}
               </Button>
             </CardContent>
           </Card>
