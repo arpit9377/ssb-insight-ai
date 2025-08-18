@@ -8,6 +8,8 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Progress as ProgressBar } from '@/components/ui/progress';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Progress = () => {
   const navigate = useNavigate();
@@ -16,10 +18,14 @@ const Progress = () => {
     totalTests: 0,
     averageScore: 0,
     testsThisWeek: 0,
+    testsThisMonth: 0,
     strongestTrait: '',
     weakestTrait: '',
     recentScores: [] as number[],
-    testsByType: {} as Record<string, number>
+    testsByType: {} as Record<string, number>,
+    weeklyProgress: [] as Array<{ week: string, tests: number, avgScore: number }>,
+    traitBreakdown: [] as Array<{ trait: string, avgScore: number, count: number }>,
+    improvementRate: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -58,11 +64,18 @@ const Progress = () => {
         ? validScores.reduce((sum, a) => sum + a.overall_score, 0) / validScores.length 
         : 0;
 
-      // Tests this week
+      // Tests this week and month
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
+      const monthAgo = new Date();
+      monthAgo.setDate(monthAgo.getDate() - 30);
+      
       const testsThisWeek = sessions.filter(s => 
         new Date(s.completed_at || s.created_at) > weekAgo
+      ).length;
+      
+      const testsThisMonth = sessions.filter(s => 
+        new Date(s.completed_at || s.created_at) > monthAgo
       ).length;
 
       // Trait analysis
@@ -107,14 +120,69 @@ const Progress = () => {
         return acc;
       }, {} as Record<string, number>);
 
+      // Weekly progress (last 4 weeks)
+      const weeklyProgress = [];
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - (i * 7 + 7));
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - (i * 7));
+        
+        const weekSessions = sessions.filter(s => {
+          const date = new Date(s.completed_at || s.created_at);
+          return date >= weekStart && date <= weekEnd;
+        });
+        
+        const weekAnalyses = analyses.filter(a => {
+          const date = new Date(a.created_at);
+          return date >= weekStart && date <= weekEnd && a.overall_score > 0;
+        });
+        
+        const avgScore = weekAnalyses.length > 0 
+          ? weekAnalyses.reduce((sum, a) => sum + a.overall_score, 0) / weekAnalyses.length 
+          : 0;
+          
+        weeklyProgress.push({
+          week: `Week ${4 - i}`,
+          tests: weekSessions.length,
+          avgScore: Math.round(avgScore * 10) / 10
+        });
+      }
+
+      // Trait breakdown
+      const traitBreakdown: Array<{ trait: string, avgScore: number, count: number }> = [];
+      traitScoresMap.forEach((scores, trait) => {
+        const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+        traitBreakdown.push({
+          trait,
+          avgScore: Math.round(avgScore * 10) / 10,
+          count: scores.length
+        });
+      });
+      traitBreakdown.sort((a, b) => b.avgScore - a.avgScore);
+
+      // Improvement rate (compare first vs recent scores)
+      let improvementRate = 0;
+      if (validScores.length >= 3) {
+        const firstThree = validScores.slice(-3);
+        const lastThree = validScores.slice(0, 3);
+        const firstAvg = firstThree.reduce((sum, a) => sum + a.overall_score, 0) / firstThree.length;
+        const lastAvg = lastThree.reduce((sum, a) => sum + a.overall_score, 0) / lastThree.length;
+        improvementRate = Math.round(((lastAvg - firstAvg) / firstAvg) * 100);
+      }
+
       setStats({
         totalTests,
         averageScore: Math.round(averageScore * 10) / 10,
         testsThisWeek,
+        testsThisMonth,
         strongestTrait,
         weakestTrait,
         recentScores,
-        testsByType
+        testsByType,
+        weeklyProgress,
+        traitBreakdown,
+        improvementRate
       });
     } catch (error) {
       console.error('Error loading progress data:', error);
@@ -154,138 +222,246 @@ const Progress = () => {
             <h1 className="text-3xl font-bold">Your Progress</h1>
           </div>
 
-          {/* Stats Overview */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalTests}</div>
-                <p className="text-xs text-muted-foreground">
-                  Completed tests
-                </p>
-              </CardContent>
-            </Card>
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="traits">Traits</TabsTrigger>
+              <TabsTrigger value="trends">Trends</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="space-y-6">
+              {/* Stats Overview */}
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
+                    <Target className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.totalTests}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Completed tests
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Average Score</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.averageScore || 'N/A'}</div>
-                <p className="text-xs text-muted-foreground">
-                  Out of 10
-                </p>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Average Score</CardTitle>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.averageScore || 'N/A'}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Out of 10
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">This Week</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.testsThisWeek}</div>
-                <p className="text-xs text-muted-foreground">
-                  Tests completed
-                </p>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">This Week</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.testsThisWeek}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Tests completed
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Best Trait</CardTitle>
-                <Award className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold truncate">{stats.strongestTrait || 'N/A'}</div>
-                <p className="text-xs text-muted-foreground">
-                  Strongest area
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.testsThisMonth}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Monthly progress
+                    </p>
+                  </CardContent>
+                </Card>
 
-          {/* Recent Performance */}
-          {stats.recentScores.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Recent Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {stats.recentScores.map((score, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                      <div className="text-sm font-medium w-16">Test {index + 1}</div>
-                      <div className="flex-1">
-                        <ProgressBar value={(score / 10) * 100} className="h-2" />
-                      </div>
-                      <div className="text-sm font-bold w-12">{score}/10</div>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Improvement</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`text-2xl font-bold ${stats.improvementRate > 0 ? 'text-green-600' : stats.improvementRate < 0 ? 'text-red-600' : ''}`}>
+                      {stats.improvementRate > 0 ? '+' : ''}{stats.improvementRate || 0}%
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    <p className="text-xs text-muted-foreground">
+                      Recent progress
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Test Types Breakdown */}
-          {Object.keys(stats.testsByType).length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  Test Types Completed
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  {Object.entries(stats.testsByType).map(([testType, count]) => (
-                    <div key={testType} className="text-center p-4 bg-muted/50 rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{count}</div>
-                      <div className="text-sm font-medium uppercase tracking-wider">
-                        {testType}
+              {/* Test Types Breakdown */}
+              {Object.keys(stats.testsByType).length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5" />
+                      Test Types Completed
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      {Object.entries(stats.testsByType).map(([testType, count]) => (
+                        <div key={testType} className="text-center p-4 bg-muted/50 rounded-lg">
+                          <div className="text-2xl font-bold text-primary">{count}</div>
+                          <div className="text-sm font-medium uppercase tracking-wider">
+                            {testType}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="performance" className="space-y-6">
+              {/* Recent Performance */}
+              {stats.recentScores.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Recent Performance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {stats.recentScores.map((score, index) => (
+                        <div key={index} className="flex items-center gap-4">
+                          <div className="text-sm font-medium w-20">Test {index + 1}</div>
+                          <div className="flex-1">
+                            <ProgressBar value={(score / 10) * 100} className="h-3" />
+                          </div>
+                          <div className="text-sm font-bold w-12">{score}/10</div>
+                          <Badge variant={score >= 7 ? 'default' : score >= 5 ? 'secondary' : 'destructive'}>
+                            {score >= 7 ? 'Good' : score >= 5 ? 'Fair' : 'Needs Work'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Weekly Progress */}
+              {stats.weeklyProgress.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Weekly Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {stats.weeklyProgress.map((week, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div>
+                            <div className="font-medium">{week.week}</div>
+                            <div className="text-sm text-muted-foreground">{week.tests} tests</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold">{week.avgScore || 'N/A'}</div>
+                            <div className="text-sm text-muted-foreground">Avg Score</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="traits" className="space-y-6">
+              {/* Trait Analysis */}
+              {stats.strongestTrait && stats.weakestTrait && (
+                <div className="grid gap-6 md:grid-cols-2 mb-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-green-600">Strongest Trait</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl font-bold">{stats.strongestTrait}</div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        This is your most developed characteristic based on your test results.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-orange-600">Area for Growth</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl font-bold">{stats.weakestTrait}</div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Focus on developing this trait for overall improvement.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Detailed Trait Breakdown */}
+              {stats.traitBreakdown.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Trait Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {stats.traitBreakdown.map((trait, index) => (
+                        <div key={index} className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <div className="flex justify-between mb-1">
+                              <span className="text-sm font-medium">{trait.trait}</span>
+                              <span className="text-sm text-muted-foreground">{trait.avgScore}/10 ({trait.count} tests)</span>
+                            </div>
+                            <ProgressBar value={(trait.avgScore / 10) * 100} className="h-2" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="trends" className="space-y-6">
+              {stats.totalTests > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance Insights</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <h4 className="font-semibold text-blue-800">Test Frequency</h4>
+                        <p className="text-sm text-blue-600 mt-1">
+                          You average {Math.round((stats.totalTests / Math.max(1, Math.ceil(stats.totalTests / 7))) * 10) / 10} tests per week
+                        </p>
+                      </div>
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <h4 className="font-semibold text-green-800">Consistency</h4>
+                        <p className="text-sm text-green-600 mt-1">
+                          {stats.testsThisWeek >= 2 ? 'Great consistency!' : 'Try to maintain regular practice'}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Trait Analysis */}
-          {stats.strongestTrait && stats.weakestTrait && (
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-green-600">Strongest Trait</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold">{stats.strongestTrait}</div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    This is your most developed characteristic based on your test results.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-orange-600">Area for Growth</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold">{stats.weakestTrait}</div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Focus on developing this trait for overall improvement.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* No Data Message */}
           {stats.totalTests === 0 && (
