@@ -16,7 +16,8 @@ import {
   Search,
   Filter,
   Upload,
-  ImageIcon
+  ImageIcon,
+  Trash2
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -186,6 +187,44 @@ const AdminDashboard = () => {
       toast({
         title: "Error",
         description: `Failed to reject payment: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeletePayment = async (requestId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent card selection when clicking delete
+    
+    if (!confirm('Are you sure you want to delete this payment request? This action cannot be undone.')) {
+      return;
+    }
+
+    setProcessingId(requestId);
+    try {
+      const { error } = await supabase
+        .from('payment_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Payment Request Deleted",
+        description: "Payment request has been deleted successfully"
+      });
+
+      loadPaymentRequests();
+      loadStats();
+      if (selectedRequest?.id === requestId) {
+        setSelectedRequest(null);
+      }
+    } catch (error) {
+      console.error('Error deleting payment request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete payment request",
         variant: "destructive"
       });
     } finally {
@@ -365,12 +404,23 @@ const AdminDashboard = () => {
                             <p className="text-sm text-gray-600">{request.user_email}</p>
                             <p className="text-sm text-gray-600">{request.phone_number}</p>
                           </div>
-                          <Badge variant={
-                            request.status === 'approved' ? 'default' :
-                            request.status === 'rejected' ? 'destructive' : 'secondary'
-                          }>
-                            {request.status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => handleDeletePayment(request.id, e)}
+                              disabled={processingId === request.id}
+                              className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Badge variant={
+                              request.status === 'approved' ? 'default' :
+                              request.status === 'rejected' ? 'destructive' : 'secondary'
+                            }>
+                              {request.status}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="font-medium">₹{request.amount_paid}</span>
