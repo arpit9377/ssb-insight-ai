@@ -1,0 +1,15 @@
+-- Add new profile fields for enhanced user profiles
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS city TEXT,
+ADD COLUMN IF NOT EXISTS state TEXT,
+ADD COLUMN IF NOT EXISTS country TEXT,
+ADD COLUMN IF NOT EXISTS occupation TEXT,
+ADD COLUMN IF NOT EXISTS experience_years INTEGER,
+ADD COLUMN IF NOT EXISTS career_goals TEXT,
+ADD COLUMN IF NOT EXISTS interests TEXT,
+ADD COLUMN IF NOT EXISTS linkedin_url TEXT,
+ADD COLUMN IF NOT EXISTS preferred_language TEXT DEFAULT 'english',
+ADD COLUMN IF NOT EXISTS notification_email BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS notification_sms BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS data_sharing BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS public_profile BOOLEAN DEFAULT false;

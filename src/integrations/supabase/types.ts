@@ -171,14 +171,27 @@ export type Database = {
         Row: {
           age: number | null
           background: string | null
+          career_goals: string | null
+          city: string | null
+          country: string | null
           created_at: string
+          data_sharing: boolean | null
           education: string | null
           email: string
+          experience_years: number | null
           full_name: string | null
           id: string
+          interests: string | null
           last_test_reset_date: string | null
+          linkedin_url: string | null
+          notification_email: boolean | null
+          notification_sms: boolean | null
+          occupation: string | null
           payment_screenshot_url: string | null
           phone_number: string | null
+          preferred_language: string | null
+          public_profile: boolean | null
+          state: string | null
           subscription_expires_at: string | null
           subscription_status: string | null
           subscription_type: string | null
@@ -192,14 +205,27 @@ export type Database = {
         Insert: {
           age?: number | null
           background?: string | null
+          career_goals?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          data_sharing?: boolean | null
           education?: string | null
           email: string
+          experience_years?: number | null
           full_name?: string | null
           id?: string
+          interests?: string | null
           last_test_reset_date?: string | null
+          linkedin_url?: string | null
+          notification_email?: boolean | null
+          notification_sms?: boolean | null
+          occupation?: string | null
           payment_screenshot_url?: string | null
           phone_number?: string | null
+          preferred_language?: string | null
+          public_profile?: boolean | null
+          state?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
           subscription_type?: string | null
@@ -213,14 +239,27 @@ export type Database = {
         Update: {
           age?: number | null
           background?: string | null
+          career_goals?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          data_sharing?: boolean | null
           education?: string | null
           email?: string
+          experience_years?: number | null
           full_name?: string | null
           id?: string
+          interests?: string | null
           last_test_reset_date?: string | null
+          linkedin_url?: string | null
+          notification_email?: boolean | null
+          notification_sms?: boolean | null
+          occupation?: string | null
           payment_screenshot_url?: string | null
           phone_number?: string | null
+          preferred_language?: string | null
+          public_profile?: boolean | null
+          state?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
           subscription_type?: string | null

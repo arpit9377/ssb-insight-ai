@@ -62,19 +62,19 @@ const Profile = () => {
           education: data.education || '',
           background: data.background || '',
           phone_number: data.phone_number || '',
-          city: data.city || '',
-          state: data.state || '',
-          country: data.country || '',
-          occupation: data.occupation || '',
-          experience_years: data.experience_years?.toString() || '',
-          career_goals: data.career_goals || '',
-          interests: data.interests || '',
-          linkedin_url: data.linkedin_url || '',
-          preferred_language: data.preferred_language || 'english',
-          notification_email: data.notification_email ?? true,
-          notification_sms: data.notification_sms ?? false,
-          data_sharing: data.data_sharing ?? false,
-          public_profile: data.public_profile ?? false
+          city: (data as any).city || '',
+          state: (data as any).state || '',
+          country: (data as any).country || '',
+          occupation: (data as any).occupation || '',
+          experience_years: (data as any).experience_years?.toString() || '',
+          career_goals: (data as any).career_goals || '',
+          interests: (data as any).interests || '',
+          linkedin_url: (data as any).linkedin_url || '',
+          preferred_language: (data as any).preferred_language || 'english',
+          notification_email: (data as any).notification_email ?? true,
+          notification_sms: (data as any).notification_sms ?? false,
+          data_sharing: (data as any).data_sharing ?? false,
+          public_profile: (data as any).public_profile ?? false
         });
       }
     } catch (error) {
