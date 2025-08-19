@@ -122,6 +122,54 @@ export type Database = {
         }
         Relationships: []
       }
+      openai_api_logs: {
+        Row: {
+          cost_estimate: number | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          is_premium_request: boolean | null
+          metadata: Json | null
+          model_used: string | null
+          request_type: string | null
+          response_time_ms: number | null
+          tokens_used: number | null
+          updated_at: string
+        }
+        Insert: {
+          cost_estimate?: number | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          is_premium_request?: boolean | null
+          metadata?: Json | null
+          model_used?: string | null
+          request_type?: string | null
+          response_time_ms?: number | null
+          tokens_used?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cost_estimate?: number | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          is_premium_request?: boolean | null
+          metadata?: Json | null
+          model_used?: string | null
+          request_type?: string | null
+          response_time_ms?: number | null
+          tokens_used?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_requests: {
         Row: {
           admin_notes: string | null
@@ -527,6 +575,10 @@ export type Database = {
       decrement_test_limit: {
         Args: { target_user_id: string; test_type: string }
         Returns: boolean
+      }
+      get_openai_api_summary: {
+        Args: { hours_back?: number }
+        Returns: Json
       }
       get_test_limits: {
         Args: { target_user_id: string }

@@ -91,6 +91,7 @@ serve(async (req) => {
       ];
     }
 
+    const startTime = Date.now();
     const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -106,12 +107,55 @@ serve(async (req) => {
       }),
     });
 
+    const responseTime = Date.now() - startTime;
+    let data;
+    let logEventType = 'success';
+    let errorCode = null;
+    let errorMessage = null;
+    let tokensUsed = 0;
+
     if (!apiResponse.ok) {
       const errorData = await apiResponse.json();
-      throw new Error(`OpenAI API request failed: ${apiResponse.statusText}`);
+      errorCode = apiResponse.status.toString();
+      errorMessage = errorData.error?.message || apiResponse.statusText;
+      
+      // Determine error type based on status code
+      if (apiResponse.status === 429) {
+        logEventType = 'rate_limit';
+      } else if (apiResponse.status === 402 || (errorMessage && errorMessage.toLowerCase().includes('quota'))) {
+        logEventType = 'quota_exceeded';
+      } else {
+        logEventType = 'error';
+      }
+
+      // Log the API error
+      await logOpenAIUsage({
+        supabase,
+        eventType: logEventType,
+        errorCode,
+        errorMessage,
+        requestType: testType,
+        responseTime,
+        modelUsed: 'gpt-4o-mini',
+        isPremium
+      });
+
+      throw new Error(`OpenAI API request failed: ${errorMessage}`);
     }
 
-    const data = await apiResponse.json();
+    data = await apiResponse.json();
+    tokensUsed = data.usage?.total_tokens || 0;
+
+    // Log successful API call
+    await logOpenAIUsage({
+      supabase,
+      eventType: 'success',
+      requestType: testType,
+      tokensUsed,
+      responseTime,
+      modelUsed: 'gpt-4o-mini',
+      isPremium
+    });
     const analysis = JSON.parse(data.choices[0].message.content);
 
     return new Response(JSON.stringify(formatFeedback(analysis, isPremium)), {
@@ -366,6 +410,55 @@ CRITICAL INSTRUCTIONS:
   return userPrompt;
 }
 
+// Helper function to log OpenAI API usage
+async function logOpenAIUsage({
+  supabase,
+  eventType,
+  errorCode = null,
+  errorMessage = null,
+  requestType,
+  tokensUsed = 0,
+  responseTime,
+  modelUsed,
+  isPremium = false,
+  metadata = {}
+}: {
+  supabase: any;
+  eventType: string;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  requestType: string;
+  tokensUsed?: number;
+  responseTime: number;
+  modelUsed: string;
+  isPremium?: boolean;
+  metadata?: any;
+}) {
+  try {
+    // Estimate cost based on model and tokens (approximate rates)
+    const costPerToken = modelUsed === 'gpt-4o-mini' ? 0.00015 / 1000 : 0.002 / 1000; // per token
+    const costEstimate = tokensUsed * costPerToken;
+
+    await supabase
+      .from('openai_api_logs')
+      .insert({
+        event_type: eventType,
+        error_code: errorCode,
+        error_message: errorMessage,
+        request_type: requestType,
+        tokens_used: tokensUsed,
+        cost_estimate: costEstimate,
+        response_time_ms: responseTime,
+        model_used: modelUsed,
+        is_premium_request: isPremium,
+        metadata
+      });
+  } catch (logError) {
+    console.error('Failed to log OpenAI usage:', logError);
+    // Don't throw here as it's just logging
+  }
+}
+
 function formatFeedback(analysis: any, isPremium: boolean): any {
   // Only use analysis if it exists and has valid data, otherwise return null
   if (!analysis || typeof analysis !== 'object') {
@@ -423,6 +516,7 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
     }
 
     console.log('Calling OpenAI API for batch analysis...');
+    const startTime = Date.now();
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -441,14 +535,63 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
       }),
     });
 
+    const responseTime = Date.now() - startTime;
+    
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText;
+      try {
+        const errorData = await response.json();
+        errorText = errorData.error?.message || response.statusText;
+      } catch {
+        errorText = await response.text();
+      }
+      
       console.error(`OpenAI API request failed: ${response.status} ${response.statusText}`, errorText);
-      throw new Error(`OpenAI API request failed: ${response.statusText}`);
+      
+      // Determine error type and log
+      let logEventType = 'error';
+      if (response.status === 429) {
+        logEventType = 'rate_limit';
+      } else if (response.status === 402 || (errorText && errorText.toLowerCase().includes('quota'))) {
+        logEventType = 'quota_exceeded';
+      }
+
+      // Log batch API error using Supabase client
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+      
+      await logOpenAIUsage({
+        supabase: supabaseClient,
+        eventType: logEventType,
+        errorCode: response.status.toString(),
+        errorMessage: errorText,
+        requestType: testType,
+        responseTime,
+        modelUsed: 'gpt-4o-mini',
+        isPremium
+      });
+
+      throw new Error(`OpenAI API request failed: ${errorText}`);
     }
 
     const data = await response.json();
     console.log('OpenAI response received, parsing content...');
+    
+    // Log successful batch API call
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+    
+    await logOpenAIUsage({
+      supabase: supabaseClient,
+      eventType: 'success',
+      requestType: testType,
+      tokensUsed: data.usage?.total_tokens || 0,
+      responseTime,
+      modelUsed: 'gpt-4o-mini',
+      isPremium
+    });
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
       console.error('Invalid OpenAI response structure:', data);

@@ -17,7 +17,11 @@ import {
   Filter,
   Upload,
   ImageIcon,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  Activity,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +47,16 @@ const AdminDashboard = () => {
     rejected: 0,
     totalRevenue: 0
   });
+  const [openaiStats, setOpenaiStats] = useState({
+    total_requests: 0,
+    error_count: 0,
+    rate_limit_count: 0,
+    quota_exceeded_count: 0,
+    success_rate: 100,
+    hours_back: 24,
+    last_error: null
+  });
+  const [openaiLogs, setOpenaiLogs] = useState<any[]>([]);
 
   // Check if user is admin (you can modify this logic)
   const isAdmin = user?.primaryEmailAddress?.emailAddress === 'editkarde@gmail.com';
@@ -51,6 +65,8 @@ const AdminDashboard = () => {
     if (isAdmin) {
       loadPaymentRequests();
       loadStats();
+      loadOpenAIStats();
+      loadOpenAILogs();
     }
   }, [isAdmin]);
 
@@ -94,6 +110,43 @@ const AdminDashboard = () => {
       setStats(newStats);
     } catch (error) {
       console.error('Error loading stats:', error);
+    }
+  };
+
+  const loadOpenAIStats = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_openai_api_summary', { hours_back: 24 });
+
+      if (error) throw error;
+      
+      // Ensure data has the correct structure with defaults
+      const statsData = (typeof data === 'object' && data !== null && !Array.isArray(data)) ? data as Record<string, any> : {};
+      setOpenaiStats({
+        total_requests: Number(statsData.total_requests) || 0,
+        error_count: Number(statsData.error_count) || 0,
+        rate_limit_count: Number(statsData.rate_limit_count) || 0,
+        quota_exceeded_count: Number(statsData.quota_exceeded_count) || 0,
+        success_rate: Number(statsData.success_rate) || 100,
+        hours_back: Number(statsData.hours_back) || 24,
+        last_error: statsData.last_error || null
+      });
+    } catch (error) {
+      console.error('Error loading OpenAI stats:', error);
+    }
+  };
+
+  const loadOpenAILogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('openai_api_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setOpenaiLogs(data || []);
+    } catch (error) {
+      console.error('Error loading OpenAI logs:', error);
     }
   };
 
@@ -277,8 +330,9 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="payments" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="payments">Payment Management</TabsTrigger>
+            <TabsTrigger value="api-monitoring">API Monitoring</TabsTrigger>
             <TabsTrigger value="content">Content Management</TabsTrigger>
           </TabsList>
           
@@ -534,6 +588,184 @@ const AdminDashboard = () => {
                   </Card>
                 )}
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="api-monitoring" className="mt-6">
+            {/* OpenAI API Status */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">OpenAI API Monitoring</h2>
+                  <p className="text-gray-600">Monitor API usage, limits, and errors (Last 24 hours)</p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    loadOpenAIStats();
+                    loadOpenAILogs();
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Activity className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+
+              {/* API Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <Activity className="h-8 w-8 text-blue-600" />
+                      <div className="ml-4">
+                        <p className="text-2xl font-bold text-gray-900">{openaiStats.total_requests}</p>
+                        <p className="text-gray-600">Total Requests</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <TrendingUp className={`h-8 w-8 ${openaiStats.success_rate >= 95 ? 'text-green-600' : openaiStats.success_rate >= 85 ? 'text-yellow-600' : 'text-red-600'}`} />
+                      <div className="ml-4">
+                        <p className="text-2xl font-bold text-gray-900">{openaiStats.success_rate}%</p>
+                        <p className="text-gray-600">Success Rate</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <Zap className={`h-8 w-8 ${openaiStats.rate_limit_count > 0 ? 'text-red-600' : 'text-green-600'}`} />
+                      <div className="ml-4">
+                        <p className="text-2xl font-bold text-gray-900">{openaiStats.rate_limit_count}</p>
+                        <p className="text-gray-600">Rate Limits</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <AlertTriangle className={`h-8 w-8 ${openaiStats.quota_exceeded_count > 0 ? 'text-red-600' : 'text-green-600'}`} />
+                      <div className="ml-4">
+                        <p className="text-2xl font-bold text-gray-900">{openaiStats.quota_exceeded_count}</p>
+                        <p className="text-gray-600">Quota Issues</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <XCircle className={`h-8 w-8 ${openaiStats.error_count > 0 ? 'text-red-600' : 'text-green-600'}`} />
+                      <div className="ml-4">
+                        <p className="text-2xl font-bold text-gray-900">{openaiStats.error_count}</p>
+                        <p className="text-gray-600">Total Errors</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Alert Section */}
+              {(openaiStats.rate_limit_count > 0 || openaiStats.quota_exceeded_count > 0 || openaiStats.success_rate < 90) && (
+                <Card className="border-red-200 bg-red-50 mb-6">
+                  <CardContent className="p-6">
+                    <div className="flex items-start">
+                      <AlertTriangle className="h-6 w-6 text-red-600 mt-1" />
+                      <div className="ml-4">
+                        <h3 className="text-lg font-semibold text-red-800 mb-2">⚠️ API Issues Detected</h3>
+                        <div className="space-y-1 text-red-700">
+                          {openaiStats.rate_limit_count > 0 && (
+                            <p>• Rate limit exceeded {openaiStats.rate_limit_count} times - Consider implementing request queuing</p>
+                          )}
+                          {openaiStats.quota_exceeded_count > 0 && (
+                            <p>• Quota exceeded {openaiStats.quota_exceeded_count} times - Check your OpenAI billing</p>
+                          )}
+                          {openaiStats.success_rate < 90 && (
+                            <p>• Success rate is {openaiStats.success_rate}% - Investigate API connectivity issues</p>
+                          )}
+                          {openaiStats.last_error && (
+                            <p>• Last error: {openaiStats.last_error.error_message} (Code: {openaiStats.last_error.error_code})</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Recent API Logs */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent API Activity</CardTitle>
+                  <CardDescription>Latest OpenAI API requests and responses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {openaiLogs.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">No recent API activity</p>
+                    ) : (
+                      openaiLogs.map((log) => (
+                        <div key={log.id} className={`p-4 rounded-lg border ${
+                          log.event_type === 'success' ? 'border-green-200 bg-green-50' :
+                          log.event_type === 'rate_limit' ? 'border-red-200 bg-red-50' :
+                          log.event_type === 'quota_exceeded' ? 'border-orange-200 bg-orange-50' :
+                          'border-gray-200 bg-gray-50'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <Badge variant={
+                                log.event_type === 'success' ? 'default' :
+                                log.event_type === 'rate_limit' ? 'destructive' :
+                                log.event_type === 'quota_exceeded' ? 'secondary' : 'destructive'
+                              }>
+                                {log.event_type.replace('_', ' ')}
+                              </Badge>
+                              <span className="font-medium">{log.request_type}</span>
+                              <span className="text-sm text-gray-600">{log.model_used}</span>
+                              {log.is_premium_request && (
+                                <Badge variant="outline" className="text-xs">Premium</Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {new Date(log.created_at).toLocaleString()}
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2 flex items-center justify-between text-sm">
+                            <div className="space-x-4">
+                              {log.tokens_used > 0 && (
+                                <span className="text-gray-600">Tokens: {log.tokens_used}</span>
+                              )}
+                              {log.cost_estimate > 0 && (
+                                <span className="text-gray-600">Cost: ${log.cost_estimate.toFixed(4)}</span>
+                              )}
+                              {log.response_time_ms && (
+                                <span className="text-gray-600">Time: {log.response_time_ms}ms</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {log.error_message && (
+                            <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-700">
+                              <strong>Error:</strong> {log.error_message}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
           
