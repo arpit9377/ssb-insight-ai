@@ -59,7 +59,7 @@ export function MobileNavigation() {
           <Brain className="h-8 w-8 text-primary" />
           {open && (
             <div>
-              <h2 className="text-lg font-bold">PsychSir.ai</h2>
+              <h2 className="text-lg font-bold">PsychSirAi</h2>
               <p className="text-xs text-muted-foreground">SSB Test Prep</p>
             </div>
           )}

@@ -58,7 +58,7 @@ const Index = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Brain className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">PsychSir.ai</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">PsychSirAi</h1>
             </div>
             
             {/* Desktop Navigation */}
@@ -209,7 +209,7 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h3 className="text-3xl font-bold text-gray-900 mb-6">
-                Why Choose PsychSir.ai?
+                Why Choose PsychSirAi?
               </h3>
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
@@ -255,7 +255,7 @@ const Index = () => {
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <Brain className="h-8 w-8 text-blue-400" />
-                <h3 className="text-2xl font-bold">PsychSir.ai</h3>
+                <h3 className="text-2xl font-bold">PsychSirAi</h3>
               </div>
               <p className="text-gray-400 max-w-md">
                 Empowering future officers with AI-powered psychological test preparation
@@ -281,7 +281,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PsychSir.ai. All rights reserved.</p>
+            <p>&copy; 2024 PsychSirAi. All rights reserved.</p>
           </div>
         </div>
       </footer>

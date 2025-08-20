@@ -25,7 +25,7 @@ export function MobileHeader({ title, showBackButton = false, actions }: MobileH
             <Brain className="h-6 w-6 text-primary" />
             <div className="hidden sm:block">
               <h1 className="font-semibold text-lg">
-                {title || 'PsychSir.ai'}
+                {title || 'PsychSirAi'}
               </h1>
             </div>
           </div>

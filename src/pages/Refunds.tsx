@@ -15,7 +15,7 @@ const Refunds = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Brain className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">PsychSir.ai</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PsychSirAi</h1>
             </div>
             <div className="flex items-center space-x-6">
               <Button variant="ghost" onClick={() => navigate('/')}>Home</Button>
@@ -78,7 +78,7 @@ const Refunds = () => {
                 <div className="space-y-4 text-gray-600">
                   <p><strong>1.1 Digital Nature of Services:</strong></p>
                   <p>
-                    PsychSir.ai provides digital educational services that are delivered instantly upon subscription activation. 
+                    PsychSirAi provides digital educational services that are delivered instantly upon subscription activation. 
                     Once you gain access to our AI-powered psychological test preparation platform, the service has been 
                     provided and cannot be "returned" in the traditional sense.
                   </p>
@@ -114,7 +114,7 @@ const Refunds = () => {
                 <div className="space-y-4 text-gray-600">
                   <p><strong>2.1 How to Cancel:</strong></p>
                   <ul className="list-disc pl-6 space-y-2">
-                    <li>Log into your PsychSir.ai account</li>
+                    <li>Log into your PsychSirAi account</li>
                     <li>Go to Account Settings → Subscription</li>
                     <li>Click "Cancel Subscription"</li>
                     <li>Confirm your cancellation</li>
@@ -272,8 +272,8 @@ const Refunds = () => {
                     For questions about billing, cancellation, or any concerns regarding your subscription:
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <p><strong>Email:</strong> billing@psychsir.ai</p>
-                    <p><strong>Support:</strong> support@psychsir.ai</p>
+                    <p><strong>Email:</strong> billing@psychsirai.ai</p>
+                    <p><strong>Support:</strong> support@psychsirai.ai</p>
                     <p><strong>Phone:</strong> +91 8319635728</p>
                     <p><strong>Hours:</strong> Monday-Friday, 9:00 AM - 6:00 PM IST</p>
                   </div>
@@ -295,7 +295,7 @@ const Refunds = () => {
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <Brain className="h-8 w-8 text-blue-400" />
-                <h3 className="text-2xl font-bold">PsychSir.ai</h3>
+                <h3 className="text-2xl font-bold">PsychSirAi</h3>
               </div>
               <p className="text-gray-400 max-w-md">
                 Empowering future officers with AI-powered psychological test preparation
@@ -321,7 +321,7 @@ const Refunds = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PsychSir.ai. All rights reserved.</p>
+            <p>&copy; 2024 PsychSirAi. All rights reserved.</p>
           </div>
         </div>
       </footer>

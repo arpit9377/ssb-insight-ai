@@ -22,11 +22,11 @@ const FAQ = () => {
       category: "General",
       questions: [
         {
-          question: "What is PsychSir.ai?",
-          answer: "PsychSir.ai is an AI-powered platform designed for SSB (Services Selection Board) psychological test preparation. We provide comprehensive training for PPDT, TAT, WAT, and SRT tests with detailed AI feedback and analysis."
+          question: "What is PsychSirAi?",
+          answer: "PsychSirAi is an AI-powered platform designed for SSB (Services Selection Board) psychological test preparation. We provide comprehensive training for PPDT, TAT, WAT, and SRT tests with detailed AI feedback and analysis."
         },
         {
-          question: "Who can use PsychSir.ai?",
+          question: "Who can use PsychSirAi?",
           answer: "Our platform is designed for anyone preparing for SSB interviews, including candidates for Indian Army, Navy, Air Force, and other defense services. It's suitable for NDA, CDS, AFCAT, and direct entry candidates."
         },
         {
@@ -90,7 +90,7 @@ const FAQ = () => {
         },
         {
           question: "What if I face technical issues?",
-          answer: "Our technical support team is available Monday-Friday, 9 AM-6 PM IST. Contact us at support@psychsir.ai or +91 8319635728 for assistance."
+          answer: "Our technical support team is available Monday-Friday, 9 AM-6 PM IST. Contact us at support@psychsirai.ai or +91 8319635728 for assistance."
         }
       ]
     },
@@ -125,7 +125,7 @@ const FAQ = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Brain className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">PsychSir.ai</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PsychSirAi</h1>
             </div>
             <div className="flex items-center space-x-6">
               <Button variant="ghost" onClick={() => navigate('/')}>Home</Button>
@@ -148,7 +148,7 @@ const FAQ = () => {
             Frequently Asked Questions
           </h2>
           <p className="text-xl text-gray-600 mb-8">
-            Find answers to common questions about PsychSir.ai and our SSB preparation services.
+            Find answers to common questions about PsychSirAi and our SSB preparation services.
           </p>
         </div>
       </section>
@@ -225,7 +225,7 @@ const FAQ = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => window.open('mailto:support@psychsir.ai')}
+              onClick={() => window.open('mailto:support@psychsirai.ai')}
               className="px-8"
             >
               Email Us Directly
@@ -237,7 +237,7 @@ const FAQ = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
               <div>
                 <p className="font-medium text-gray-900">Email Support</p>
-                <p>support@psychsir.ai</p>
+                <p>support@psychsirai.ai</p>
                 <p>Response: 4-6 hours</p>
               </div>
               <div>
@@ -262,7 +262,7 @@ const FAQ = () => {
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <Brain className="h-8 w-8 text-blue-400" />
-                <h3 className="text-2xl font-bold">PsychSir.ai</h3>
+                <h3 className="text-2xl font-bold">PsychSirAi</h3>
               </div>
               <p className="text-gray-400 max-w-md">
                 Empowering future officers with AI-powered psychological test preparation
@@ -288,7 +288,7 @@ const FAQ = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PsychSir.ai. All rights reserved.</p>
+            <p>&copy; 2024 PsychSirAi. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -15,7 +15,7 @@ const ShippingPolicy = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Brain className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">PsychSir.ai</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PsychSirAi</h1>
             </div>
             <div className="flex items-center space-x-6">
               <Button variant="ghost" onClick={() => navigate('/')}>Home</Button>
@@ -61,7 +61,7 @@ const ShippingPolicy = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-green-700 font-medium">
-                  PsychSir.ai is a completely digital platform. All our services are delivered electronically 
+                  PsychSirAi is a completely digital platform. All our services are delivered electronically 
                   through the internet. No physical products are shipped or mailed.
                 </p>
               </CardContent>
@@ -78,10 +78,10 @@ const ShippingPolicy = () => {
                 <div className="space-y-4 text-gray-600">
                   <p><strong>1.1 Instant Access:</strong></p>
                   <p>
-                    Upon successful subscription activation, you gain immediate access to all PsychSir.ai services through:
+                    Upon successful subscription activation, you gain immediate access to all PsychSirAi services through:
                   </p>
                   <ul className="list-disc pl-6 space-y-2">
-                    <li>Web browser at psychsir.ai</li>
+                    <li>Web browser at psychsirai.ai</li>
                     <li>Your personal dashboard and account</li>
                     <li>All psychological test modules (PPDT, TAT, WAT, SRT)</li>
                     <li>AI-powered analysis and feedback systems</li>
@@ -126,7 +126,7 @@ const ShippingPolicy = () => {
                     Service delivery begins once you:
                   </p>
                   <ul className="list-disc pl-6 space-y-2">
-                    <li>Create your PsychSir.ai account</li>
+                    <li>Create your PsychSirAi account</li>
                     <li>Complete the payment process</li>
                     <li>Verify your email address (if required)</li>
                   </ul>
@@ -257,7 +257,7 @@ const ShippingPolicy = () => {
                   <p><strong>6.3 Content Ownership:</strong></p>
                   <p>
                     While you have a license to use our services, all content, including test materials, 
-                    AI models, and analytics, remain the intellectual property of PsychSir.ai.
+                    AI models, and analytics, remain the intellectual property of PsychSirAi.
                   </p>
                 </div>
               </CardContent>
@@ -273,8 +273,8 @@ const ShippingPolicy = () => {
                     For technical issues, access problems, or questions about our digital service delivery:
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <p><strong>Technical Support:</strong> support@psychsir.ai</p>
-                    <p><strong>General Inquiries:</strong> info@psychsir.ai</p>
+                    <p><strong>Technical Support:</strong> support@psychsirai.ai</p>
+                    <p><strong>General Inquiries:</strong> info@psychsirai.ai</p>
                     <p><strong>Phone:</strong> +91 8319635728</p>
                     <p><strong>Support Hours:</strong> Monday-Friday, 9:00 AM - 6:00 PM IST</p>
                   </div>
@@ -296,7 +296,7 @@ const ShippingPolicy = () => {
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <Brain className="h-8 w-8 text-blue-400" />
-                <h3 className="text-2xl font-bold">PsychSir.ai</h3>
+                <h3 className="text-2xl font-bold">PsychSirAi</h3>
               </div>
               <p className="text-gray-400 max-w-md">
                 Empowering future officers with AI-powered psychological test preparation
@@ -322,7 +322,7 @@ const ShippingPolicy = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PsychSir.ai. All rights reserved.</p>
+            <p>&copy; 2024 PsychSirAi. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -35,7 +35,7 @@ const Contact = () => {
     {
       icon: Mail,
       title: 'Email',
-      value: 'support@psychsir.ai',
+      value: 'support@psychsirai.ai',
       description: 'Send us an email anytime'
     },
     {

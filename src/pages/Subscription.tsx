@@ -565,7 +565,7 @@ const Subscription = () => {
             Your subscription helps us maintain servers, improve AI analysis, and create better test content for your success.
           </p>
           <p className="text-sm">
-            For immediate assistance, contact us at support@psychsir.ai or WhatsApp: +91 9876543210
+            For immediate assistance, contact us at support@psychsirai.ai or WhatsApp: +91 9876543210
           </p>
         </div>
       </div>

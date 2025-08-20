@@ -15,7 +15,7 @@ const Terms = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Brain className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">PsychSir.ai</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PsychSirAi</h1>
             </div>
             <div className="flex items-center space-x-6">
               <Button variant="ghost" onClick={() => navigate('/')}>Home</Button>
@@ -60,11 +60,11 @@ const Terms = () => {
               </CardHeader>
               <CardContent className="prose max-w-none">
                 <p className="text-gray-600 mb-4">
-                  By accessing and using PsychSir.ai ("Service"), you accept and agree to be bound by the terms 
+                  By accessing and using PsychSirAi ("Service"), you accept and agree to be bound by the terms 
                   and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
                 </p>
                 <p className="text-gray-600">
-                  These Terms of Service constitute a legally binding agreement between you and PsychSir.ai 
+                  These Terms of Service constitute a legally binding agreement between you and PsychSirAi
                   regarding your use of our platform and services.
                 </p>
               </CardContent>
@@ -76,7 +76,7 @@ const Terms = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-4">
-                  PsychSir.ai provides AI-powered psychological test preparation services specifically designed 
+                  PsychSirAi provides AI-powered psychological test preparation services specifically designed 
                   for SSB (Services Selection Board) candidates. Our services include:
                 </p>
                 <ul className="list-disc pl-6 text-gray-600 space-y-2">
@@ -169,7 +169,7 @@ const Terms = () => {
               <CardContent>
                 <div className="space-y-4 text-gray-600">
                   <p>
-                    <strong>6.1 Our Content:</strong> All content on PsychSir.ai, including but not limited to text, 
+                    <strong>6.1 Our Content:</strong> All content on PsychSirAi, including but not limited to text, 
                     graphics, logos, images, AI models, and software, is our property or licensed to us.
                   </p>
                   <p>
@@ -232,7 +232,7 @@ const Terms = () => {
               <CardContent>
                 <div className="space-y-4 text-gray-600">
                   <p>
-                    To the maximum extent permitted by law, PsychSir.ai shall not be liable for any indirect, 
+                    To the maximum extent permitted by law, PsychSirAi shall not be liable for any indirect, 
                     incidental, special, consequential, or punitive damages, including but not limited to 
                     loss of profits, data, or use.
                   </p>
@@ -272,7 +272,7 @@ const Terms = () => {
                     If you have any questions about these Terms & Conditions, please contact us at:
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <p><strong>Email:</strong> legal@psychsir.ai</p>
+                    <p><strong>Email:</strong> legal@psychsirai.ai</p>
                     <p><strong>Address:</strong> Delhi, India</p>
                     <p><strong>Phone:</strong> +91 8319635728</p>
                   </div>
@@ -291,7 +291,7 @@ const Terms = () => {
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <Brain className="h-8 w-8 text-blue-400" />
-                <h3 className="text-2xl font-bold">PsychSir.ai</h3>
+                <h3 className="text-2xl font-bold">PsychSirAi</h3>
               </div>
               <p className="text-gray-400 max-w-md">
                 Empowering future officers with AI-powered psychological test preparation
@@ -317,7 +317,7 @@ const Terms = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PsychSir.ai. All rights reserved.</p>
+            <p>&copy; 2024 PsychSirAi. All rights reserved.</p>
           </div>
         </div>
       </footer>
