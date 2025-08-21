@@ -517,6 +517,36 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
 
     console.log('Calling OpenAI API for batch analysis...');
     const startTime = Date.now();
+    
+    // Prepare messages based on test type and whether images are involved
+    let messages: any[] = [{ role: 'system', content: systemPrompt }];
+    
+    if (testType === 'tat_batch') {
+      // For TAT batch, include images in the message content
+      const userMessage: any = { role: 'user', content: [] };
+      
+      // Add text prompt first
+      userMessage.content.push({
+        type: 'text',
+        text: userPrompt
+      });
+      
+      // Add images for each TAT story that has an imageUrl
+      batchData.forEach((item) => {
+        if (item.imageUrl && !item.isBlankSlide) {
+          userMessage.content.push({
+            type: 'image_url',
+            image_url: { url: item.imageUrl }
+          });
+        }
+      });
+      
+      messages.push(userMessage);
+    } else {
+      // For WAT and SRT, use text-only messages
+      messages.push({ role: 'user', content: userPrompt });
+    }
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -525,10 +555,7 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+        messages: messages,
         temperature: 0.2,
         max_tokens: isPremium ? 4000 : 2000,
         response_format: { type: "json_object" }
@@ -675,11 +702,14 @@ function getTATBatchUserPrompt(batchData: any[]): string {
   
   batchData.forEach((item, index) => {
     prompt += `Story ${item.imageNumber}${item.isBlankSlide ? ' (Blank Slide)' : ''}:\n`;
+    if (item.imageUrl) {
+      prompt += `Image: ${item.imageUrl}\n`;
+    }
     prompt += `Prompt: ${item.prompt}\n`;
     prompt += `Response: "${item.response}"\n\n`;
   });
 
-  prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses. Score fairly based on actual content quality.`;
+  prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses. Consider both the visual elements in the images and the candidate's written responses. Score fairly based on actual content quality and image interpretation.`;
   
   return prompt;
 }
