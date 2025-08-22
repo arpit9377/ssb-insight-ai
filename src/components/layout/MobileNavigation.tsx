@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Brain, Home, Target, BookOpen, Users, BarChart3, User, CreditCard, Settings, LogOut } from 'lucide-react';
+import { Home, Target, BookOpen, Users, BarChart3, User, CreditCard, Settings, LogOut } from 'lucide-react';
 import { useUser, SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,7 +29,7 @@ const navigationItems = [
 const testItems = [
   { title: 'PPDT Test', url: '/test/ppdt', icon: Target, requiresAuth: true },
   { title: 'TAT Test', url: '/test/tat', icon: BookOpen, requiresAuth: true },
-  { title: 'WAT Test', url: '/test/wat', icon: Brain, requiresAuth: true },
+  { title: 'WAT Test', url: '/test/wat', icon: Target, requiresAuth: true },
   { title: 'SRT Test', url: '/test/srt', icon: Users, requiresAuth: true },
 ];
 
@@ -56,7 +56,7 @@ export function MobileNavigation() {
     <Sidebar className={!open ? "w-16" : "w-64"} collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center space-x-3">
-          <Brain className="h-8 w-8 text-primary" />
+          <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-8 w-8" />
           {open && (
             <div>
               <h2 className="text-lg font-bold">PsychSirAi</h2>

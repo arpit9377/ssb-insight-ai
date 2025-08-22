@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Bell, Settings } from 'lucide-react';
+import { Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +22,7 @@ export function MobileHeader({ title, showBackButton = false, actions }: MobileH
           <SidebarTrigger className="h-8 w-8" />
           
           <div className="flex items-center space-x-2">
-            <Brain className="h-6 w-6 text-primary" />
+            <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-6 w-6" />
             <div className="hidden sm:block">
               <h1 className="font-semibold text-lg">
                 {title || 'PsychSirAi'}
