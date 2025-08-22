@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { testAnalysisService } from '@/services/testAnalysisService';
-import { Brain, TrendingUp, Target, Lightbulb, ArrowLeft, BookOpen, History } from 'lucide-react';
+import { TrendingUp, Target, Lightbulb, ArrowLeft, BookOpen, History } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TestResultsPage = () => {
@@ -118,7 +118,7 @@ const TestResultsPage = () => {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="flex items-center justify-center gap-2">
-                <Brain className="h-6 w-6 text-blue-600" />
+                <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-6 w-6" />
                 Overall Performance
               </CardTitle>
             </CardHeader>
@@ -254,7 +254,7 @@ const TestResultsPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-blue-600" />
+                  <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-5 w-5" />
                   Officer-like Qualities
                 </CardTitle>
               </CardHeader>

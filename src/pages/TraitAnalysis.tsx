@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Brain, TrendingUp, Users, Zap, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Users, Zap, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 
 const TRAIT_CATEGORIES = {
   'Leadership & Social': {
-    icon: Brain,
+    icon: Target,
     color: 'bg-blue-500',
     traits: [
       'Leadership',

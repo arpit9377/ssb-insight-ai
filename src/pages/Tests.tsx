@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Target, BookOpen, Users, Clock, FileText } from 'lucide-react';
+import { Target, BookOpen, Users, Clock, FileText } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 const testData = [
@@ -32,7 +32,7 @@ const testData = [
     subtitle: 'Word Association Test', 
     description: '60 words with 15 seconds each for viewing and response',
     duration: '15 minutes',
-    icon: Brain,
+    icon: Target,
     difficulty: 'Easy',
     color: 'bg-green-500'
   },
@@ -133,7 +133,7 @@ const Tests = () => {
 
         <Card className="border-dashed border-2">
           <CardContent className="p-8 text-center">
-            <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-12 w-12 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">More Tests Coming Soon</h3>
             <p className="text-muted-foreground mb-4">
               We're continuously adding new psychological assessment tools to help you prepare better.

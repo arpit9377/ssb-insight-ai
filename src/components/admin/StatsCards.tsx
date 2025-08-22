@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, TestTube, BarChart3, Settings, Activity, Brain } from 'lucide-react';
+import { Users, TestTube, BarChart3, Settings, Activity } from 'lucide-react';
 
 interface StatsCardsProps {
   stats: {
@@ -66,7 +66,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">AI Analyses</CardTitle>
-          <Brain className="h-4 w-4 text-muted-foreground" />
+          <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-4 w-4" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.totalAnalyses}</div>

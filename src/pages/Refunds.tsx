@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, CreditCard, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CreditCard, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Refunds = () => {
@@ -14,7 +14,7 @@ const Refunds = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <Brain className="h-8 w-8 text-blue-600" />
+              <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-8 w-8" />
               <h1 className="text-2xl font-bold text-gray-900">PsychSirAi</h1>
             </div>
             <div className="flex items-center space-x-6">
@@ -294,7 +294,7 @@ const Refunds = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <Brain className="h-8 w-8 text-blue-400" />
+                <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-8 w-8" />
                 <h3 className="text-2xl font-bold">PsychSirAi</h3>
               </div>
               <p className="text-gray-400 max-w-md">

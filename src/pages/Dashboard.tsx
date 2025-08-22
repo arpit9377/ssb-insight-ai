@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye } from 'lucide-react';
+import { Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -151,7 +151,7 @@ const Dashboard = () => {
       title: 'WAT',
       description: 'Word Association Test',
       duration: '60 words, 15s each',
-      icon: Brain,
+      icon: BookOpen,
       color: 'bg-purple-500',
       available: isPrivilegedUser || subscription?.status === 'active' || false
     },
@@ -207,7 +207,7 @@ const Dashboard = () => {
     switch (testType) {
       case 'PPDT': return Target;
       case 'TAT': return BookOpen;
-      case 'WAT': return Brain;
+      case 'WAT': return Target;
       case 'SRT': return Users;
       default: return Target;
     }
@@ -337,7 +337,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Brain className="h-8 w-8 text-purple-600" />
+                <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-8 w-8" />
                 <div className="ml-4">
                   <Button 
                     variant="ghost" 

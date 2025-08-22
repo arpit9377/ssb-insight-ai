@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';

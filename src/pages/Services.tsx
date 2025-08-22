@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Target, BookOpen, Users, Clock, CheckCircle, BarChart3, MessageSquare } from 'lucide-react';
+import { Target, BookOpen, Users, Clock, CheckCircle, BarChart3, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 
@@ -32,7 +32,7 @@ const Services = () => {
       ]
     },
     {
-      icon: Brain,
+      icon: Target,
       title: 'WAT Training',
       description: 'Word Association Test with rapid response training and pattern analysis',
       features: [

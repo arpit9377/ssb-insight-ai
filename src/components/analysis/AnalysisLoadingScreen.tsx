@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Brain, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface AnalysisLoadingScreenProps {
   testType: string;
@@ -41,7 +41,7 @@ const AnalysisLoadingScreen: React.FC<AnalysisLoadingScreenProps> = ({ testType,
           <div className="text-center space-y-6">
             <div className="relative">
               <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto">
-                <Brain className="h-10 w-10 text-white" />
+                <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-10 w-10" />
               </div>
               <div className="absolute -top-1 -right-1">
                 <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />

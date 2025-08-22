@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Target, Brain, Calendar, Award, BarChart3 } from 'lucide-react';
+import { TrendingUp, Target, Calendar, Award, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -306,7 +306,7 @@ const Progress = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5" />
+                      <Target className="h-5 w-5" />
                       Test Types Completed
                     </CardTitle>
                   </CardHeader>
@@ -467,7 +467,7 @@ const Progress = () => {
           {stats.totalTests === 0 && (
             <Card>
               <CardContent className="text-center py-12">
-                <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <img src="/lovable-uploads/d3dbc8a1-8206-42d0-8106-40fc4d962c94.png" alt="PsychSirAi Logo" className="h-12 w-12 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Progress Data Yet</h3>
                 <p className="text-muted-foreground mb-4">
                   Start taking tests to see your progress and insights here.
