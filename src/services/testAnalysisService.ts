@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { aiService } from './aiService';
 
 interface TestSession {
@@ -283,23 +283,25 @@ export class TestAnalysisService {
         .eq('id', responseId)
         .maybeSingle();
 
+      const insertData = {
+        user_id: userId,
+        test_session_id: responseData?.test_session_id,
+        response_id: responseId,
+        analysis_type: 'individual',
+        ai_provider: aiService.getCurrentProvider(),
+        raw_analysis: feedback as any,
+        processed_feedback: feedback as any,
+        overall_score: feedback.overallScore || 0,
+        trait_scores: (feedback.traitScores || []) as any,
+        strengths: feedback.strengths || [],
+        improvements: feedback.improvements || [],
+        recommendations: feedback.recommendations || [],
+        is_premium_analysis: isPremium
+      };
+      
       const { error } = await supabase
         .from('ai_analyses')
-        .insert({
-          user_id: userId,
-          test_session_id: responseData?.test_session_id,
-          response_id: responseId,
-          analysis_type: 'individual',
-          ai_provider: aiService.getCurrentProvider(),
-          raw_analysis: feedback,
-          processed_feedback: feedback,
-          overall_score: feedback.overallScore || 0,
-          trait_scores: feedback.traitScores || {},
-          strengths: feedback.strengths || [],
-          improvements: feedback.improvements || [],
-          recommendations: feedback.recommendations || [],
-          is_premium_analysis: isPremium
-        });
+        .insert(insertData);
 
       if (error) {
         console.error('Error storing individual analysis:', error);
@@ -380,10 +382,10 @@ export class TestAnalysisService {
           response_id: responses[0].id,
           analysis_type: 'session_summary',
           ai_provider: aiService.getCurrentProvider(),
-          raw_analysis: sessionSummary,
-          processed_feedback: sessionSummary,
+          raw_analysis: sessionSummary as any,
+          processed_feedback: sessionSummary as any,
           overall_score: sessionSummary.overallScore || 0,
-          trait_scores: sessionSummary.traitScores || {},
+          trait_scores: (sessionSummary.traitScores || {}) as any,
           strengths: sessionSummary.strengths || [],
           improvements: sessionSummary.improvements || [],
           recommendations: sessionSummary.recommendations || [],
@@ -723,10 +725,10 @@ export class TestAnalysisService {
           test_session_id: sessionId,
           analysis_type: 'session_summary', // Use consistent analysis type for session results
           ai_provider: 'openai',
-          raw_analysis: analysis,
-          processed_feedback: analysis,
+          raw_analysis: analysis as any,
+          processed_feedback: analysis as any,
           overall_score: analysis.overallScore || 0,
-          trait_scores: analysis.traitScores || {},
+          trait_scores: (analysis.traitScores || {}) as any,
           strengths: analysis.strengths || [],
           improvements: analysis.improvements || [],
           recommendations: analysis.recommendations || [],

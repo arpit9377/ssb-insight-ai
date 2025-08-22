@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Brain, Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { testLimitService } from '@/services/testLimitService';
 import { useToast } from '@/hooks/use-toast';
@@ -71,8 +71,8 @@ const Dashboard = () => {
           const totalScore = scoresWithFeedback.reduce((sum, analysis) => {
             // Try multiple sources for the score
             const score = analysis.overall_score || 
-                         (analysis.processed_feedback?.overallScore) ||
-                         (analysis.raw_analysis?.overallScore) || 0;
+                         (typeof analysis.processed_feedback === 'object' && analysis.processed_feedback && 'overallScore' in analysis.processed_feedback ? (analysis.processed_feedback as any).overallScore : 0) ||
+                         (typeof analysis.raw_analysis === 'object' && analysis.raw_analysis && 'overallScore' in analysis.raw_analysis ? (analysis.raw_analysis as any).overallScore : 0) || 0;
             return sum + score;
           }, 0);
           avgScore = totalScore / scoresWithFeedback.length;
@@ -90,8 +90,8 @@ const Dashboard = () => {
           
           // Also check in processed_feedback and raw_analysis
           const feedback = analysis.processed_feedback || analysis.raw_analysis || {};
-          if (feedback.traitScores && Array.isArray(feedback.traitScores)) {
-            feedback.traitScores.forEach((trait: any) => {
+          if (typeof feedback === 'object' && feedback && 'traitScores' in feedback && Array.isArray((feedback as any).traitScores)) {
+            (feedback as any).traitScores.forEach((trait: any) => {
               if (trait.trait) allTraits.add(trait.trait);
             });
           }

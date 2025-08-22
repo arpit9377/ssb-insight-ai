@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, Target, Brain, Calendar, Award, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Progress as ProgressBar } from '@/components/ui/progress';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Badge } from '@/components/ui/badge';
