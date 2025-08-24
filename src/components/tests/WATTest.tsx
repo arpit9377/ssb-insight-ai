@@ -87,7 +87,7 @@ const WATTest = () => {
         handleNext(true); // Force next even without response
       }, 1000);
     }
-  }, [currentResponse, currentWordIndex]);
+  }, [currentResponse, currentWordIndex, words.length]);
 
   const handleNext = async (forceNext = false) => {
     if (!forceNext && !currentResponse.trim()) {
