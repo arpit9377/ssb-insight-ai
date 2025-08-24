@@ -474,6 +474,7 @@ function formatFeedback(analysis: any, isPremium: boolean): any {
     officerLikeQualities: analysis.officerLikeQualities || analysis.officer_like_qualities || [],
     sampleResponse: analysis.sampleResponse || analysis.sample_response || "",
     wordSuggestions: analysis.wordSuggestions || [],
+    sampleExamples: analysis.sampleExamples || [],
   };
 }
 
@@ -710,7 +711,8 @@ Return detailed analysis:
   "improvements": ["area with advice"],
   "recommendations": ["development recommendation"],
   "officerLikeQualities": ["observed quality"],
-  "sampleResponse": "Example of an ideal TAT story"
+  "sampleResponse": "Example of an ideal TAT story",
+  "sampleExamples": [{"imageNumber": "actual_image_number", "response": "user_story", "analysis": "brief analysis of this specific story"}]
 }`;
   } else {
     return `${basePrompt}
@@ -723,7 +725,8 @@ Return basic analysis:
   "improvements": ["critical area"],
   "recommendations": ["Upgrade to premium for detailed analysis"],
   "officerLikeQualities": ["basic quality"],
-  "sampleResponse": "Example story improvement"
+  "sampleResponse": "Example story improvement",
+  "sampleExamples": [{"imageNumber": "actual_image_number", "response": "user_story", "analysis": "brief analysis of this specific story"}]
 }`;
   }
 }
@@ -740,7 +743,9 @@ function getTATBatchUserPrompt(batchData: any[]): string {
     prompt += `Response: "${item.response}"\n\n`;
   });
 
-  prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses. Consider both the visual elements in the images and the candidate's written responses. Score fairly based on actual content quality and image interpretation.`;
+  prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses. Consider both the visual elements in the images and the candidate's written responses. Score fairly based on actual content quality and image interpretation.\n\n`;
+  
+  prompt += `For sampleExamples, include 3-4 actual examples from the user's stories with brief analysis showing strengths and areas for improvement in storytelling and character development.`;
   
   return prompt;
 }
@@ -777,7 +782,8 @@ You must respond with valid JSON format only:
   "recommendations": ["specific training recommendations based on patterns"],
   "officerLikeQualities": ["observed quality with evidence"],
   "sampleResponse": "Word -> Positive association that demonstrates leadership thinking and action-oriented mindset (use general statements, no 'I' references)",
-  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response showing positive association"}]
+  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response showing positive association"}],
+  "sampleExamples": [{"word": "actual_word", "response": "user_response", "analysis": "brief analysis of this specific response"}]
 }`;
   } else {
     return `${basePrompt}
@@ -791,7 +797,8 @@ You must respond with valid JSON format only:
   "recommendations": ["primary recommendation for improvement"],
   "officerLikeQualities": ["main officer-like quality observed"],
   "sampleResponse": "Word -> Better association that shows positive, action-oriented thinking (no 'I' statements)",
-  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response"}]
+  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response"}],
+  "sampleExamples": [{"word": "actual_word", "response": "user_response", "analysis": "brief analysis of this specific response"}]
 }`;
   }
 }
@@ -810,7 +817,9 @@ For wordSuggestions, provide improved responses that:
 - Show positive, leadership-oriented thinking
 - Demonstrate officer-like qualities (courage, determination, responsibility)
 - Frame the word in an action-oriented context
-- Example: For "Challenge" -> "Challenge creates opportunities for growth and leadership"`;
+- Example: For "Challenge" -> "Challenge creates opportunities for growth and leadership"
+
+For sampleExamples, include 3-4 actual examples from the user's responses with brief analysis showing what works well or could be improved.`;
   
   return prompt;
 }
@@ -846,7 +855,8 @@ You must respond with valid JSON format only:
   "improvements": ["critical area with actionable development advice"],
   "recommendations": ["specific training recommendations based on patterns"],
   "officerLikeQualities": ["observed leadership qualities with evidence"],
-  "sampleResponse": "Example of ideal SRT response demonstrating excellence"
+  "sampleResponse": "Example of ideal SRT response demonstrating excellence",
+  "sampleExamples": [{"situation": "actual_situation", "response": "user_response", "analysis": "brief analysis of this specific response"}]
 }`;
   } else {
     return `${basePrompt}
@@ -859,7 +869,8 @@ You must respond with valid JSON format only:
   "improvements": ["most critical development area", "time management assessment"],
   "recommendations": ["Upgrade to premium for detailed trait analysis and personalized development plan"],
   "officerLikeQualities": ["primary leadership indicator"],
-  "sampleResponse": "Example of improved SRT response"
+  "sampleResponse": "Example of improved SRT response",
+  "sampleExamples": [{"situation": "actual_situation", "response": "user_response", "analysis": "brief analysis of this specific response"}]
 }`;
   }
 }
@@ -885,6 +896,8 @@ function getSRTBatchUserPrompt(batchData: any[]): string {
   prompt += `- Analyze leadership approach consistency\n`;
   prompt += `- Evaluate practical problem-solving quality\n`;
   prompt += `- Assess officer potential based on actual responses\n\n`;
+  
+  prompt += `For sampleExamples, include 3-4 actual examples from the user's responses with brief analysis showing leadership demonstration and areas for improvement.\n\n`;
   
   prompt += `IMPORTANT: Score fairly based on actual content quality. Well-structured responses with clear leadership thinking should score well (7-8/10). Don't default to 5/10 - reward genuine merit.`;
   

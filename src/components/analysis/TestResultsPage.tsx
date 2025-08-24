@@ -168,8 +168,59 @@ const TestResultsPage = () => {
             </Card>
           )}
 
+          {/* Sample Examples */}
+          {feedback.sampleExamples && feedback.sampleExamples.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-blue-600" />
+                  Your Response Examples
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  {feedback.sampleExamples.map((example: any, index: number) => (
+                    <AccordionItem key={index} value={`example-${index}`}>
+                      <AccordionTrigger className="text-left">
+                        <div className="flex flex-col items-start">
+                          <span className="font-semibold">
+                            {example.word ? `Word: ${example.word}` : 
+                             example.situation ? `Situation ${index + 1}` : 
+                             example.imageNumber ? `Story ${example.imageNumber}` : 
+                             `Example ${index + 1}`}
+                          </span>
+                          <span className="text-sm text-gray-600 truncate max-w-xs">
+                            "{example.response.length > 50 ? example.response.substring(0, 50) + '...' : example.response}"
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-3">
+                          {example.situation && (
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-gray-700 font-medium text-sm">Situation:</p>
+                              <p className="text-gray-800">{example.situation}</p>
+                            </div>
+                          )}
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <p className="text-blue-900 font-medium text-sm">Your response:</p>
+                            <p className="text-blue-800 italic">"{example.response}"</p>
+                          </div>
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <p className="text-green-900 font-medium text-sm">Analysis:</p>
+                            <p className="text-green-800 leading-relaxed">{example.analysis}</p>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Sample Response (fallback) */}
-          {feedback.sampleResponse && (!feedback.wordSuggestions || feedback.wordSuggestions.length === 0) && (
+          {feedback.sampleResponse && (!feedback.wordSuggestions || feedback.wordSuggestions.length === 0) && (!feedback.sampleExamples || feedback.sampleExamples.length === 0) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
