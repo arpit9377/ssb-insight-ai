@@ -370,14 +370,21 @@ const Subscription = () => {
                 <Star className="h-6 w-6 text-white" />
               </div>
               <CardTitle>Paid Access</CardTitle>
-              <CardDescription>
-                <span className="text-3xl font-bold text-gray-900">₹799</span>
-                <span className="text-gray-600">/30 days</span>
-                <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-700">
-                  <p className="font-medium">💡 Help us improve!</p>
-                  <p>Your subscription helps fund AI improvements, new features, and better test content to enhance your preparation experience.</p>
-                </div>
-              </CardDescription>
+               <CardDescription>
+                 <span className="text-3xl font-bold text-gray-900">₹799</span>
+                 <span className="text-gray-600">/30 days</span>
+                 <div className="mt-2 p-2 bg-gradient-to-r from-orange-100 to-red-100 border border-orange-200 rounded text-sm relative overflow-hidden">
+                   <div className="absolute top-1 right-1">
+                     <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
+                       🚀 LAUNCH OFFER
+                     </span>
+                   </div>
+                   <div className="text-orange-800 mt-2">
+                     <p className="font-medium">💡 Help us improve!</p>
+                     <p>Your subscription helps fund AI improvements, new features, and better test content to enhance your preparation experience.</p>
+                   </div>
+                 </div>
+               </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3 mb-6">
