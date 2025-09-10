@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { guestUserService } from './guestUserService';
 
 export interface TestLimits {
   tat: number;
@@ -11,6 +12,18 @@ export interface TestLimits {
 
 class TestLimitService {
   async getTestLimits(userId: string): Promise<TestLimits | null> {
+    // Handle guest users
+    if (guestUserService.isGuestUser(userId)) {
+      const guestLimits = guestUserService.getGuestLimits();
+      return {
+        tat: guestLimits.tat,
+        ppdt: guestLimits.ppdt,
+        wat: guestLimits.wat,
+        srt: guestLimits.srt,
+        subscription_type: 'unpaid'
+      };
+    }
+
     try {
       const { data, error } = await supabase.rpc('get_test_limits', {
         target_user_id: userId
@@ -34,6 +47,11 @@ class TestLimitService {
   }
 
   async checkTestAvailability(userId: string, testType: string): Promise<boolean> {
+    // Handle guest users
+    if (guestUserService.isGuestUser(userId)) {
+      return guestUserService.checkGuestTestAvailability(testType);
+    }
+
     try {
       const limits = await this.getTestLimits(userId);
       if (!limits) return false;
@@ -47,6 +65,11 @@ class TestLimitService {
   }
 
   async decrementTestLimit(userId: string, testType: string): Promise<boolean> {
+    // Handle guest users
+    if (guestUserService.isGuestUser(userId)) {
+      return guestUserService.decrementGuestTestLimit(testType);
+    }
+
     try {
       const { data, error } = await supabase.rpc('decrement_test_limit', {
         target_user_id: userId,

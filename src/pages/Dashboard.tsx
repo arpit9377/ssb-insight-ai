@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye } from 'lucide-react';
+import { Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { testLimitService } from '@/services/testLimitService';
+import { guestUserService } from '@/services/guestUserService';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, subscription } = useAuthContext();
+  const { user, subscription, isAuthenticated, isGuestMode, guestId, enableGuestMode } = useAuthContext();
   const { toast } = useToast();
   const [userStats, setUserStats] = useState({
     testsCompleted: 0,
@@ -27,8 +28,11 @@ const Dashboard = () => {
       loadUserStats();
       loadRecentActivity();
       loadTestLimits();
+    } else if (isGuestMode && guestId) {
+      // Load guest-specific data
+      loadGuestTestLimits();
     }
-  }, [user]);
+  }, [user, isGuestMode, guestId]);
 
   const loadTestLimits = async () => {
     if (!user) return;
@@ -37,6 +41,16 @@ const Dashboard = () => {
       setTestLimits(limits);
     } catch (error) {
       console.error('Error loading test limits:', error);
+    }
+  };
+
+  const loadGuestTestLimits = async () => {
+    if (!guestId) return;
+    try {
+      const limits = await testLimitService.getTestLimits(guestId);
+      setTestLimits(limits);
+    } catch (error) {
+      console.error('Error loading guest test limits:', error);
     }
   };
 
@@ -127,6 +141,22 @@ const Dashboard = () => {
   // Check if current user should have premium access
   const isPrivilegedUser = user?.primaryEmailAddress?.emailAddress === 'editkarde@gmail.com';
 
+  // Guest user welcome message
+  const getWelcomeMessage = () => {
+    if (isGuestMode) {
+      return {
+        title: "Welcome to PsychSirAi!",
+        subtitle: "Try our SSB psychological tests for free - no signup required"
+      };
+    }
+    return {
+      title: `Welcome back, ${user?.firstName || 'Cadet'}!`,
+      subtitle: "Continue your SSB psychological test preparation journey"
+    };
+  };
+
+  const welcomeMsg = getWelcomeMessage();
+
   const testModules = [
     {
       id: 'ppdt',
@@ -167,22 +197,52 @@ const Dashboard = () => {
   ];
 
   const handleTestStart = async (testId: string) => {
-    if (!user) return;
+    let currentUserId = user?.id;
+    
+    // Handle guest users
+    if (!isAuthenticated) {
+      if (!isGuestMode) {
+        // Enable guest mode for unauthenticated users
+        currentUserId = enableGuestMode();
+      } else {
+        currentUserId = guestId;
+      }
+    }
+    
+    if (!currentUserId) {
+      toast({
+        title: "Error",
+        description: "Unable to start test. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Check if user has remaining tests
-    const canTake = await testLimitService.checkTestAvailability(user.id, testId);
+    const canTake = await testLimitService.checkTestAvailability(currentUserId, testId);
     if (!canTake) {
-      const limits = await testLimitService.getTestLimits(user.id);
+      const limits = await testLimitService.getTestLimits(currentUserId);
       const remaining = limits?.[testId as keyof typeof limits] || 0;
       
       if (typeof remaining === 'number' && remaining <= 0) {
-        toast({
-          title: "No Tests Remaining",
-          description: `You have used all your ${testId.toUpperCase()} tests. Please upgrade to continue.`,
-          variant: "destructive"
-        });
-        navigate('/subscription');
-        return;
+        if (isGuestMode || !isAuthenticated) {
+          // Show signup prompt for guest users who've used their free tests
+          toast({
+            title: "Free Test Used!",
+            description: `You've used your free ${testId.toUpperCase()} test. Sign up to get more tests!`,
+            variant: "default"
+          });
+          navigate('/sign-up');
+          return;
+        } else {
+          toast({
+            title: "No Tests Remaining",
+            description: `You have used all your ${testId.toUpperCase()} tests. Please upgrade to continue.`,
+            variant: "destructive"
+          });
+          navigate('/subscription');
+          return;
+        }
       }
     }
     
@@ -242,20 +302,40 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.firstName || 'Cadet'}!
+            {welcomeMsg.title}
           </h2>
           <p className="text-gray-600 text-lg">
-            Continue your SSB psychological test preparation journey
+            {welcomeMsg.subtitle}
           </p>
           {isPrivilegedUser && (
             <p className="text-green-600 font-semibold mt-2">
               ✅ All features unlocked for testing
             </p>
           )}
+          {isGuestMode && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-blue-800">🎯 Try Before You Sign Up</h3>
+                  <p className="text-blue-700 text-sm">
+                    Get 1 free test from each type: {guestUserService.getRemainingTestsMessage()}
+                  </p>
+                </div>
+                <Button 
+                  size="sm"
+                  onClick={() => navigate('/sign-up')}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Sign Up
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Subscription Status */}
-        {!subscription && !isPrivilegedUser && (
+        {/* Subscription Status - only show for authenticated users */}
+        {!subscription && !isPrivilegedUser && isAuthenticated && (
           <Card className="mb-8 border-yellow-200 bg-yellow-50">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -279,9 +359,11 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle>Your Test Limits</CardTitle>
               <CardDescription>
-                {testLimits.subscription_type === 'paid' ? 
-                  `Paid Access - Valid until ${new Date(testLimits.subscription_expires_at).toLocaleDateString()}` :
-                  'Free Access - Upgrade for unlimited tests'
+                {isGuestMode ? 
+                  'Free Trial - Sign up for more tests and detailed analysis' :
+                  testLimits.subscription_type === 'paid' ? 
+                    `Paid Access - Valid until ${new Date(testLimits.subscription_expires_at).toLocaleDateString()}` :
+                    'Free Access - Upgrade for unlimited tests'
                 }
               </CardDescription>
             </CardHeader>
@@ -304,11 +386,24 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-600">SRT Tests Left</p>
                 </div>
               </div>
+              {isGuestMode && (
+                <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+                  <p className="text-sm text-gray-600 mb-2">Want more tests?</p>
+                  <Button 
+                    size="sm" 
+                    onClick={() => navigate('/sign-up')}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  >
+                    Sign Up for Free
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Quick Stats */}
+        {/* Quick Stats - only show for authenticated users */}
+        {isAuthenticated && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
@@ -367,6 +462,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Test Modules */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -392,9 +488,11 @@ const Dashboard = () => {
                     <Button 
                       className="w-full" 
                       onClick={() => handleTestStart(test.id)}
-                      disabled={!test.available && !isPrivilegedUser}
+                      disabled={!test.available && !isPrivilegedUser && !isGuestMode}
                     >
-                      {test.available || isPrivilegedUser ? 'Start Practice' : 'Premium Only'}
+                      {test.available || isPrivilegedUser || isGuestMode ? 
+                        (isGuestMode ? 'Try Free Test' : 'Start Practice') : 
+                        'Premium Only'}
                     </Button>
                     {testLimits && (
                       <p className="text-xs text-center mt-1 text-gray-500">
@@ -408,7 +506,8 @@ const Dashboard = () => {
           })}
         </div>
 
-        {/* Recent Activity */}
+        {/* Recent Activity - only show for authenticated users */}
+        {isAuthenticated && (
         <div className="mt-8">
           <Card>
             <CardHeader>
@@ -460,6 +559,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+        )}
       </div>
     </AppLayout>
   );
