@@ -149,7 +149,7 @@ const Index = () => {
                     <SignInButton mode="modal">
                       <Button variant="outline">Sign In</Button>
                     </SignInButton>
-                    <SignUpButton mode="modal">
+                    <SignUpButton mode="redirect" fallbackRedirectUrl="/dashboard">
                       <Button>Get Started</Button>
                     </SignUpButton>
                   </SignedOut>

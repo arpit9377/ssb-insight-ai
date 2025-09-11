@@ -133,7 +133,8 @@ const PPDTTest = () => {
       return;
     }
 
-    if (!user?.id || !sessionId) {
+    const currentUserId = user?.id || guestId;
+    if (!currentUserId || !sessionId) {
       toast.error('Missing required information. Please refresh and try again.');
       return;
     }
@@ -151,7 +152,7 @@ const PPDTTest = () => {
       };
       
       await testAnalysisService.storeResponse(
-        user?.id || guestId!,
+        currentUserId,
         sessionId,
         images[currentImageIndex].id,
         JSON.stringify(comprehensiveResponse),
@@ -183,7 +184,8 @@ const PPDTTest = () => {
   };
 
   const handleTestCompletion = async () => {
-    if (!user?.id || !sessionId) {
+    const currentUserId = user?.id || guestId;
+    if (!currentUserId || !sessionId) {
       toast.error('Missing required information');
       return;
     }
@@ -193,7 +195,6 @@ const PPDTTest = () => {
       
       await testAnalysisService.updateTestSession(sessionId, images.length, 'completed');
 
-      const currentUserId = user?.id || guestId!;
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
       const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);
       const isPremium = hasSubscription || !canGetFree;
