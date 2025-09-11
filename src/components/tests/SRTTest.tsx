@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 
 const SRTTest = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isAuthenticated, isGuestMode, guestId, enableGuestMode } = useAuthContext();
   const [situations, setSituations] = useState<any[]>([]);
   const [responses, setResponses] = useState<{[key: number]: string}>({});
   const [currentSituationIndex, setCurrentSituationIndex] = useState(0);
@@ -28,19 +28,30 @@ const SRTTest = () => {
   const [isTestActive, setIsTestActive] = useState(false);
 
   useEffect(() => {
+    // Enable guest mode if user is not authenticated
+    if (!isAuthenticated && !isGuestMode) {
+      enableGuestMode();
+    }
     initializeTest();
-  }, [user]);
+  }, [user, isAuthenticated, isGuestMode]);
 
   const initializeTest = async () => {
     try {
-      if (!user?.id) {
-        console.error('No user ID found:', user);
-        toast.error('Please log in to take the test');
-        navigate('/');
-        return;
+      // Get current user ID (either authenticated user or guest)
+      const currentUserId = user?.id || guestId;
+      
+      if (!currentUserId) {
+        console.error('No user ID found - enabling guest mode');
+        const newGuestId = enableGuestMode();
+        if (!newGuestId) {
+          toast.error('Unable to start test. Please try again.');
+          navigate('/');
+          return;
+        }
       }
 
-      console.log('Initializing SRT test for user:', user.id);
+      const userId = user?.id || guestId;
+      console.log('Initializing SRT test for user:', userId, isGuestMode ? '(guest)' : '(authenticated)');
       
       // Check database setup
       const dbSetup = await setupTestTables();
@@ -117,7 +128,8 @@ const SRTTest = () => {
   };
 
   const handleTestCompletion = async () => {
-    if (!user?.id || !sessionId) {
+    const currentUserId = user?.id || guestId;
+    if (!currentUserId || !sessionId) {
       toast.error('Missing required information');
       return;
     }
@@ -142,7 +154,7 @@ const SRTTest = () => {
       for (let i = 0; i < situations.length; i++) {
         if (responses[i]) {
           await testAnalysisService.storeResponse(
-            user.id,
+            currentUserId,
             sessionId,
             situations[i].id,
             responses[i],
@@ -155,8 +167,8 @@ const SRTTest = () => {
       const completedCount = Object.keys(responses).length;
       await testAnalysisService.updateTestSession(sessionId, completedCount, 'completed');
 
-      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
-      const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
+      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
+      const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);
       const isPremium = hasSubscription || !canGetFree;
 
       console.log(`Starting SRT batch analysis - Premium: ${isPremium}, Completed: ${completedCount}/${situations.length}`);

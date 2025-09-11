@@ -149,9 +149,9 @@ const Index = () => {
                     <SignInButton mode="modal">
                       <Button variant="outline">Sign In</Button>
                     </SignInButton>
-                    <SignUpButton mode="redirect" fallbackRedirectUrl="/dashboard">
-                      <Button>Get Started</Button>
-                    </SignUpButton>
+                    <Button onClick={() => navigate('/dashboard')}>
+                      Get Started
+                    </Button>
                   </SignedOut>
                   <SignedIn>
                     <Button onClick={() => navigate('/dashboard')}>

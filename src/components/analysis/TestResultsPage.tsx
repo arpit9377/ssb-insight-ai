@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 const TestResultsPage = () => {
   const navigate = useNavigate();
   const { sessionId } = useParams();
-  const { user } = useUser();
+  const { user, isAuthenticated, isGuestMode, guestId } = useAuthContext();
   const [analysis, setAnalysis] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -22,11 +22,12 @@ const TestResultsPage = () => {
   useEffect(() => {
     loadAnalysis();
     loadRecentActivity();
-  }, [sessionId, user]);
+  }, [sessionId, user, guestId]);
 
   const loadAnalysis = async () => {
     try {
-      if (!sessionId || !user?.id) {
+      const currentUserId = user?.id || guestId;
+      if (!sessionId || !currentUserId) {
         toast.error('Invalid session or user');
         navigate('/dashboard');
         return;
@@ -42,7 +43,9 @@ const TestResultsPage = () => {
       setAnalysis(analysisData);
       
       // Store in recent activity
-      await testAnalysisService.addToRecentActivity(user.id, analysisData);
+      if (currentUserId) {
+        await testAnalysisService.addToRecentActivity(currentUserId, analysisData);
+      }
     } catch (error) {
       console.error('Error loading analysis:', error);
       toast.error('Failed to load analysis');

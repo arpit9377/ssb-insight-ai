@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 const WATTest = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isAuthenticated, isGuestMode, guestId, enableGuestMode } = useAuthContext();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [words, setWords] = useState<any[]>([]);
   const [responses, setResponses] = useState<string[]>([]);
@@ -26,19 +26,30 @@ const WATTest = () => {
   const [startTime, setStartTime] = useState<number>(Date.now());
 
   useEffect(() => {
+    // Enable guest mode if user is not authenticated
+    if (!isAuthenticated && !isGuestMode) {
+      enableGuestMode();
+    }
     initializeTest();
-  }, [user]);
+  }, [user, isAuthenticated, isGuestMode]);
 
   const initializeTest = async () => {
     try {
-      if (!user?.id) {
-        console.error('No user ID found:', user);
-        toast.error('Please log in to take the test');
-        navigate('/');
-        return;
+      // Get current user ID (either authenticated user or guest)
+      const currentUserId = user?.id || guestId;
+      
+      if (!currentUserId) {
+        console.error('No user ID found - enabling guest mode');
+        const newGuestId = enableGuestMode();
+        if (!newGuestId) {
+          toast.error('Unable to start test. Please try again.');
+          navigate('/');
+          return;
+        }
       }
 
-      console.log('Initializing WAT test for user:', user.id);
+      const userId = user?.id || guestId;
+      console.log('Initializing WAT test for user:', userId, isGuestMode ? '(guest)' : '(authenticated)');
       
       // Check database setup
       const dbSetup = await setupTestTables();
@@ -110,7 +121,8 @@ const WATTest = () => {
   };
 
   const handleTestCompletion = async (finalResponses: string[]) => {
-    if (!user?.id || !sessionId) {
+    const currentUserId = user?.id || guestId;
+    if (!currentUserId || !sessionId) {
       toast.error('Missing required information');
       return;
     }
@@ -129,7 +141,7 @@ const WATTest = () => {
         if (actualResponses[i] && actualResponses[i] !== '') {
           console.log(`Storing response ${i + 1}: ${actualResponses[i]}`);
           await testAnalysisService.storeResponse(
-            user.id,
+            currentUserId,
             sessionId,
             actualWords[i].id,
             actualResponses[i],
@@ -141,17 +153,17 @@ const WATTest = () => {
 
       await testAnalysisService.updateTestSession(sessionId, actualResponses.length, 'completed');
 
-      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
-      const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
+      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
+      const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);
       const isPremium = hasSubscription || !canGetFree;
 
       console.log(`Starting WAT batch analysis - Premium: ${isPremium}, Responses: ${actualResponses.length}`);
 
       // Send all responses for batch analysis
-      await testAnalysisService.analyzeWATBatch(user.id, sessionId, isPremium, actualWords, actualResponses);
+      await testAnalysisService.analyzeWATBatch(currentUserId, sessionId, isPremium, actualWords, actualResponses);
 
       // Decrement test count
-      const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'wat');
+      const decrementSuccess = await testLimitService.decrementTestLimit(currentUserId, 'wat');
       if (!decrementSuccess) {
         console.warn('Failed to decrement WAT test limit');
       }

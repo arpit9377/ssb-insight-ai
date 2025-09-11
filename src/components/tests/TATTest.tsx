@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 const TATTest = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isAuthenticated, isGuestMode, guestId, enableGuestMode } = useAuthContext();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<any[]>([]);
   const [responses, setResponses] = useState<string[]>([]);
@@ -29,8 +29,12 @@ const TATTest = () => {
   const [isWritingPhase, setIsWritingPhase] = useState(false);
 
   useEffect(() => {
+    // Enable guest mode if user is not authenticated
+    if (!isAuthenticated && !isGuestMode) {
+      enableGuestMode();
+    }
     initializeTest();
-  }, [user]);
+  }, [user, isAuthenticated, isGuestMode]);
 
   // Timer for viewing phase (30 seconds)
   useEffect(() => {
@@ -60,14 +64,21 @@ const TATTest = () => {
 
   const initializeTest = async () => {
     try {
-      if (!user?.id) {
-        console.error('No user ID found:', user);
-        toast.error('Please log in to take the test');
-        navigate('/');
-        return;
+      // Get current user ID (either authenticated user or guest)
+      const currentUserId = user?.id || guestId;
+      
+      if (!currentUserId) {
+        console.error('No user ID found - enabling guest mode');
+        const newGuestId = enableGuestMode();
+        if (!newGuestId) {
+          toast.error('Unable to start test. Please try again.');
+          navigate('/');
+          return;
+        }
       }
 
-      console.log('Initializing TAT test for user:', user.id);
+      const userId = user?.id || guestId;
+      console.log('Initializing TAT test for user:', userId, isGuestMode ? '(guest)' : '(authenticated)');
       
       // Check database setup
       const dbSetup = await setupTestTables();
@@ -150,7 +161,8 @@ const TATTest = () => {
   };
 
   const handleTestCompletion = async (finalResponses: string[]) => {
-    if (!user?.id || !sessionId) {
+    const currentUserId = user?.id || guestId;
+    if (!currentUserId || !sessionId) {
       toast.error('Missing required information');
       return;
     }
