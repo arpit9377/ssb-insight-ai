@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 const TestResultsPage = () => {
   const navigate = useNavigate();
   const { sessionId } = useParams();
-  const { user, isAuthenticated, isGuestMode, guestId } = useAuthContext();
+  const { user, isAuthenticated } = useAuthContext();
   const [analysis, setAnalysis] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -22,13 +22,13 @@ const TestResultsPage = () => {
   useEffect(() => {
     loadAnalysis();
     loadRecentActivity();
-  }, [sessionId, user, guestId]);
+  }, [sessionId, user]);
 
   const loadAnalysis = async () => {
     try {
-      const currentUserId = user?.id || guestId;
+      const currentUserId = user?.id;
       if (!sessionId || !currentUserId) {
-        toast.error('Invalid session or user');
+        toast.error('Please sign in to view test results');
         navigate('/dashboard');
         return;
       }

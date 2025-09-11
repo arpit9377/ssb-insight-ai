@@ -17,7 +17,7 @@ const TestModule = () => {
   const navigate = useNavigate();
   const [isStarted, setIsStarted] = useState(false);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
-  const { isAuthenticated, isGuestMode, enableGuestMode } = useAuthContext();
+  const { isAuthenticated } = useAuthContext();
 
   const testConfig = {
     ppdt: {
@@ -65,9 +65,9 @@ const TestModule = () => {
   const currentTest = testConfig[testId as keyof typeof testConfig];
 
   const handleStartTest = () => {
-    if (!isAuthenticated && !isGuestMode) {
-      // Enable guest mode for unauthenticated users
-      enableGuestMode();
+    if (!isAuthenticated) {
+      navigate('/dashboard');
+      return;
     }
     setIsStarted(true);
   };
@@ -187,9 +187,6 @@ const TestModule = () => {
                     <li>• Find a quiet environment without distractions</li>
                     <li>• The test will auto-save your responses</li>
                     <li>• You cannot pause once started - plan accordingly</li>
-                    {!isAuthenticated && (
-                      <li className="text-blue-700 font-medium">• This is a free trial test with limited analysis</li>
-                    )}
                   </ul>
                 </div>
 
@@ -200,7 +197,7 @@ const TestModule = () => {
                     className="px-8 py-3"
                   >
                     <Play className="h-5 w-5 mr-2" />
-                    {!isAuthenticated ? `Try ${testId?.toUpperCase()} Test Free` : `Start ${testId?.toUpperCase()} Test`}
+                    Start {testId?.toUpperCase()} Test
                   </Button>
                 </div>
               </div>

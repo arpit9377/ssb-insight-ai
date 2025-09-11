@@ -9,65 +9,47 @@ const Pricing = () => {
 
   const plans = [
     {
-      name: 'Free Trial',
+      name: 'Free Plan',
       price: '₹0',
-      duration: '7 days',
+      duration: 'after signup',
       description: 'Perfect for getting started',
       features: [
-        '5 PPDT tests',
-        '3 TAT sessions',
+        '2 PPDT tests',
+        '2 TAT sessions',
         '2 WAT attempts',
-        '3 SRT scenarios',
-        'Basic feedback',
-        'Limited trait analysis'
+        '2 SRT scenarios',
+        'Basic AI feedback',
+        'Progress tracking',
+        'Performance analytics'
       ],
       limitations: [
-        'No detailed analytics',
-        'No progress tracking',
-        'Limited AI feedback'
+        'Limited test attempts',
+        'Basic analysis only'
       ],
-      cta: 'Start Free Trial',
+      cta: 'Sign Up Free',
       popular: false,
       icon: Star
     },
     {
-      name: 'Basic Plan',
-      price: '₹999',
-      duration: 'per month',
-      description: 'For serious preparation',
+      name: 'Premium Plan',
+      price: '₹199',
+      duration: 'one-time payment',
+      description: 'Complete preparation package',
       features: [
-        'Unlimited PPDT tests',
-        'Unlimited TAT sessions',
-        'Unlimited WAT attempts',
-        'Unlimited SRT scenarios',
+        '30 PPDT tests',
+        '30 TAT sessions',
+        '30 WAT attempts',
+        '30 SRT scenarios',
         'Detailed AI feedback',
         'Full OLQ analysis',
         'Progress tracking',
-        'Performance analytics'
-      ],
-      limitations: [],
-      cta: 'Choose Basic',
-      popular: true,
-      icon: CheckCircle
-    },
-    {
-      name: 'Premium Plan',
-      price: '₹1,999',
-      duration: 'per month',
-      description: 'Complete preparation package',
-      features: [
-        'Everything in Basic',
-        'Priority AI analysis',
-        'Advanced progress insights',
-        'Personalized study plan',
-        'Mock SSB sessions',
-        'Expert review calls',
-        '24/7 support',
+        'Performance analytics',
+        'Advanced insights',
         'Downloadable reports'
       ],
       limitations: [],
-      cta: 'Go Premium',
-      popular: false,
+      cta: 'Upgrade Now',
+      popular: true,
       icon: Crown
     }
   ];

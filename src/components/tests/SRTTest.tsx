@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 
 const SRTTest = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isGuestMode, guestId, enableGuestMode } = useAuthContext();
+  const { user, isAuthenticated } = useAuthContext();
   const [situations, setSituations] = useState<any[]>([]);
   const [responses, setResponses] = useState<{[key: number]: string}>({});
   const [currentSituationIndex, setCurrentSituationIndex] = useState(0);
@@ -28,30 +28,21 @@ const SRTTest = () => {
   const [isTestActive, setIsTestActive] = useState(false);
 
   useEffect(() => {
-    // Enable guest mode if user is not authenticated
-    if (!isAuthenticated && !isGuestMode) {
-      enableGuestMode();
+    if (user) {
+      initializeTest();
     }
-    initializeTest();
-  }, [user, isAuthenticated, isGuestMode]);
+  }, [user]);
 
   const initializeTest = async () => {
     try {
-      // Get current user ID (either authenticated user or guest)
-      const currentUserId = user?.id || guestId;
-      
-      if (!currentUserId) {
-        console.error('No user ID found - enabling guest mode');
-        const newGuestId = enableGuestMode();
-        if (!newGuestId) {
-          toast.error('Unable to start test. Please try again.');
-          navigate('/');
-          return;
-        }
+      if (!user?.id) {
+        toast.error('Please sign in to take tests.');
+        navigate('/dashboard');
+        return;
       }
 
-      const userId = user?.id || guestId;
-      console.log('Initializing SRT test for user:', userId, isGuestMode ? '(guest)' : '(authenticated)');
+      const userId = user.id;
+      console.log('Initializing SRT test for user:', userId);
       
       // Check database setup
       const dbSetup = await setupTestTables();
@@ -128,7 +119,7 @@ const SRTTest = () => {
   };
 
   const handleTestCompletion = async () => {
-    const currentUserId = user?.id || guestId;
+    const currentUserId = user?.id;
     if (!currentUserId || !sessionId) {
       toast.error('Missing required information');
       return;

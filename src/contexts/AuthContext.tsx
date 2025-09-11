@@ -9,9 +9,6 @@ interface AuthContextType {
   isLoading: boolean;
   subscription: any;
   checkSubscription: () => Promise<void>;
-  isGuestMode: boolean;
-  guestId: string | null;
-  enableGuestMode: () => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,8 +16,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGuestMode, setIsGuestMode] = useState(false);
-  const [guestId, setGuestId] = useState<string | null>(null);
 
   // Use the same hardcoded key as in main.tsx
   const PUBLISHABLE_KEY = "pk_test_cXVpZXQtd3Jlbi05My5jbGVyay5hY2NvdW50cy5kZXYk";
@@ -82,48 +77,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const enableGuestMode = (): string => {
-    const newGuestId = guestUserService.getOrCreateGuestId();
-    setIsGuestMode(true);
-    setGuestId(newGuestId);
-    return newGuestId;
-  };
-
   useEffect(() => {
     if (isClerkAvailable && clerkAuth?.isLoaded) {
       setIsLoading(false);
       if (clerkAuth.isSignedIn && clerkUser?.user) {
-        // User is authenticated, disable guest mode
-        setIsGuestMode(false);
-        setGuestId(null);
         createUserProfile();
         checkSubscription();
-      } else {
-        // User is not authenticated, enable guest mode by default
-        const existingGuestId = guestUserService.getGuestId();
-        if (existingGuestId) {
-          setIsGuestMode(true);
-          setGuestId(existingGuestId);
-        } else {
-          // Auto-enable guest mode for new users
-          const newGuestId = guestUserService.getOrCreateGuestId();
-          setIsGuestMode(true);
-          setGuestId(newGuestId);
-        }
       }
     } else if (!isClerkAvailable) {
-      // If Clerk is not available, set loading to false immediately
       setIsLoading(false);
-      // Auto-enable guest mode
-      const existingGuestId = guestUserService.getGuestId();
-      if (existingGuestId) {
-        setIsGuestMode(true);
-        setGuestId(existingGuestId);
-      } else {
-        const newGuestId = guestUserService.getOrCreateGuestId();
-        setIsGuestMode(true);
-        setGuestId(newGuestId);
-      }
     }
   }, [isClerkAvailable, clerkAuth?.isLoaded, clerkAuth?.isSignedIn, clerkUser?.user]);
 
@@ -135,9 +97,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         subscription,
         checkSubscription,
-        isGuestMode,
-        guestId,
-        enableGuestMode,
       }}
     >
       {children}
