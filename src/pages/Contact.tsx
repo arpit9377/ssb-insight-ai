@@ -35,14 +35,8 @@ const Contact = () => {
     {
       icon: Mail,
       title: 'Email',
-      value: 'support@psychsirai.ai',
+      value: 'editkarde@gmail.com',
       description: 'Send us an email anytime'
-    },
-    {
-      icon: Phone,
-      title: 'Phone',
-      value: '+91 8319635728',
-      description: 'Mon-Fri from 9am to 6pm'
     },
     {
       icon: MapPin,
@@ -194,12 +188,10 @@ const Contact = () => {
                   <h4 className="font-semibold text-gray-900 mb-2">Quick Support</h4>
                   <p className="text-gray-600 mb-4">
                     For immediate assistance with technical issues or urgent queries, 
-                    you can also reach us through:
+                    contact us at:
                   </p>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-600">• WhatsApp: +91 8319635728</p>
-                    <p className="text-sm text-gray-600">• Telegram: @PsychSirSupport</p>
-                    <p className="text-sm text-gray-600">• Live Chat: Available on our website</p>
+                    <p className="text-sm text-gray-600">• Email: editkarde@gmail.com</p>
                   </div>
                 </CardContent>
               </Card>
