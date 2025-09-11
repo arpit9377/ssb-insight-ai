@@ -24,22 +24,20 @@ const Dashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
+    // Always enable guest mode first for unauthenticated users
+    if (!isAuthenticated && !isGuestMode && !guestId) {
+      enableGuestMode();
+    }
+    
     if (user) {
       loadUserStats();
       loadRecentActivity();
       loadTestLimits();
-    } else if (!isAuthenticated) {
-      // Enable guest mode for unauthenticated users automatically
-      if (!isGuestMode) {
-        enableGuestMode();
-      } else if (guestId) {
-        loadGuestTestLimits();
-      }
     } else if (isGuestMode && guestId) {
       // Load guest-specific data
       loadGuestTestLimits();
     }
-  }, [user, isGuestMode, guestId, isAuthenticated]);
+  }, [user, isAuthenticated, isGuestMode, guestId]);
 
   const loadTestLimits = async () => {
     if (!user) return;

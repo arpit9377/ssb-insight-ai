@@ -175,9 +175,12 @@ const Index = () => {
                     <SignInButton mode="modal">
                       <Button variant="outline" size="sm">Sign In</Button>
                     </SignInButton>
-                    <SignUpButton mode="modal">
-                      <Button size="sm">Sign Up</Button>
-                    </SignUpButton>
+                     <Button 
+                       size="sm"
+                       onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
+                     >
+                       Sign Up
+                     </Button>
                   </SignedOut>
                   <SignedIn>
                     <Button size="sm" onClick={() => navigate('/dashboard')}>
@@ -253,15 +256,14 @@ const Index = () => {
                       >
                         Try it for Free - 2 Tests
                       </Button>
-                      <SignUpButton mode="modal">
-                        <Button 
-                          variant="outline"
-                          size={isMobile ? "default" : "lg"} 
-                          className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
-                        >
-                          Start Your Preparation Today
-                        </Button>
-                      </SignUpButton>
+                      <Button 
+                        variant="outline"
+                        size={isMobile ? "default" : "lg"} 
+                        className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
+                        onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
+                      >
+                        Start Your Preparation Today
+                      </Button>
                     </div>
                   </SignedOut>
                   <SignedIn>
@@ -356,11 +358,14 @@ const Index = () => {
               </p>
               {isClerkAvailable ? (
                 <>
-                  <SignedOut>
-                    <SignUpButton mode="modal">
-                      <Button className="w-full">Start Free Trial</Button>
-                    </SignUpButton>
-                  </SignedOut>
+                   <SignedOut>
+                     <Button 
+                       className="w-full"
+                       onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
+                     >
+                       Start Free Trial
+                     </Button>
+                   </SignedOut>
                   <SignedIn>
                     <Button className="w-full" onClick={() => navigate('/dashboard')}>
                       Access Your Dashboard
@@ -414,15 +419,17 @@ const Index = () => {
             <p className="text-lg text-gray-700 font-semibold">
               Join them today and start your success story!
             </p>
-            {isClerkAvailable ? (
-              <SignedOut>
-                <SignUpButton mode="modal">
-                  <Button size="lg" className="mt-4 px-8 py-3">
-                    Start Free Trial Now
-                  </Button>
-                </SignUpButton>
-              </SignedOut>
-            ) : null}
+             {isClerkAvailable ? (
+               <SignedOut>
+                 <Button 
+                   size="lg" 
+                   className="mt-4 px-8 py-3"
+                   onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
+                 >
+                   Start Free Trial Now
+                 </Button>
+               </SignedOut>
+             ) : null}
           </div>
         </div>
       </section>

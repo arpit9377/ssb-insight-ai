@@ -99,21 +99,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createUserProfile();
         checkSubscription();
       } else {
-        // User is not authenticated, check if they want guest mode
+        // User is not authenticated, enable guest mode by default
         const existingGuestId = guestUserService.getGuestId();
         if (existingGuestId) {
           setIsGuestMode(true);
           setGuestId(existingGuestId);
+        } else {
+          // Auto-enable guest mode for new users
+          const newGuestId = guestUserService.getOrCreateGuestId();
+          setIsGuestMode(true);
+          setGuestId(newGuestId);
         }
       }
     } else if (!isClerkAvailable) {
       // If Clerk is not available, set loading to false immediately
       setIsLoading(false);
-      // Check for existing guest session
+      // Auto-enable guest mode
       const existingGuestId = guestUserService.getGuestId();
       if (existingGuestId) {
         setIsGuestMode(true);
         setGuestId(existingGuestId);
+      } else {
+        const newGuestId = guestUserService.getOrCreateGuestId();
+        setIsGuestMode(true);
+        setGuestId(newGuestId);
       }
     }
   }, [isClerkAvailable, clerkAuth?.isLoaded, clerkAuth?.isSignedIn, clerkUser?.user]);
