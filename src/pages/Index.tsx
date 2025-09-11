@@ -241,17 +241,28 @@ const Index = () => {
               Prepare for PPDT, TAT, WAT, and SRT tests with our comprehensive AI-powered platform. 
               Get detailed feedback on your personality traits and officer-like qualities.
             </p>
-            {isClerkAvailable ? (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {isClerkAvailable ? (
                 <>
                   <SignedOut>
-                    <SignUpButton mode="modal">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <Button 
                         size={isMobile ? "default" : "lg"} 
                         className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
+                        onClick={() => navigate('/dashboard')}
                       >
-                        Start Your Preparation Today
+                        Try it for Free - 2 Tests
                       </Button>
-                    </SignUpButton>
+                      <SignUpButton mode="modal">
+                        <Button 
+                          variant="outline"
+                          size={isMobile ? "default" : "lg"} 
+                          className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
+                        >
+                          Start Your Preparation Today
+                        </Button>
+                      </SignUpButton>
+                    </div>
                   </SignedOut>
                   <SignedIn>
                     <Button 
@@ -272,6 +283,24 @@ const Index = () => {
                   Setup Authentication to Get Started
                 </Button>
               )}
+            </div>
+            
+            {/* Free Trial Info */}
+            <div className="mt-6 bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto border-2 border-green-200">
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-green-600 mb-2">🎁 Free Trial Included!</h3>
+                <p className="text-gray-700 text-sm">
+                  No signup required • 2 free tests • Instant AI feedback
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-3 border-green-500 text-green-600 hover:bg-green-50"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Start Free Trial Now
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
