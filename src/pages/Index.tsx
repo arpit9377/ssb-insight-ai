@@ -59,13 +59,13 @@ const Index = () => {
     },
     {
       name: "Priya Sharma", 
-      role: "Lieutenant - Indian Navy",
+      role: "OTA Gaya",
       rating: 5,
       content: "The TAT and PPDT practice sessions were incredibly realistic. The detailed feedback helped me improve my responses significantly. Highly recommended!"
     },
     {
       name: "Vikram Singh",
-      role: "Flying Officer - IAF",
+      role: "NDA Khadakwasla",
       rating: 5,
       content: "I was struggling with WAT tests but PsychSirAi's training module made me confident. The progress tracking feature is amazing!"
     },
@@ -77,7 +77,7 @@ const Index = () => {
     },
     {
       name: "Arjun Patel",
-      role: "Captain - Indian Army",
+      role: "IMA Dehradun",
       rating: 5,
       content: "The personality trait analysis was spot-on! It helped me identify my strengths and work on areas of improvement before my actual SSB."
     },
@@ -86,6 +86,24 @@ const Index = () => {
       role: "Recommended SSB Bangalore",
       rating: 5,
       content: "Amazing platform! The AI feedback is incredibly detailed and helped me understand exactly what SSB assessors look for."
+    },
+    {
+      name: "Rohit Gupta",
+      role: "Naval Academy Ezhimala",
+      rating: 5,
+      content: "The mock tests felt exactly like the real SSB! The AI's personality insights helped me present my best self during the interview."
+    },
+    {
+      name: "Sneha Joshi",
+      role: "Air Force Academy Dundigal",
+      rating: 5,
+      content: "Best investment for SSB preparation! The detailed analysis after each test helped me improve consistently. Cleared SSB in my second attempt!"
+    },
+    {
+      name: "Kiran Das",
+      role: "OTA Chennai",
+      rating: 5,
+      content: "The WAT and SRT modules are exceptional. The AI coaching is like having a personal mentor guiding you through each test type."
     }
   ];
 
