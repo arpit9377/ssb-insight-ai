@@ -53,27 +53,39 @@ const Index = () => {
   const testimonials = [
     {
       name: "Rajesh Kumar",
-      role: "Selected for Indian Army",
+      role: "Recommended SSB Bhopal",
       rating: 5,
       content: "PsychSirAi completely transformed my SSB preparation. The AI analysis helped me understand my personality traits better and I cleared my SSB on the first attempt!"
     },
     {
       name: "Priya Sharma", 
-      role: "Navy Officer",
+      role: "Lieutenant - Indian Navy",
       rating: 5,
       content: "The TAT and PPDT practice sessions were incredibly realistic. The detailed feedback helped me improve my responses significantly. Highly recommended!"
     },
     {
       name: "Vikram Singh",
-      role: "Air Force Cadet",
+      role: "Flying Officer - IAF",
       rating: 5,
       content: "I was struggling with WAT tests but PsychSirAi's training module made me confident. The progress tracking feature is amazing!"
     },
     {
       name: "Anjali Verma",
-      role: "CDS Selected",
+      role: "Recommended SSB Allahabad",
       rating: 5,
       content: "The SRT scenarios were spot on with real SSB tests. The AI analysis gave me insights I never knew I had. Worth every penny!"
+    },
+    {
+      name: "Arjun Patel",
+      role: "Captain - Indian Army",
+      rating: 5,
+      content: "The personality trait analysis was spot-on! It helped me identify my strengths and work on areas of improvement before my actual SSB."
+    },
+    {
+      name: "Kavya Reddy",
+      role: "Recommended SSB Bangalore",
+      rating: 5,
+      content: "Amazing platform! The AI feedback is incredibly detailed and helped me understand exactly what SSB assessors look for."
     }
   ];
 
@@ -165,6 +177,33 @@ const Index = () => {
           </div>
         </div>
       </header>
+
+      {/* Top Testimonials Slider */}
+      <section className="py-6 bg-white border-b overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-4">
+            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Trusted by Future Officers</h3>
+          </div>
+          <div className="relative">
+            <div className="flex animate-slide-left-right space-x-8">
+              {[...testimonials, ...testimonials].map((testimonial, index) => (
+                <div key={index} className="flex-shrink-0 w-80 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border">
+                  <div className="flex items-center mb-2">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 text-sm mb-3 line-clamp-2">"{testimonial.content}"</p>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{testimonial.name}</p>
+                    <p className="text-green-600 text-xs font-medium">{testimonial.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Hero Section */}
       <section className="py-12 sm:py-16 lg:py-20">

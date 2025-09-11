@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes slide-left-right {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-slide-left-right {
+  animation: slide-left-right 30s linear infinite;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
