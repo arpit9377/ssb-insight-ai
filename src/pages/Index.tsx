@@ -292,7 +292,7 @@ const Index = () => {
               <div className="text-center">
                 <h3 className="text-lg font-bold text-green-600 mb-2">🎁 Free Trial Included!</h3>
                 <p className="text-gray-700 text-sm">
-                  No signup required • 2 free tests • Instant AI feedback
+                  2 free tests • Instant AI feedback
                 </p>
                 <Button 
                   variant="outline" 
