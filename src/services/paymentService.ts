@@ -39,7 +39,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: 999,
+    price: 199,
     popular: false,
     comingSoon: true,
     features: [
