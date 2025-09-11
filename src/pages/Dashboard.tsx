@@ -28,11 +28,18 @@ const Dashboard = () => {
       loadUserStats();
       loadRecentActivity();
       loadTestLimits();
+    } else if (!isAuthenticated) {
+      // Enable guest mode for unauthenticated users automatically
+      if (!isGuestMode) {
+        enableGuestMode();
+      } else if (guestId) {
+        loadGuestTestLimits();
+      }
     } else if (isGuestMode && guestId) {
       // Load guest-specific data
       loadGuestTestLimits();
     }
-  }, [user, isGuestMode, guestId]);
+  }, [user, isGuestMode, guestId, isAuthenticated]);
 
   const loadTestLimits = async () => {
     if (!user) return;
@@ -199,11 +206,14 @@ const Dashboard = () => {
   const handleTestStart = async (testId: string) => {
     let currentUserId = user?.id;
     
-    // Handle guest users
+    // Handle guest users - enable guest mode automatically for unauthenticated users
     if (!isAuthenticated) {
       if (!isGuestMode) {
-        // Enable guest mode for unauthenticated users
         currentUserId = enableGuestMode();
+        // Reload guest limits after enabling guest mode
+        setTimeout(() => {
+          loadGuestTestLimits();
+        }, 100);
       } else {
         currentUserId = guestId;
       }

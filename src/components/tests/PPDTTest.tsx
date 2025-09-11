@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 
 const PPDTTest = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isAuthenticated, isGuestMode, guestId, enableGuestMode } = useAuthContext();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<any[]>([]);
   const [responses, setResponses] = useState<string[]>([]);
@@ -37,8 +37,12 @@ const PPDTTest = () => {
   const [titleAction, setTitleAction] = useState('');
 
   useEffect(() => {
+    // Enable guest mode if user is not authenticated
+    if (!isAuthenticated && !isGuestMode) {
+      enableGuestMode();
+    }
     initializeTest();
-  }, [user]);
+  }, [user, isAuthenticated, isGuestMode]);
 
   // Modified viewing timer for PPDT
   useEffect(() => {
@@ -70,14 +74,21 @@ const PPDTTest = () => {
 
   const initializeTest = async () => {
     try {
-      if (!user?.id) {
-        console.error('No user ID found:', user);
-        toast.error('Please log in to take the test');
-        navigate('/');
-        return;
+      // Get current user ID (either authenticated user or guest)
+      const currentUserId = user?.id || guestId;
+      
+      if (!currentUserId) {
+        console.error('No user ID found - enabling guest mode');
+        const newGuestId = enableGuestMode();
+        if (!newGuestId) {
+          toast.error('Unable to start test. Please try again.');
+          navigate('/');
+          return;
+        }
       }
 
-      console.log('Initializing PPDT test for user:', user.id);
+      const userId = user?.id || guestId;
+      console.log('Initializing PPDT test for user:', userId, isGuestMode ? '(guest)' : '(authenticated)');
       
       // Check database setup
       const dbSetup = await setupTestTables();
@@ -94,7 +105,7 @@ const PPDTTest = () => {
 
       console.log('Creating test session...');
       const sessionId = await testAnalysisService.createTestSession(
-        user.id,
+        userId!,
         'ppdt',
         testImages.length
       );
@@ -140,7 +151,7 @@ const PPDTTest = () => {
       };
       
       await testAnalysisService.storeResponse(
-        user.id,
+        user?.id || guestId!,
         sessionId,
         images[currentImageIndex].id,
         JSON.stringify(comprehensiveResponse),
@@ -182,16 +193,17 @@ const PPDTTest = () => {
       
       await testAnalysisService.updateTestSession(sessionId, images.length, 'completed');
 
-      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
-      const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
+      const currentUserId = user?.id || guestId!;
+      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
+      const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);
       const isPremium = hasSubscription || !canGetFree;
 
       console.log(`Starting analysis - Premium: ${isPremium}, Can get free: ${canGetFree}`);
 
-      await testAnalysisService.analyzeTestSession(user.id, sessionId, isPremium);
+      await testAnalysisService.analyzeTestSession(currentUserId, sessionId, isPremium);
 
       // Decrement test count
-      const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'ppdt');
+      const decrementSuccess = await testLimitService.decrementTestLimit(currentUserId, 'ppdt');
       if (!decrementSuccess) {
         console.warn('Failed to decrement PPDT test limit');
       }
