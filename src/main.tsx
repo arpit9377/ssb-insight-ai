@@ -13,7 +13,11 @@ if (!PUBLISHABLE_KEY) {
 const AppWithProviders = () => {
   if (PUBLISHABLE_KEY) {
     return (
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <ClerkProvider 
+        publishableKey={PUBLISHABLE_KEY}
+        signInFallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/dashboard"
+      >
         <App />
       </ClerkProvider>
     );

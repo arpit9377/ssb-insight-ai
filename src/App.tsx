@@ -54,7 +54,8 @@ function App() {
               <Route path="/progress" element={<Progress />} />
               <Route path="/trait-analysis" element={<TraitAnalysis />} />
               <Route path="/subscription" element={<Subscription />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/test" element={<Navigate to="/tests" replace />} />
               <Route path="/test/tat" element={<TATTest />} />
               <Route path="/test/ppdt" element={<PPDTTest />} />
               <Route path="/test/wat" element={<WATTest />} />

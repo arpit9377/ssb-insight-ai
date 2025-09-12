@@ -175,12 +175,11 @@ const Index = () => {
                     <SignInButton mode="modal">
                       <Button variant="outline" size="sm">Sign In</Button>
                     </SignInButton>
-                     <Button 
-                       size="sm"
-                       onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
-                     >
-                       Sign Up
-                     </Button>
+                      <SignUpButton mode="modal">
+                        <Button size="sm">
+                          Sign Up
+                        </Button>
+                      </SignUpButton>
                   </SignedOut>
                   <SignedIn>
                     <Button size="sm" onClick={() => navigate('/dashboard')}>
@@ -249,21 +248,23 @@ const Index = () => {
                 <>
                   <SignedOut>
                     <div className="flex flex-col sm:flex-row gap-4">
-                      <Button 
-                        size={isMobile ? "default" : "lg"} 
-                        className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
-                        onClick={() => navigate('/dashboard')}
-                      >
-                        Try it for Free - 2 Tests
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        size={isMobile ? "default" : "lg"} 
-                        className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
-                        onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
-                      >
-                        Start Your Preparation Today
-                      </Button>
+                      <SignUpButton mode="modal">
+                        <Button 
+                          size={isMobile ? "default" : "lg"} 
+                          className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
+                        >
+                          Try it for Free - 2 Tests
+                        </Button>
+                      </SignUpButton>
+                      <SignUpButton mode="modal">
+                        <Button 
+                          variant="outline"
+                          size={isMobile ? "default" : "lg"} 
+                          className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
+                        >
+                          Start Your Preparation Today
+                        </Button>
+                      </SignUpButton>
                     </div>
                   </SignedOut>
                   <SignedIn>
@@ -294,13 +295,14 @@ const Index = () => {
                 <p className="text-gray-700 text-sm">
                   2 free tests • Instant AI feedback
                 </p>
-                <Button 
-                  variant="outline" 
-                  className="mt-3 border-green-500 text-green-600 hover:bg-green-50"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  Start Free Trial Now
-                </Button>
+                <SignUpButton mode="modal">
+                  <Button 
+                    variant="outline" 
+                    className="mt-3 border-green-500 text-green-600 hover:bg-green-50"
+                  >
+                    Start Free Trial Now
+                  </Button>
+                </SignUpButton>
               </div>
             </div>
           </div>
@@ -359,12 +361,11 @@ const Index = () => {
               {isClerkAvailable ? (
                 <>
                    <SignedOut>
-                     <Button 
-                       className="w-full"
-                       onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
-                     >
-                       Start Free Trial
-                     </Button>
+                     <SignUpButton mode="modal">
+                       <Button className="w-full">
+                         Start Free Trial
+                       </Button>
+                     </SignUpButton>
                    </SignedOut>
                   <SignedIn>
                     <Button className="w-full" onClick={() => navigate('/dashboard')}>
