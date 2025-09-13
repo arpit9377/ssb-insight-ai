@@ -27,7 +27,7 @@ const Subscription = () => {
     name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
     email: user?.emailAddresses?.[0]?.emailAddress || '',
     phone: '',
-    amount: '799',
+    amount: '199',
     screenshot: null as File | null
   });
 
@@ -155,7 +155,7 @@ const Subscription = () => {
   const downloadQRCode = () => {
     const link = document.createElement('a');
     link.href = '/lovable-uploads/11ba7e15-1b61-43f3-a9e4-acff7822456b.png';
-    link.download = 'payment_qr_code.png';
+    link.download = 'psychsirai-payment-qr-code.png';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -480,18 +480,18 @@ const Subscription = () => {
                   <h3 className="font-semibold text-lg">Payment Instructions:</h3>
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <p className="font-medium mb-2">Step 1: Make Payment</p>
-                    <p className="text-sm text-gray-700 mb-3">Pay ₹799 to support app development & get premium access:</p>
+                    <p className="text-sm text-gray-700 mb-3">Pay ₹199 to support app development & get premium access:</p>
                     
                     <div className="bg-gray-100 p-4 rounded text-center">
-                      <p className="text-sm mb-3 font-medium">UPI QR Code - Pay ₹799</p>
+                      <p className="text-sm mb-3 font-medium">UPI QR Code - Pay ₹199</p>
                       <div className="mx-auto w-64 h-64 bg-white rounded-lg border shadow-sm overflow-hidden">
                         <img 
                           src="/lovable-uploads/11ba7e15-1b61-43f3-a9e4-acff7822456b.png" 
-                          alt="PhonePe QR Code for ₹799 payment"
+                          alt="PhonePe QR Code for ₹199 payment"
                           className="w-full h-full object-contain"
                         />
                       </div>
-                      <p className="text-xs text-gray-600 mt-2">Scan using any UPI app to pay ₹799</p>
+                      <p className="text-xs text-gray-600 mt-2">Scan using any UPI app to pay ₹199</p>
                       <Button 
                         onClick={downloadQRCode}
                         variant="outline" 
