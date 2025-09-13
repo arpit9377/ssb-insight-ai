@@ -79,11 +79,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (isClerkAvailable && clerkAuth?.isLoaded) {
-      setIsLoading(false);
-      if (clerkAuth.isSignedIn && clerkUser?.user) {
-        createUserProfile();
-        checkSubscription();
-      }
+      // Add a small delay to ensure proper auth state synchronization
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+        if (clerkAuth.isSignedIn && clerkUser?.user) {
+          createUserProfile();
+          checkSubscription();
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
     } else if (!isClerkAvailable) {
       setIsLoading(false);
     }

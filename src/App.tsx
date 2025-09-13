@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import Index from '@/pages/Index';
 import About from '@/pages/About';
 import Services from '@/pages/Services';
@@ -48,19 +49,59 @@ function App() {
               <Route path="/refunds" element={<Refunds />} />
               <Route path="/shipping" element={<ShippingPolicy />} />
               <Route path="/faq" element={<FAQ />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
               <Route path="/tests" element={<Tests />} />
-              <Route path="/progress" element={<Progress />} />
-              <Route path="/trait-analysis" element={<TraitAnalysis />} />
+              <Route path="/progress" element={
+                <ProtectedRoute>
+                  <Progress />
+                </ProtectedRoute>
+              } />
+              <Route path="/trait-analysis" element={
+                <ProtectedRoute>
+                  <TraitAnalysis />
+                </ProtectedRoute>
+              } />
               <Route path="/subscription" element={<Subscription />} />
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
               <Route path="/test" element={<Navigate to="/tests" replace />} />
-              <Route path="/test/tat" element={<TATTest />} />
-              <Route path="/test/ppdt" element={<PPDTTest />} />
-              <Route path="/test/wat" element={<WATTest />} />
-              <Route path="/test/srt" element={<SRTTest />} />
-              <Route path="/test-results/:sessionId" element={<TestResultsPage />} />
+              <Route path="/test/tat" element={
+                <ProtectedRoute>
+                  <TATTest />
+                </ProtectedRoute>
+              } />
+              <Route path="/test/ppdt" element={
+                <ProtectedRoute>
+                  <PPDTTest />
+                </ProtectedRoute>
+              } />
+              <Route path="/test/wat" element={
+                <ProtectedRoute>
+                  <WATTest />
+                </ProtectedRoute>
+              } />
+              <Route path="/test/srt" element={
+                <ProtectedRoute>
+                  <SRTTest />
+                </ProtectedRoute>
+              } />
+              <Route path="/test-results/:sessionId" element={
+                <ProtectedRoute>
+                  <TestResultsPage />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
