@@ -21,18 +21,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const PUBLISHABLE_KEY = "pk_test_cXVpZXQtd3Jlbi05My5jbGVyay5hY2NvdW50cy5kZXYk";
   const isClerkAvailable = !!PUBLISHABLE_KEY;
 
-  // Only use Clerk hooks if Clerk is available
-  let clerkAuth = null;
-  let clerkUser = null;
-
-  try {
-    if (isClerkAvailable) {
-      clerkAuth = useAuth();
-      clerkUser = useUser();
-    }
-  } catch (error) {
-    console.warn('Clerk hooks not available:', error);
-  }
+  // Always call hooks unconditionally - Clerk handles the provider availability internally
+  const clerkAuth = useAuth();
+  const clerkUser = useUser();
 
   const checkSubscription = async () => {
     if (!clerkUser?.user) return;
