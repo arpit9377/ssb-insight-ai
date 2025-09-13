@@ -15,8 +15,10 @@ const AppWithProviders = () => {
     return (
       <ClerkProvider 
         publishableKey={PUBLISHABLE_KEY}
-        signInFallbackRedirectUrl="/dashboard"
-        signUpFallbackRedirectUrl="/dashboard"
+        signInFallbackRedirectUrl="/"
+        signUpFallbackRedirectUrl="/"
+        afterSignInUrl="/dashboard"
+        afterSignUpUrl="/dashboard"
       >
         <App />
       </ClerkProvider>
