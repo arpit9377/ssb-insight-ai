@@ -167,6 +167,9 @@ const SRTTest = () => {
       // Send only answered situations for batch analysis
       await testAnalysisService.analyzeSRTBatch(user.id, sessionId, isPremium, answeredSituations, Object.values(responses));
 
+      // Analyze test session to track streaks and update leaderboard
+      await testAnalysisService.analyzeTestSession(currentUserId, sessionId, isPremium);
+
       // Decrement test count
       const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'srt');
       if (!decrementSuccess) {

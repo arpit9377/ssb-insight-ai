@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Target, Users, BookOpen, Clock, CheckCircle, Menu, Star, X } from 'lucide-react';
+import { Target, Users, BookOpen, Clock, CheckCircle, Menu, Star, X, Trophy } from 'lucide-react';
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -305,6 +305,57 @@ const Index = () => {
                 </SignUpButton>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Leaderboard & Competition Section */}
+      <section className="py-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-3xl font-bold mb-4">
+            Join 10,000+ Competitive Candidates
+          </h3>
+          <p className="text-xl mb-8 opacity-90">
+            Track your progress, compete with peers, and climb the leaderboard
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            <div className="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
+              <div className="text-3xl font-bold mb-2">🏆</div>
+              <h4 className="font-semibold mb-2">Global Leaderboard</h4>
+              <p className="text-sm opacity-90">See how you rank against other aspirants nationwide</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
+              <div className="text-3xl font-bold mb-2">🔥</div>
+              <h4 className="font-semibold mb-2">Daily Streaks</h4>
+              <p className="text-sm opacity-90">Build consistency and earn military ranks</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
+              <div className="text-3xl font-bold mb-2">🎖️</div>
+              <h4 className="font-semibold mb-2">Achievement Badges</h4>
+              <p className="text-sm opacity-90">Unlock special badges as you progress</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {isClerkAvailable ? (
+              <>
+                <SignedOut>
+                  <SignUpButton mode="modal">
+                    <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+                      Start Competing Today
+                    </Button>
+                  </SignUpButton>
+                </SignedOut>
+                <SignedIn>
+                  <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" onClick={() => navigate('/leaderboard')}>
+                    View Leaderboard
+                  </Button>
+                </SignedIn>
+              </>
+            ) : (
+              <Button size="lg" className="bg-white text-blue-600" disabled>
+                Setup Required
+              </Button>
+            )}
           </div>
         </div>
       </section>

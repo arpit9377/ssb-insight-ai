@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { testLimitService } from '@/services/testLimitService';
 import { streakService, UserStreak } from '@/services/streakService';
+import { leaderboardService, LeaderboardEntry } from '@/services/leaderboardService';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SignInButton } from '@clerk/clerk-react';
@@ -24,6 +25,7 @@ const Dashboard = () => {
   const [testLimits, setTestLimits] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState([]);
   const [userStreak, setUserStreak] = useState<UserStreak | null>(null);
+  const [topLeaders, setTopLeaders] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -31,6 +33,7 @@ const Dashboard = () => {
       loadRecentActivity(); 
       loadTestLimits();
       loadUserStreak();
+      loadTopLeaders();
     }
   }, [user]);
 
@@ -51,6 +54,15 @@ const Dashboard = () => {
       setUserStreak(streak);
     } catch (error) {
       console.error('Error loading user streak:', error);
+    }
+  };
+
+  const loadTopLeaders = async () => {
+    try {
+      const leaders = await leaderboardService.getLeaderboard('overall', 3);
+      setTopLeaders(leaders);
+    } catch (error) {
+      console.error('Error loading top leaders:', error);
     }
   };
 
@@ -445,6 +457,47 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+        )}
+
+        {/* Top Leaders Section */}
+        {topLeaders.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
+                Top Performers
+              </CardTitle>
+              <CardDescription>Leading candidates this week</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {topLeaders.map((leader, index) => (
+                  <div key={leader.user_id} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                        index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-600'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{leader.display_name}</p>
+                        {leader.city && <p className="text-sm text-gray-500">{leader.city}</p>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">{leader.total_points}</p>
+                      <p className="text-sm text-gray-500">points</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 text-center">
+                <Button variant="outline" onClick={() => navigate('/leaderboard')}>
+                  View Full Leaderboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Test Modules */}
