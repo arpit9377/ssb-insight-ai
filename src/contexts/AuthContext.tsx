@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { guestUserService } from '@/services/guestUserService';
+import { streakService } from '@/services/streakService';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -68,6 +70,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateLoginStreak = async () => {
+    if (!clerkUser?.user) return;
+
+    try {
+      const streakUpdate = await streakService.updateLoginStreak(clerkUser.user.id);
+      
+      if (streakUpdate) {
+        if (streakUpdate.currentStreak === 1) {
+          toast.success("🔥 Streak started! Come back tomorrow to continue!", {
+            description: "You've earned 10 points"
+          });
+        } else if (streakUpdate.currentStreak > 1) {
+          toast.success(`🔥 ${streakUpdate.currentStreak} day streak! +${streakUpdate.pointsEarned} points`, {
+            description: streakUpdate.levelUp ? "🎉 You leveled up!" : "Keep it going!"
+          });
+        }
+        
+        // Show badge notifications
+        if (streakUpdate.newBadges && streakUpdate.newBadges.length > 0) {
+          setTimeout(() => {
+            streakUpdate.newBadges?.forEach(badge => {
+              toast.success(`🏆 New Badge Earned: ${badge}!`);
+            });
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating login streak:', error);
+    }
+  };
+
   useEffect(() => {
     if (isClerkAvailable && clerkAuth?.isLoaded) {
       // Add a small delay to ensure proper auth state synchronization
@@ -76,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (clerkAuth.isSignedIn && clerkUser?.user) {
           createUserProfile();
           checkSubscription();
+          updateLoginStreak(); // Track login streak
         }
       }, 100);
       

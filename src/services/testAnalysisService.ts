@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { aiService } from './aiService';
+import { streakService } from './streakService';
+import { leaderboardService } from './leaderboardService';
+import { toast } from 'sonner';
 
 interface TestSession {
   id: string;
@@ -70,7 +73,7 @@ export class TestAnalysisService {
   }
 
   // Update test session progress
-  async updateTestSession(sessionId: string, completedQuestions: number, status?: string): Promise<void> {
+  async updateTestSession(sessionId: string, completedQuestions: number, status?: string, userId?: string): Promise<void> {
     try {
       if (!sessionId) {
         throw new Error('Session ID is required');
@@ -85,6 +88,44 @@ export class TestAnalysisService {
         updateData.status = status;
         if (status === 'completed') {
           updateData.completed_at = new Date().toISOString();
+          
+          // Track test streak when test is completed
+          if (userId) {
+            try {
+              const streakUpdate = await streakService.updateTestStreak(userId);
+              
+              if (streakUpdate) {
+                if (streakUpdate.currentStreak === 1) {
+                  toast.success("🎯 First test streak! +20 points", {
+                    description: "Complete tests daily to build your streak!"
+                  });
+                } else if (streakUpdate.currentStreak > 1) {
+                  toast.success(`🎯 ${streakUpdate.currentStreak} test streak! +${streakUpdate.pointsEarned} points`, {
+                    description: streakUpdate.levelUp ? "🎉 You leveled up!" : "Amazing consistency!"
+                  });
+                }
+                
+                // Update leaderboard stats
+                const testSession = await supabase
+                  .from('test_sessions')
+                  .select('test_type')
+                  .eq('id', sessionId)
+                  .single();
+
+                if (testSession.data) {
+                  // This could be expanded to calculate actual average score
+                  await leaderboardService.updateUserStats(userId, {
+                    testsCompleted: completedQuestions,
+                    currentStreak: streakUpdate.currentStreak,
+                    totalPoints: streakUpdate.pointsEarned
+                  });
+                }
+              }
+            } catch (streakError) {
+              console.error('Error updating test streak:', streakError);
+              // Don't fail the test completion if streak update fails
+            }
+          }
         }
       }
 

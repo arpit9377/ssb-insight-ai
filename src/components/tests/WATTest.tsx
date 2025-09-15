@@ -142,7 +142,7 @@ const WATTest = () => {
         }
       }
 
-      await testAnalysisService.updateTestSession(sessionId, actualResponses.length, 'completed');
+      await testAnalysisService.updateTestSession(sessionId, actualResponses.length, 'completed', currentUserId);
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
       const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);

@@ -7,6 +7,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { testLimitService } from '@/services/testLimitService';
+import { streakService, UserStreak } from '@/services/streakService';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SignInButton } from '@clerk/clerk-react';
@@ -22,12 +23,14 @@ const Dashboard = () => {
   });
   const [testLimits, setTestLimits] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [userStreak, setUserStreak] = useState<UserStreak | null>(null);
 
   useEffect(() => {
     if (user) {
       loadUserStats();
-      loadRecentActivity();
+      loadRecentActivity(); 
       loadTestLimits();
+      loadUserStreak();
     }
   }, [user]);
 
@@ -38,6 +41,16 @@ const Dashboard = () => {
       setTestLimits(limits);
     } catch (error) {
       console.error('Error loading test limits:', error);
+    }
+  };
+
+  const loadUserStreak = async () => {
+    if (!user) return;
+    try {
+      const streak = await streakService.getUserStreak(user.id);
+      setUserStreak(streak);
+    } catch (error) {
+      console.error('Error loading user streak:', error);
     }
   };
 
@@ -355,7 +368,7 @@ const Dashboard = () => {
 
         {/* Quick Stats - only show for authenticated users */}
         {isAuthenticated && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -402,12 +415,31 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <BarChart3 className="h-8 w-8 text-orange-600" />
+                <Trophy className="h-8 w-8 text-orange-600" />
+                <div className="ml-4">
+                  <p className="text-2xl font-bold text-gray-900 flex items-center">
+                    🔥 {userStreak?.current_login_streak || 0}
+                  </p>
+                  <p className="text-gray-600">Day Streak</p>
+                  {userStreak && (
+                    <p className="text-xs text-muted-foreground">Best: {userStreak.best_login_streak}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <BarChart3 className="h-8 w-8 text-purple-600" />
                 <div className="ml-4">
                   <p className="text-2xl font-bold text-gray-900">
                     {isPrivilegedUser ? 'Testing' : testLimits?.subscription_type === 'paid' ? 'Paid' : 'Free'}
                   </p>
                   <p className="text-gray-600">Plan Status</p>
+                  {userStreak && (
+                    <p className="text-xs text-muted-foreground">{userStreak.level_rank}</p>
+                  )}
                 </div>
               </div>
             </CardContent>

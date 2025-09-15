@@ -173,7 +173,7 @@ const TATTest = () => {
         );
       }
 
-      await testAnalysisService.updateTestSession(sessionId, images.length, 'completed');
+      await testAnalysisService.updateTestSession(sessionId, images.length, 'completed', user.id);
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
       const hasSubscription = await testAnalysisService.getUserSubscription(user.id);

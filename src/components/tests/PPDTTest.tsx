@@ -184,7 +184,7 @@ const PPDTTest = () => {
     try {
       setIsAnalyzing(true);
       
-      await testAnalysisService.updateTestSession(sessionId, images.length, 'completed');
+      await testAnalysisService.updateTestSession(sessionId, images.length, 'completed', currentUserId);
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
       const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);

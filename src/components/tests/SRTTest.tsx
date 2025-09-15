@@ -156,7 +156,7 @@ const SRTTest = () => {
       }
 
       const completedCount = Object.keys(responses).length;
-      await testAnalysisService.updateTestSession(sessionId, completedCount, 'completed');
+      await testAnalysisService.updateTestSession(sessionId, completedCount, 'completed', currentUserId);
 
       const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
       const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);
