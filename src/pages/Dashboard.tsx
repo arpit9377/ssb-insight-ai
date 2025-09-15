@@ -12,6 +12,7 @@ import { leaderboardService, LeaderboardEntry } from '@/services/leaderboardServ
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SignInButton } from '@clerk/clerk-react';
+import { StreakTester } from '@/components/testing/StreakTester';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -593,7 +594,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-        )}
       </div>
     </AppLayout>
   );
