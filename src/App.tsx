@@ -20,6 +20,7 @@ import TestModule from '@/pages/TestModule';
 import Tests from '@/pages/Tests';
 import Progress from '@/pages/Progress';
 import TraitAnalysis from '@/pages/TraitAnalysis';
+import Leaderboard from '@/pages/Leaderboard';
 import Subscription from '@/pages/Subscription';
 import AdminDashboard from '@/pages/AdminDashboard';
 import NotFound from '@/pages/NotFound';
@@ -68,6 +69,11 @@ function App() {
               <Route path="/trait-analysis" element={
                 <ProtectedRoute>
                   <TraitAnalysis />
+                </ProtectedRoute>
+              } />
+              <Route path="/leaderboard" element={
+                <ProtectedRoute>
+                  <Leaderboard />
                 </ProtectedRoute>
               } />
               <Route path="/subscription" element={<Subscription />} />

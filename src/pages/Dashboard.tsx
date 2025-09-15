@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye, UserPlus } from 'lucide-react';
+import { Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye, UserPlus, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -239,6 +239,10 @@ const Dashboard = () => {
 
   const headerActions = (
     <>
+      <Button variant="outline" size="sm" onClick={() => navigate('/leaderboard')} className="hidden sm:flex">
+        <Trophy className="h-4 w-4 mr-2" />
+        Leaderboard
+      </Button>
       <Button variant="outline" size="sm" onClick={() => navigate('/progress')} className="hidden sm:flex">
         <BarChart3 className="h-4 w-4 mr-2" />
         Progress
