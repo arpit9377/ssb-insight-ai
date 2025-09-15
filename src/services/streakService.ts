@@ -48,6 +48,8 @@ class StreakService {
 
   async updateLoginStreak(userId: string): Promise<StreakUpdate | null> {
     try {
+      console.log(`🔥 Starting login streak update for user: ${userId}`);
+      
       // Call the database function to update streak
       const { data, error } = await supabase.rpc('update_user_streak', {
         target_user_id: userId,
@@ -55,103 +57,65 @@ class StreakService {
       });
 
       if (error) {
-        console.error('Error updating login streak:', error);
+        console.error('❌ Error updating login streak:', error);
         return null;
       }
+
+      console.log('✅ Login streak database function completed, result:', data);
 
       // Get updated streak data
       const updatedStreak = await this.getUserStreak(userId);
       if (!updatedStreak) return null;
 
-      return {
+      const streakResult = {
         currentStreak: updatedStreak.current_login_streak,
         bestStreak: updatedStreak.best_login_streak,
         pointsEarned: updatedStreak.current_login_streak * 10,
         levelUp: this.checkLevelUp(updatedStreak.total_points),
         newBadges: this.checkNewBadges(updatedStreak)
       };
+
+      console.log('🎉 Login streak update successful:', streakResult);
+      return streakResult;
     } catch (error) {
-      console.error('Error in updateLoginStreak:', error);
+      console.error('❌ Error in updateLoginStreak:', error);
       return null;
     }
   }
 
   async updateTestStreak(userId: string): Promise<StreakUpdate | null> {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      console.log(`🧪 Starting test streak update for user: ${userId}`);
       
-      // Get current streak data
-      let currentStreak = await this.getUserStreak(userId);
-      
-      if (!currentStreak) {
-        // Create new streak record
-        const { data, error } = await supabase
-          .from('user_streaks')
-          .insert({
-            user_id: userId,
-            current_test_streak: 1,
-            best_test_streak: 1,
-            last_test_date: today,
-            total_points: 20
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating test streak:', error);
-          return null;
-        }
-
-        return {
-          currentStreak: 1,
-          bestStreak: 1,
-          pointsEarned: 20,
-          levelUp: false,
-          newBadges: []
-        };
-      }
-
-      // Update existing streak
-      const lastTestDate = currentStreak.last_test_date;
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-      let newTestStreak = 1;
-      if (lastTestDate === yesterdayStr) {
-        newTestStreak = currentStreak.current_test_streak + 1;
-      } else if (lastTestDate === today) {
-        newTestStreak = currentStreak.current_test_streak;
-      }
-
-      const newBestStreak = Math.max(currentStreak.best_test_streak, newTestStreak);
-      const pointsEarned = newTestStreak * 20;
-
-      const { data, error } = await supabase
-        .from('user_streaks')
-        .update({
-          current_test_streak: newTestStreak,
-          best_test_streak: newBestStreak,
-          last_test_date: today,
-          total_points: currentStreak.total_points + pointsEarned,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .select()
-        .single();
+      // Use the database function for consistent streak handling
+      const { data, error } = await supabase.rpc('update_user_streak', {
+        target_user_id: userId,
+        activity_type: 'test'
+      });
 
       if (error) {
-        console.error('Error updating test streak:', error);
+        console.error('❌ Error updating test streak:', error);
         return null;
       }
 
-      return {
-        currentStreak: newTestStreak,
-        bestStreak: newBestStreak,
-        pointsEarned,
-        levelUp: this.checkLevelUp(data.total_points),
-        newBadges: this.checkNewBadges(data)
+      console.log('✅ Test streak database function completed, result:', data);
+
+      // Get updated streak data
+      const updatedStreak = await this.getUserStreak(userId);
+      if (!updatedStreak) {
+        console.error('❌ Failed to get updated streak data after test completion');
+        return null;
+      }
+      const streakResult = {
+        currentStreak: updatedStreak.current_test_streak,
+        bestStreak: updatedStreak.best_test_streak,
+        pointsEarned: updatedStreak.current_test_streak * 20,
+        levelUp: this.checkLevelUp(updatedStreak.total_points),
+        newBadges: this.checkNewBadges(updatedStreak)
       };
+
+      console.log('🎉 Test streak update successful:', streakResult);
+      return streakResult;
     } catch (error) {
       console.error('Error in updateTestStreak:', error);
       return null;

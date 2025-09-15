@@ -92,7 +92,10 @@ export class TestAnalysisService {
           // Track test streak when test is completed
           if (userId) {
             try {
+              console.log(`📊 Updating streak and leaderboard for user ${userId} completing test session ${sessionId}`);
+              
               const streakUpdate = await streakService.updateTestStreak(userId);
+              console.log('🔥 Test streak result:', streakUpdate);
               
               if (streakUpdate) {
                 if (streakUpdate.currentStreak === 1) {
@@ -119,10 +122,11 @@ export class TestAnalysisService {
                     currentStreak: streakUpdate.currentStreak,
                     totalPoints: streakUpdate.pointsEarned
                   });
+                  console.log('🏆 Leaderboard stats updated successfully');
                 }
               }
             } catch (streakError) {
-              console.error('Error updating test streak:', streakError);
+              console.error('❌ Error updating test streak:', streakError);
               // Don't fail the test completion if streak update fails
             }
           }
