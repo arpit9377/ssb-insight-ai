@@ -594,6 +594,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+        )}
+
+        {/* Development Testing Component */}
+        {isAuthenticated && (
+          <StreakTester />
+        )}
+
       </div>
     </AppLayout>
   );
