@@ -1,54 +1,89 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, MessageSquare, Users, Heart, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { Footer } from '@/components/layout/Footer';
 
 const Contact = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would typically send the form data to your backend
-    toast.success('Message sent successfully! We\'ll get back to you soon.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
 
   const contactInfo = [
     {
       icon: Mail,
-      title: 'Email',
+      title: 'Email Support',
       value: 'editkarde@gmail.com',
-      description: 'Send us an email anytime'
+      description: 'Send us your queries anytime - we respond within 24-48 hours'
     },
     {
       icon: MapPin,
-      title: 'Address',
+      title: 'Headquarters',
       value: 'Delhi, India',
-      description: 'Our headquarters'
+      description: 'Our main office and development center'
     },
     {
       icon: Clock,
       title: 'Response Time',
       value: '24-48 hours',
-      description: 'Average response time'
+      description: 'Average response time for all support queries'
+    },
+    {
+      icon: Globe,
+      title: 'Global Reach',
+      value: '25+ Countries',
+      description: 'Serving aspiring officers worldwide'
+    }
+  ];
+
+  const supportChannels = [
+    {
+      icon: MessageSquare,
+      title: 'General Support',
+      description: 'For account issues, technical problems, or general questions about our platform.',
+      action: 'Email Us',
+      link: 'mailto:editkarde@gmail.com?subject=General Support'
+    },
+    {
+      icon: Users,
+      title: 'Join Our Community',
+      description: 'Connect with fellow aspirants, share experiences, and get peer support.',
+      action: 'Join Telegram',
+      link: 'https://t.me/+SMwk9YpvS8Q5MTZl'
+    },
+    {
+      icon: Heart,
+      title: 'Follow Our Journey',
+      description: 'Stay updated with tips, success stories, and platform updates.',
+      action: 'Follow Instagram',
+      link: 'https://www.instagram.com/psychsirai/'
+    }
+  ];
+
+  const faqTopics = [
+    {
+      title: 'Account & Billing',
+      questions: [
+        'How do I upgrade my subscription?',
+        'Can I get a refund?',
+        'How to reset my password?'
+      ]
+    },
+    {
+      title: 'Tests & Features',
+      questions: [
+        'How accurate is the AI analysis?',
+        'Can I retake tests?',
+        'What devices are supported?'
+      ]
+    },
+    {
+      title: 'Technical Issues',
+      questions: [
+        'Test not loading properly',
+        'Feedback not showing',
+        'Login problems'
+      ]
     }
   ];
 
@@ -58,147 +93,165 @@ const Contact = () => {
       showBackButton={true}
       backTo="/"
     >
-      <div className="space-y-16">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
         {/* Hero Section */}
-        <section className="text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Contact Us
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Have questions about our platform or need help with your preparation? 
-            We're here to help you succeed in your SSB journey.
-          </p>
-        </section>
-
-        {/* Contact Form and Info */}
-        <section>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <Card>
-              <CardHeader>
-                <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-4">
-                  <MessageSquare className="h-6 w-6 text-white" />
-                </div>
-                <CardTitle>Send us a Message</CardTitle>
-                <CardDescription>
-                  Fill out the form below and we'll get back to you as soon as possible.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                        Name *
-                      </label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Your full name"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                        Email *
-                      </label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="your@email.com"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-                      Subject *
-                    </label>
-                    <Input
-                      id="subject"
-                      name="subject"
-                      type="text"
-                      required
-                      value={formData.subject}
-                      onChange={handleChange}
-                      placeholder="What's this about?"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                      Message *
-                    </label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      required
-                      value={formData.message}
-                      onChange={handleChange}
-                      placeholder="Tell us how we can help you..."
-                      rows={5}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Send Message
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Contact Information */}
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Get in Touch</h3>
-                <p className="text-gray-600 mb-8">
-                  We're committed to helping you achieve your goals. Whether you have questions about our platform, 
-                  need technical support, or want to learn more about our services, our team is here to assist you.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {contactInfo.map((info, index) => {
-                  const IconComponent = info.icon;
-                  return (
-                    <Card key={index}>
-                      <CardContent className="p-6">
-                        <div className="flex items-start space-x-4">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <IconComponent className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{info.title}</h4>
-                            <p className="text-blue-600 font-medium">{info.value}</p>
-                            <p className="text-sm text-gray-500">{info.description}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              <Card className="bg-blue-50">
-                <CardContent className="p-6">
-                  <h4 className="font-semibold text-gray-900 mb-2">Quick Support</h4>
-                  <p className="text-gray-600 mb-4">
-                    For immediate assistance with technical issues or urgent queries, 
-                    contact us at:
-                  </p>
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600">• Email: editkarde@gmail.com</p>
-                  </div>
-                </CardContent>
-              </Card>
+        <section className="py-20">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-5xl font-bold text-gray-900 mb-6">
+              We're Here to Help
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Have questions about PsychSirAi? Need technical support? Want to share feedback? 
+              Our dedicated support team is here to assist you on your SSB preparation journey.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" onClick={() => window.open('mailto:editkarde@gmail.com', '_blank')} className="px-8 py-3">
+                <Mail className="mr-2 h-5 w-5" />
+                Email Support
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => navigate('/faq')} className="px-8 py-3">
+                View FAQ
+              </Button>
             </div>
           </div>
         </section>
+
+        {/* Contact Info */}
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {contactInfo.map((info, index) => {
+                const IconComponent = info.icon;
+                return (
+                  <Card key={index} className="text-center hover:shadow-lg transition-shadow bg-white">
+                    <CardHeader>
+                      <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <IconComponent className="h-8 w-8 text-blue-600" />
+                      </div>
+                      <CardTitle className="text-lg">{info.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-gray-900 mb-2">{info.value}</p>
+                      <p className="text-gray-600 text-sm leading-relaxed">{info.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Support Channels */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Choose the best way to reach us based on your needs. We're committed to providing excellent support.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {supportChannels.map((channel, index) => {
+                const IconComponent = channel.icon;
+                return (
+                  <Card key={index} className="hover:shadow-xl transition-shadow">
+                    <CardHeader className="pb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                        <IconComponent className="h-8 w-8 text-white" />
+                      </div>
+                      <CardTitle className="text-xl">{channel.title}</CardTitle>
+                      <CardDescription className="text-gray-600 leading-relaxed">
+                        {channel.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        onClick={() => window.open(channel.link, '_blank')} 
+                        className="w-full"
+                      >
+                        {channel.action}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Preview */}
+        <section className="py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Common Questions</h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Before reaching out, check if your question is answered in our comprehensive FAQ section.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {faqTopics.map((topic, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow bg-white">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-center">{topic.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {topic.questions.map((question, qIndex) => (
+                        <li key={qIndex} className="text-gray-600 text-sm border-l-4 border-blue-200 pl-3">
+                          {question}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button 
+                      variant="outline" 
+                      className="w-full mt-4" 
+                      onClick={() => navigate('/faq')}
+                    >
+                      View All FAQs
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Office Hours & Support Promise */}
+        <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-700">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-4xl font-bold text-white mb-6">Our Support Promise</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white mb-2">24-48h</div>
+                <div className="text-blue-100">Response Time</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white mb-2">99.9%</div>
+                <div className="text-blue-100">Issue Resolution</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white mb-2">4.8/5</div>
+                <div className="text-blue-100">Support Rating</div>
+              </div>
+            </div>
+            <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
+              We're committed to providing excellent support to help you succeed in your SSB preparation. 
+              Your success is our success.
+            </p>
+            <Button 
+              size="lg" 
+              variant="secondary" 
+              onClick={() => window.open('mailto:editkarde@gmail.com?subject=Support Request', '_blank')} 
+              className="px-8 py-3"
+            >
+              Contact Support Now
+            </Button>
+          </div>
+        </section>
       </div>
+      <Footer />
     </AppLayout>
   );
 };

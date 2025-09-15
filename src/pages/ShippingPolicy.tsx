@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, Monitor, CheckCircle, Wifi } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Footer } from '@/components/layout/Footer';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const ShippingPolicy = () => {
   const navigate = useNavigate();
