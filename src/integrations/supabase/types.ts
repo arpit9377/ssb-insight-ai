@@ -122,6 +122,60 @@ export type Database = {
         }
         Relationships: []
       }
+      leaderboard_entries: {
+        Row: {
+          avatar_url: string | null
+          average_score: number
+          category: string
+          city: string | null
+          created_at: string
+          current_streak: number
+          display_name: string
+          id: string
+          monthly_points: number
+          rank_position: number | null
+          total_points: number
+          total_tests_completed: number
+          updated_at: string
+          user_id: string
+          weekly_points: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          average_score?: number
+          category?: string
+          city?: string | null
+          created_at?: string
+          current_streak?: number
+          display_name: string
+          id?: string
+          monthly_points?: number
+          rank_position?: number | null
+          total_points?: number
+          total_tests_completed?: number
+          updated_at?: string
+          user_id: string
+          weekly_points?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          average_score?: number
+          category?: string
+          city?: string | null
+          created_at?: string
+          current_streak?: number
+          display_name?: string
+          id?: string
+          monthly_points?: number
+          rank_position?: number | null
+          total_points?: number
+          total_tests_completed?: number
+          updated_at?: string
+          user_id?: string
+          weekly_points?: number
+        }
+        Relationships: []
+      }
       openai_api_logs: {
         Row: {
           cost_estimate: number | null
@@ -539,6 +593,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_streaks: {
+        Row: {
+          badges: Json | null
+          best_login_streak: number
+          best_test_streak: number
+          created_at: string
+          current_login_streak: number
+          current_test_streak: number
+          id: string
+          last_login_date: string | null
+          last_test_date: string | null
+          level_rank: string
+          streak_freeze_count: number
+          total_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          badges?: Json | null
+          best_login_streak?: number
+          best_test_streak?: number
+          created_at?: string
+          current_login_streak?: number
+          current_test_streak?: number
+          id?: string
+          last_login_date?: string | null
+          last_test_date?: string | null
+          level_rank?: string
+          streak_freeze_count?: number
+          total_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          badges?: Json | null
+          best_login_streak?: number
+          best_test_streak?: number
+          created_at?: string
+          current_login_streak?: number
+          current_test_streak?: number
+          id?: string
+          last_login_date?: string | null
+          last_test_date?: string | null
+          level_rank?: string
+          streak_freeze_count?: number
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wat_words: {
         Row: {
           created_at: string
@@ -587,6 +692,10 @@ export type Database = {
       increment_usage_count: {
         Args: { row_id: string; table_name: string }
         Returns: undefined
+      }
+      update_user_streak: {
+        Args: { activity_type: string; target_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
