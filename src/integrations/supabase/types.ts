@@ -695,7 +695,7 @@ export type Database = {
       }
       update_user_streak: {
         Args: { activity_type: string; target_user_id: string }
-        Returns: boolean
+        Returns: Json
       }
     }
     Enums: {

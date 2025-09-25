@@ -64,9 +64,9 @@ class StreakService {
 
       console.log('✅ Login streak database function completed, result:', data);
       
-      // Check if the function returned false (indicating failure)
-      if (data === false) {
-        console.error('❌ Database function returned false - streak update failed');
+      // Check if the function returned success
+      if (!data || !data.success) {
+        console.error('❌ Database function failed:', data?.error || 'Unknown error');
         return null;
       }
 
@@ -75,10 +75,10 @@ class StreakService {
       if (!updatedStreak) return null;
 
       const streakResult = {
-        currentStreak: updatedStreak.current_login_streak,
-        bestStreak: updatedStreak.best_login_streak,
-        pointsEarned: updatedStreak.current_login_streak * 10,
-        levelUp: this.checkLevelUp(updatedStreak.total_points),
+        currentStreak: data.current_streak,
+        bestStreak: data.best_streak,
+        pointsEarned: data.activity_type === 'login' ? data.current_streak * 10 : 0,
+        levelUp: this.checkLevelUp(data.total_points),
         newBadges: this.checkNewBadges(updatedStreak)
       };
 
@@ -108,9 +108,9 @@ class StreakService {
 
       console.log('✅ Test streak database function completed, result:', data);
       
-      // Check if the function returned false (indicating failure)
-      if (data === false) {
-        console.error('❌ Database function returned false - streak update failed');
+      // Check if the function returned success
+      if (!data || !data.success) {
+        console.error('❌ Database function failed:', data?.error || 'Unknown error');
         return null;
       }
 
@@ -121,10 +121,10 @@ class StreakService {
         return null;
       }
       const streakResult = {
-        currentStreak: updatedStreak.current_test_streak,
-        bestStreak: updatedStreak.best_test_streak,
-        pointsEarned: updatedStreak.current_test_streak * 20,
-        levelUp: this.checkLevelUp(updatedStreak.total_points),
+        currentStreak: data.current_streak,
+        bestStreak: data.best_streak,
+        pointsEarned: data.activity_type === 'test' ? data.current_streak * 20 : 0,
+        levelUp: this.checkLevelUp(data.total_points),
         newBadges: this.checkNewBadges(updatedStreak)
       };
 
