@@ -223,6 +223,7 @@ const Leaderboard: React.FC = () => {
                     currentUserId={user?.id}
                     category={tab}
                     showStreak={tab !== 'streaks'}
+                    userRank={userRank}
                   />
                 </TabsContent>
               ))}

@@ -23,6 +23,9 @@ export type LeaderboardCategory = 'overall' | 'weekly' | 'monthly' | 'streaks' |
 class LeaderboardService {
   async getLeaderboard(category: LeaderboardCategory = 'overall', limit: number = 50): Promise<LeaderboardEntry[]> {
     try {
+      // Sync data first to ensure we have latest points
+      await this.syncLeaderboardData();
+
       let query = supabase
         .from('leaderboard_entries')
         .select('*')
@@ -32,16 +35,16 @@ class LeaderboardService {
       // Order by different criteria based on category
       switch (category) {
         case 'weekly':
-          query = query.order('weekly_points', { ascending: false });
+          query = query.order('weekly_points', { ascending: false }).order('total_points', { ascending: false });
           break;
         case 'monthly':
-          query = query.order('monthly_points', { ascending: false });
+          query = query.order('monthly_points', { ascending: false }).order('total_points', { ascending: false });
           break;
         case 'streaks':
-          query = query.order('current_streak', { ascending: false });
+          query = query.order('current_streak', { ascending: false }).order('total_points', { ascending: false });
           break;
         default:
-          query = query.order('total_points', { ascending: false });
+          query = query.order('total_points', { ascending: false }).order('created_at', { ascending: true });
       }
 
       const { data, error } = await query;
@@ -51,7 +54,13 @@ class LeaderboardService {
         return [];
       }
 
-      return data || [];
+      // Add rank positions based on sort order
+      const rankedData = (data || []).map((entry, index) => ({
+        ...entry,
+        rank_position: index + 1
+      }));
+
+      return rankedData;
     } catch (error) {
       console.error('Error in getLeaderboard:', error);
       return [];
@@ -60,27 +69,47 @@ class LeaderboardService {
 
   async getUserRank(userId: string, category: LeaderboardCategory = 'overall'): Promise<{ rank: number; total: number } | null> {
     try {
-      const { data, error } = await supabase
+      // Sync data first
+      await this.syncLeaderboardData();
+
+      // Get all entries for this category, ordered properly
+      let query = supabase
         .from('leaderboard_entries')
-        .select('rank_position')
-        .eq('user_id', userId)
-        .eq('category', category)
-        .single();
+        .select('user_id, total_points, weekly_points, monthly_points, current_streak')
+        .eq('category', category);
+
+      // Order by the same criteria as getLeaderboard
+      switch (category) {
+        case 'weekly':
+          query = query.order('weekly_points', { ascending: false }).order('total_points', { ascending: false });
+          break;
+        case 'monthly':
+          query = query.order('monthly_points', { ascending: false }).order('total_points', { ascending: false });
+          break;
+        case 'streaks':
+          query = query.order('current_streak', { ascending: false }).order('total_points', { ascending: false });
+          break;
+        default:
+          query = query.order('total_points', { ascending: false }).order('created_at', { ascending: true });
+      }
+
+      const { data, error } = await query;
 
       if (error) {
-        console.error('Error getting user rank:', error);
+        console.error('Error getting leaderboard for rank calculation:', error);
         return null;
       }
 
-      // Also get total count
-      const { count } = await supabase
-        .from('leaderboard_entries')
-        .select('*', { count: 'exact', head: true })
-        .eq('category', category);
+      // Find user's position in the ordered list
+      const userIndex = data?.findIndex(entry => entry.user_id === userId);
+      
+      if (userIndex === -1 || userIndex === undefined) {
+        return null;
+      }
 
       return {
-        rank: data.rank_position || 0,
-        total: count || 0
+        rank: userIndex + 1,
+        total: data?.length || 0
       };
     } catch (error) {
       console.error('Error in getUserRank:', error);
@@ -172,6 +201,52 @@ class LeaderboardService {
     };
 
     return pointsMap[activity] || 0;
+  }
+
+  async syncLeaderboardData(): Promise<void> {
+    try {
+      // Get all user streaks with profiles data
+      const { data: streaks, error: streaksError } = await supabase
+        .from('user_streaks')
+        .select(`
+          *,
+          profiles!inner(display_name:full_name, city, avatar_url)
+        `);
+
+      if (streaksError) {
+        console.error('Error getting user streaks for sync:', streaksError);
+        return;
+      }
+
+      // Sync each user's data to leaderboard_entries
+      for (const streak of streaks || []) {
+        const profile = (streak as any).profiles;
+        const displayName = profile?.display_name || 'Anonymous User';
+        
+        // Calculate weekly/monthly points (simplified - in real app, would be time-based)
+        const weeklyPoints = Math.floor(streak.total_points * 0.1); // 10% of total as weekly
+        const monthlyPoints = Math.floor(streak.total_points * 0.3); // 30% of total as monthly
+
+        await supabase
+          .from('leaderboard_entries')
+          .upsert({
+            user_id: streak.user_id,
+            display_name: displayName,
+            total_points: streak.total_points,
+            current_streak: Math.max(streak.current_login_streak, streak.current_test_streak),
+            weekly_points: weeklyPoints,
+            monthly_points: monthlyPoints,
+            city: profile?.city,
+            avatar_url: profile?.avatar_url,
+            category: 'overall', // Could be expanded to sync multiple categories
+            total_tests_completed: 0, // Would need to be calculated from user_responses
+            average_score: 0, // Would need to be calculated from user_responses
+            updated_at: new Date().toISOString()
+          });
+      }
+    } catch (error) {
+      console.error('Error syncing leaderboard data:', error);
+    }
   }
 
   getCategoryDisplayName(category: LeaderboardCategory): string {

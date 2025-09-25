@@ -12,6 +12,7 @@ interface LeaderboardTableProps {
   showCity?: boolean;
   showStreak?: boolean;
   category?: string;
+  userRank?: { rank: number; total: number } | null;
 }
 
 export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
@@ -20,7 +21,8 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
   currentUserId,
   showCity = true,
   showStreak = true,
-  category = 'overall'
+  category = 'overall',
+  userRank
 }) => {
   const getRankIcon = (position: number) => {
     switch (position) {
@@ -52,9 +54,18 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Trophy className="w-5 h-5 text-yellow-500" />
-          <span>{title}</span>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            <span>{title}</span>
+          </div>
+          {currentUserId && userRank && (
+            <div className="text-right">
+              <Badge variant="outline" className="text-primary border-primary">
+                Your Rank: #{userRank.rank} of {userRank.total}
+              </Badge>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
