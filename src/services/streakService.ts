@@ -58,10 +58,17 @@ class StreakService {
 
       if (error) {
         console.error('❌ Error updating login streak:', error);
+        console.error('❌ Full error details:', JSON.stringify(error, null, 2));
         return null;
       }
 
       console.log('✅ Login streak database function completed, result:', data);
+      
+      // Check if the function returned false (indicating failure)
+      if (data === false) {
+        console.error('❌ Database function returned false - streak update failed');
+        return null;
+      }
 
       // Get updated streak data
       const updatedStreak = await this.getUserStreak(userId);
@@ -95,10 +102,17 @@ class StreakService {
 
       if (error) {
         console.error('❌ Error updating test streak:', error);
+        console.error('❌ Full error details:', JSON.stringify(error, null, 2));
         return null;
       }
 
       console.log('✅ Test streak database function completed, result:', data);
+      
+      // Check if the function returned false (indicating failure)
+      if (data === false) {
+        console.error('❌ Database function returned false - streak update failed');
+        return null;
+      }
 
       // Get updated streak data
       const updatedStreak = await this.getUserStreak(userId);
