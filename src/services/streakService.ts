@@ -65,8 +65,8 @@ class StreakService {
       console.log('✅ Login streak database function completed, result:', data);
       
       // Check if the function returned success
-      if (!data || !data.success) {
-        console.error('❌ Database function failed:', data?.error || 'Unknown error');
+      if (!data || typeof data !== 'object' || !(data as any).success) {
+        console.error('❌ Database function failed:', typeof data === 'object' ? (data as any).error : 'Unknown error');
         return null;
       }
 
@@ -74,11 +74,12 @@ class StreakService {
       const updatedStreak = await this.getUserStreak(userId);
       if (!updatedStreak) return null;
 
+      const streakData = data as any;
       const streakResult = {
-        currentStreak: data.current_streak,
-        bestStreak: data.best_streak,
-        pointsEarned: data.activity_type === 'login' ? data.current_streak * 10 : 0,
-        levelUp: this.checkLevelUp(data.total_points),
+        currentStreak: streakData.current_streak,
+        bestStreak: streakData.best_streak,
+        pointsEarned: streakData.activity_type === 'login' ? streakData.current_streak * 10 : 0,
+        levelUp: this.checkLevelUp(streakData.total_points),
         newBadges: this.checkNewBadges(updatedStreak)
       };
 
@@ -109,8 +110,8 @@ class StreakService {
       console.log('✅ Test streak database function completed, result:', data);
       
       // Check if the function returned success
-      if (!data || !data.success) {
-        console.error('❌ Database function failed:', data?.error || 'Unknown error');
+      if (!data || typeof data !== 'object' || !(data as any).success) {
+        console.error('❌ Database function failed:', typeof data === 'object' ? (data as any).error : 'Unknown error');
         return null;
       }
 
@@ -120,11 +121,12 @@ class StreakService {
         console.error('❌ Failed to get updated streak data after test completion');
         return null;
       }
+      const streakData = data as any;
       const streakResult = {
-        currentStreak: data.current_streak,
-        bestStreak: data.best_streak,
-        pointsEarned: data.activity_type === 'test' ? data.current_streak * 20 : 0,
-        levelUp: this.checkLevelUp(data.total_points),
+        currentStreak: streakData.current_streak,
+        bestStreak: streakData.best_streak,
+        pointsEarned: streakData.activity_type === 'test' ? streakData.current_streak * 20 : 0,
+        levelUp: this.checkLevelUp(streakData.total_points),
         newBadges: this.checkNewBadges(updatedStreak)
       };
 
