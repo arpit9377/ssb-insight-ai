@@ -24,7 +24,6 @@ import Leaderboard from '@/pages/Leaderboard';
 import Subscription from '@/pages/Subscription';
 import AdminDashboard from '@/pages/AdminDashboard';
 import NotFound from '@/pages/NotFound';
-import Auth from '@/pages/Auth';
 import TATTest from '@/components/tests/TATTest';
 import PPDTTest from '@/components/tests/PPDTTest';
 import WATTest from '@/components/tests/WATTest';
@@ -42,8 +41,6 @@ function App() {
           <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/sso-callback" element={<Auth />} />
               <Route path="/about" element={<About />} />
               <Route path="/services" element={<Services />} />
               <Route path="/pricing" element={<Navigate to="/subscription" replace />} />
