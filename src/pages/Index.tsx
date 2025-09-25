@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Target, Users, BookOpen, Clock, CheckCircle, Menu, Star, X, Trophy } from 'lucide-react';
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
+import { SignInButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -149,7 +149,7 @@ const Index = () => {
                     <SignInButton mode="modal">
                       <Button variant="outline">Sign In</Button>
                     </SignInButton>
-                    <Button onClick={() => navigate('/dashboard')}>
+                    <Button onClick={() => navigate('/auth')}>
                       Get Started
                     </Button>
                   </SignedOut>
@@ -172,14 +172,12 @@ const Index = () => {
               {isClerkAvailable ? (
                 <>
                   <SignedOut>
-                    <SignInButton mode="modal">
-                      <Button variant="outline" size="sm">Sign In</Button>
-                    </SignInButton>
-                      <SignUpButton mode="modal">
-                        <Button size="sm">
-                          Sign Up
-                        </Button>
-                      </SignUpButton>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/auth')}>
+                      Sign In
+                    </Button>
+                    <Button size="sm" onClick={() => navigate('/auth')}>
+                      Sign Up
+                    </Button>
                   </SignedOut>
                   <SignedIn>
                     <Button size="sm" onClick={() => navigate('/dashboard')}>
@@ -248,23 +246,21 @@ const Index = () => {
                 <>
                   <SignedOut>
                     <div className="flex flex-col sm:flex-row gap-4">
-                      <SignUpButton mode="modal">
-                        <Button 
-                          size={isMobile ? "default" : "lg"} 
-                          className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
-                        >
-                          Try it for Free - 2 Tests
-                        </Button>
-                      </SignUpButton>
-                      <SignUpButton mode="modal">
-                        <Button 
-                          variant="outline"
-                          size={isMobile ? "default" : "lg"} 
-                          className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
-                        >
-                          Start Your Preparation Today
-                        </Button>
-                      </SignUpButton>
+                      <Button 
+                        size={isMobile ? "default" : "lg"} 
+                        className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
+                        onClick={() => navigate('/auth')}
+                      >
+                        Try it for Free - 2 Tests
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size={isMobile ? "default" : "lg"} 
+                        className={isMobile ? "px-6 py-3 text-base" : "px-8 py-4 text-lg"}
+                        onClick={() => navigate('/auth')}
+                      >
+                        Start Your Preparation Today
+                      </Button>
                     </div>
                   </SignedOut>
                   <SignedIn>
@@ -295,14 +291,13 @@ const Index = () => {
                 <p className="text-gray-700 text-sm">
                   2 free tests • Instant AI feedback
                 </p>
-                <SignUpButton mode="modal">
-                  <Button 
-                    variant="outline" 
-                    className="mt-3 border-green-500 text-green-600 hover:bg-green-50"
-                  >
-                    Start Free Trial Now
-                  </Button>
-                </SignUpButton>
+                <Button 
+                  variant="outline" 
+                  className="mt-3 border-green-500 text-green-600 hover:bg-green-50"
+                  onClick={() => navigate('/auth')}
+                >
+                  Start Free Trial Now
+                </Button>
               </div>
             </div>
           </div>
@@ -339,11 +334,9 @@ const Index = () => {
             {isClerkAvailable ? (
               <>
                 <SignedOut>
-                  <SignUpButton mode="modal">
-                    <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
-                      Start Competing Today
-                    </Button>
-                  </SignUpButton>
+                  <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" onClick={() => navigate('/auth')}>
+                    Start Competing Today
+                  </Button>
                 </SignedOut>
                 <SignedIn>
                   <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" onClick={() => navigate('/leaderboard')}>
@@ -412,11 +405,9 @@ const Index = () => {
               {isClerkAvailable ? (
                 <>
                    <SignedOut>
-                     <SignUpButton mode="modal">
-                       <Button className="w-full">
-                         Start Free Trial
-                       </Button>
-                     </SignUpButton>
+                   <Button className="w-full" onClick={() => navigate('/auth')}>
+                     Start Free Trial
+                   </Button>
                    </SignedOut>
                   <SignedIn>
                     <Button className="w-full" onClick={() => navigate('/dashboard')}>
@@ -476,7 +467,7 @@ const Index = () => {
                  <Button 
                    size="lg" 
                    className="mt-4 px-8 py-3"
-                   onClick={() => window.open('https://accounts.clerk.dev/sign-up?redirect_url=' + encodeURIComponent(window.location.origin + '/dashboard'), '_blank')}
+                   onClick={() => navigate('/auth')}
                  >
                    Start Free Trial Now
                  </Button>
