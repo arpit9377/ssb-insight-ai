@@ -45,16 +45,6 @@ const testData = [
     icon: Users,
     difficulty: 'Medium',
     color: 'bg-orange-500'
-  },
-  {
-    id: 'photo_story',
-    title: 'Photo Story Test',
-    subtitle: 'Image-based Story Writing',
-    description: 'Capture or upload an image, then write a creative story',
-    duration: '10 minutes',
-    icon: Camera,
-    difficulty: 'Medium',
-    color: 'bg-pink-500'
   }
 ];
 
