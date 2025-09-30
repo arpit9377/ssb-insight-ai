@@ -28,6 +28,7 @@ import TATTest from '@/components/tests/TATTest';
 import PPDTTest from '@/components/tests/PPDTTest';
 import WATTest from '@/components/tests/WATTest';
 import SRTTest from '@/components/tests/SRTTest';
+import PhotoStoryTest from '@/components/tests/PhotoStoryTest';
 import TestResultsPage from '@/components/analysis/TestResultsPage';
 import './App.css';
 
@@ -101,6 +102,11 @@ function App() {
               <Route path="/test/srt" element={
                 <ProtectedRoute>
                   <SRTTest />
+                </ProtectedRoute>
+              } />
+              <Route path="/test/photo_story" element={
+                <ProtectedRoute>
+                  <PhotoStoryTest />
                 </ProtectedRoute>
               } />
               <Route path="/test-results/:sessionId" element={

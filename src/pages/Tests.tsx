@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Target, BookOpen, Users, Clock, FileText } from 'lucide-react';
+import { Target, BookOpen, Users, Clock, FileText, Camera } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 const testData = [
@@ -45,6 +45,16 @@ const testData = [
     icon: Users,
     difficulty: 'Medium',
     color: 'bg-orange-500'
+  },
+  {
+    id: 'photo_story',
+    title: 'Photo Story Test',
+    subtitle: 'Image-based Story Writing',
+    description: 'Capture or upload an image, then write a creative story',
+    duration: '10 minutes',
+    icon: Camera,
+    difficulty: 'Medium',
+    color: 'bg-pink-500'
   }
 ];
 
