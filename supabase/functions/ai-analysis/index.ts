@@ -286,6 +286,8 @@ function getUserPrompt(testType: string, response: string, prompt?: string, time
     case 'tat':
       userPrompt += `TAT EVALUATION CRITERIA:
 
+IMPORTANT: If an image is provided, it may contain the user's handwritten story in response to the TAT picture. Please read the handwriting carefully and analyze the written story content.
+
 STORY STRUCTURE (25%):
 - Complete narrative with beginning, middle, end
 - Logical sequence and character development
@@ -307,7 +309,9 @@ COMMUNICATION (15%):
 - Demonstration of values
 - Constructive approach
 
-IMPORTANT: Score based on actual content quality. A well-structured story with good leadership demonstration should score 7-8/10. Only gibberish or inappropriate content should score very low.`;
+IMPORTANT: Score based on actual content quality. A well-structured story with good leadership demonstration should score 7-8/10. Only gibberish or inappropriate content should score very low.
+
+For uploaded handwritten responses: Also evaluate handwriting presentation, clarity, and overall professionalism.`;
       break;
     case 'wat':
       userPrompt += `WAT EVALUATION CRITERIA:
@@ -371,6 +375,8 @@ IMPORTANT: Focus on the actual leadership qualities demonstrated in the response
     case 'ppdt':
       userPrompt += `PPDT RESPONSE EVALUATION:
 
+IMPORTANT: If an image is provided, it may contain the user's handwritten response to the PPDT scenario. Please read the handwriting carefully and analyze the written content along with their perception of the situation.
+
 1. SITUATION PERCEPTION:
    - Accurate interpretation of scenario
    - Positive and constructive viewpoint
@@ -391,7 +397,9 @@ IMPORTANT: Focus on the actual leadership qualities demonstrated in the response
    - Persuasive presentation
    - Organized thought process
 
-FAIR SCORING: Good responses with clear leadership demonstration should score 7-8/10. Only poor or negative interpretations should score low.`;
+FAIR SCORING: Good responses with clear leadership demonstration should score 7-8/10. Only poor or negative interpretations should score low.
+
+For uploaded handwritten responses: Also evaluate handwriting presentation, clarity, and overall professionalism.`;
       break;
     default:
       userPrompt += `Evaluate this response for officer-like qualities, leadership potential, and psychological maturity. Score fairly based on actual content quality.`;
@@ -566,8 +574,40 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
       }
       
       messages.push(userMessage);
+    } else if (testType === 'wat_batch') {
+      // For WAT batch, check if any responses have uploaded images
+      const userMessage: any = { role: 'user', content: [] };
+      
+      // Add text prompt first
+      userMessage.content.push({
+        type: 'text',
+        text: userPrompt
+      });
+      
+      // Add images for WAT responses that were uploaded
+      batchData.forEach((item, index) => {
+        if (item.isUploadedImage && item.imageUrl) {
+          try {
+            const imageUrl = item.imageUrl.trim();
+            if (imageUrl.startsWith('http')) {
+              userMessage.content.push({
+                type: 'image_url',
+                image_url: { 
+                  url: imageUrl,
+                  detail: "high" // Use high detail for handwriting recognition
+                }
+              });
+              console.log(`Added WAT response image ${index + 1} for word: ${item.word}`);
+            }
+          } catch (error) {
+            console.error(`Error processing WAT image ${index + 1}:`, error);
+          }
+        }
+      });
+      
+      messages.push(userMessage);
     } else {
-      // For WAT and SRT, use text-only messages
+      // For SRT and other text-only tests
       messages.push({ role: 'user', content: userPrompt });
     }
     
@@ -753,6 +793,8 @@ function getTATBatchUserPrompt(batchData: any[]): string {
 function getWATBatchSystemPrompt(isPremium: boolean): string {
   const basePrompt = `You are analyzing Word Association Test responses. Evaluate thought patterns, emotional stability, and officer-like thinking across all 60 word associations.
 
+IMPORTANT: Some responses may be handwritten and provided as images. Read the handwriting carefully and analyze those responses just as you would typed responses. Consider handwriting presentation and clarity as part of the overall assessment.
+
 FAIR SCORING GUIDELINES:
 - 8-10: Exceptional positive associations, strong leadership thinking, mature responses
 - 6-7: Good positive patterns, decent leadership qualities, stable responses  
@@ -806,20 +848,30 @@ You must respond with valid JSON format only:
 function getWATBatchUserPrompt(batchData: any[]): string {
   let prompt = "WAT BATCH ANALYSIS:\n\n";
   
+  let hasUploadedImages = false;
   batchData.forEach((item, index) => {
-    prompt += `Word ${index + 1}: ${item.word} -> ${item.response}\n`;
+    if (item.isUploadedImage) {
+      hasUploadedImages = true;
+      prompt += `Word ${index + 1}: ${item.word} -> [User uploaded handwritten response - analyze from image]\n`;
+    } else {
+      prompt += `Word ${index + 1}: ${item.word} -> ${item.response}\n`;
+    }
   });
 
-  prompt += `\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities. Score based on actual content quality, not generic averages.
-
-For wordSuggestions, provide improved responses that:
+  prompt += `\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities. Score based on actual content quality, not generic averages.`;
+  
+  if (hasUploadedImages) {
+    prompt += `\n\nIMPORTANT: Some responses are handwritten and uploaded as images. Please read the handwriting from the images provided and analyze those responses along with the typed ones. Evaluate handwriting clarity and presentation as part of the assessment.`;
+  }
+  
+  prompt += `\n\nFor wordSuggestions, provide improved responses that:
 - Use the exact word in a complete, meaningful sentence
 - Show positive, leadership-oriented thinking
 - Demonstrate officer-like qualities (courage, determination, responsibility)
 - Frame the word in an action-oriented context
 - Example: For "Challenge" -> "Challenge creates opportunities for growth and leadership"
 
-For sampleExamples, include 3-4 actual examples from the user's responses with brief analysis showing what works well or could be improved.`;
+For sampleExamples, include 3-4 actual examples from the user's responses (whether typed or handwritten) with brief analysis showing what works well or could be improved.`;
   
   return prompt;
 }

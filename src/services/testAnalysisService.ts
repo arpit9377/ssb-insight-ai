@@ -294,6 +294,23 @@ export class TestAnalysisService {
       // Use the provided userId directly
       console.log(`Analyzing individual response: ${responseId}`);
       
+      // Check if this is an uploaded image response
+      let actualResponse = response;
+      let uploadedImageUrl = imageUrl;
+      try {
+        const parsed = JSON.parse(response);
+        if (parsed.mode === 'uploaded' && parsed.imageUrl) {
+          actualResponse = 'User uploaded handwritten response';
+          uploadedImageUrl = parsed.imageUrl;
+          console.log(`Detected uploaded image for response ${responseId}: ${uploadedImageUrl}`);
+        } else if (parsed.story) {
+          // This is a typed PPDT response with structured data
+          actualResponse = parsed.story;
+        }
+      } catch (e) {
+        // Not JSON, treat as regular text response
+      }
+      
       // Get the actual prompt/content for context
       let contextPrompt = prompt;
       if (testType === 'wat') {
@@ -310,17 +327,20 @@ export class TestAnalysisService {
           .eq('id', prompt)
           .single();
         contextPrompt = situationData?.situation || prompt;
-      } else if (testType === 'tat') {
+      } else if (testType === 'tat' || testType === 'ppdt') {
         const { data: imageData } = await supabase
           .from('test_images')
           .select('prompt, image_url')
           .eq('id', prompt)
           .single();
         contextPrompt = imageData?.prompt || prompt;
-        imageUrl = imageData?.image_url || imageUrl;
+        // Only use the test image if no uploaded response image
+        if (!uploadedImageUrl) {
+          uploadedImageUrl = imageData?.image_url;
+        }
       }
       
-      const feedback = await aiService.analyzeResponse(testType, response, contextPrompt, imageUrl, isPremium);
+      const feedback = await aiService.analyzeResponse(testType, actualResponse, contextPrompt, uploadedImageUrl, isPremium);
       
       const { data: responseData } = await supabase
         .from('user_responses')
@@ -701,11 +721,31 @@ export class TestAnalysisService {
     try {
       console.log(`Starting WAT batch analysis for session ${sessionId}`);
       
-      // Prepare batch analysis data
-      const batchData = words.map((word, index) => ({
-        word: word.word,
-        response: responses[index]
-      }));
+      // Prepare batch analysis data and check for uploaded images
+      const batchData = words.map((word, index) => {
+        const response = responses[index];
+        
+        // Check if this is an uploaded image response
+        try {
+          const parsed = JSON.parse(response);
+          if (parsed.mode === 'uploaded' && parsed.imageUrl) {
+            return {
+              word: word.word,
+              response: 'User uploaded handwritten response',
+              imageUrl: parsed.imageUrl,
+              isUploadedImage: true
+            };
+          }
+        } catch (e) {
+          // Not JSON, treat as regular text response
+        }
+        
+        return {
+          word: word.word,
+          response: response,
+          isUploadedImage: false
+        };
+      });
 
       // Single API call for all WAT responses
       const analysis = await aiService.analyzeWATBatch(batchData, isPremium);
