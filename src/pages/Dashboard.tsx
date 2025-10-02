@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SignInButton } from '@clerk/clerk-react';
 import { StreakTester } from '@/components/testing/StreakTester';
+import { UploadFeatureAnnouncement } from '@/components/announcement/UploadFeatureAnnouncement';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -309,6 +310,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout title="Dashboard" headerActions={headerActions}>
+      <UploadFeatureAnnouncement storageKey="hasSeenUploadFeatureAnnouncement_dashboard" />
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Welcome Section */}
         <div className="mb-8">

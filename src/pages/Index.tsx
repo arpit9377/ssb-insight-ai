@@ -5,6 +5,7 @@ import { Target, Users, BookOpen, Clock, CheckCircle, Menu, Star, X, Trophy } fr
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { UploadFeatureAnnouncement } from '@/components/announcement/UploadFeatureAnnouncement';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -109,6 +110,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <UploadFeatureAnnouncement storageKey="hasSeenUploadFeatureAnnouncement_landing" />
       {/* Launch Offer Banner */}
       <div className="bg-gradient-to-r from-orange-400 to-red-500 text-white py-3 px-4 text-center relative">
         <div className="flex items-center justify-center space-x-4 flex-wrap">
