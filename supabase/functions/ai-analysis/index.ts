@@ -195,30 +195,35 @@ ROLE: Senior Military Psychologist & Selection Expert
 TASK: Conduct a comprehensive evaluation of Officer Like Qualities (OLQs)
 STANDARD: Professional military assessment standards
 
+CRITICAL: Your analysis MUST explicitly connect the STIMULUS (image/word/situation shown) with the RESPONSE (what the candidate wrote). 
+
+Every piece of feedback should reference:
+1. What the stimulus demanded/expected
+2. How the candidate's response addressed or missed those demands
+3. Specific recommendations based on the gap between stimulus requirements and actual response
+
 The 15 traits you MUST evaluate: ${SSB_TRAITS.join(', ')}.
 
 ASSESSMENT PHILOSOPHY:
+- ALWAYS reference the specific stimulus when analyzing the response
+- Explain how the response does or doesn't fit the situation/word/image
+- Point out missed opportunities specific to THIS stimulus
+- Give recommendations that are contextual to what was actually shown
 - Recognize genuine effort and positive qualities in responses
-- Look for potential and areas of strength alongside areas for improvement  
 - Provide constructive feedback that encourages development
-- Score fairly based on actual content and demonstration of officer-like thinking
 
 BALANCED SCORING CRITERIA:
-- 1-2/10: Inappropriate content, gibberish, or completely irrelevant responses
-- 3-4/10: Minimal effort, poor understanding, lacks basic structure
-- 5-6/10: Average responses showing some understanding and effort
-- 7-8/10: Good responses with clear officer-like thinking and problem-solving
-- 9-10/10: Exceptional responses demonstrating strong leadership potential
+- 1-2/10: Inappropriate content, gibberish, or completely irrelevant to the stimulus
+- 3-4/10: Minimal effort, poor understanding of what the stimulus demanded
+- 5-6/10: Average responses showing some understanding but weak connection to stimulus
+- 7-8/10: Good responses clearly addressing the stimulus with officer-like thinking
+- 9-10/10: Exceptional responses deeply engaging with the stimulus and demonstrating strong leadership
 
-PSYCHOLOGICAL INDICATORS TO ASSESS:
-- Leadership initiative and decision-making capability
-- Practical problem-solving approach
-- Communication clarity and organization
-- Responsibility acceptance and accountability
-- Team coordination and social skills
-- Adaptability and planning abilities
-- Emotional stability and confidence
-- Moral courage and determination
+STIMULUS-RESPONSE CONNECTION INDICATORS:
+- Does the response directly address what the stimulus presented?
+- Are situational demands properly identified and tackled?
+- Does the response show understanding of context/nuances in the stimulus?
+- Is the response appropriate for the specific scenario given?
 
 You must respond with valid JSON format only.`;
   
@@ -227,51 +232,62 @@ You must respond with valid JSON format only.`;
     
     Analyze the ${testType.toUpperCase()} response against all 15 traits.
     
-    For each trait, provide:
-    - Score (1-10) with detailed psychological justification
-    - Specific behavioral evidence from the response
-    - Areas for improvement with actionable suggestions
+    CRITICAL: In EVERY field of feedback, explicitly mention:
+    - The specific stimulus (image/word/situation) that was presented
+    - How the candidate's response addressed or failed to address it
+    - What the stimulus specifically demanded that was or wasn't delivered
     
-    Also provide:
-    - A sample ideal response demonstrating excellence
-    - Specific developmental recommendations
-    - Clear identification of officer-like qualities observed
+    For each trait, provide:
+    - Score (1-10) with justification referencing the stimulus-response connection
+    - Specific evidence from the response in context of what was shown
+    - Areas for improvement with advice specific to THIS stimulus
+    
+    In strengths: "For [this situation/word/image], you demonstrated..."
+    In improvements: "Given [this situation/word/image], you could have..."
+    In recommendations: "When facing [similar situations], focus on..."
+    In officer qualities: "Your response to [this scenario] showed..."
+    In sample response: Write it specifically for the EXACT stimulus given
     
      Return comprehensive analysis as JSON:
      {
        "overallScore": 7,
-       "traitScores": [{"trait": "Leadership", "score": 8, "description": "detailed psychological analysis with evidence"}],
-       "strengths": ["specific strength with evidence", "specific strength with evidence"],
-       "improvements": ["specific area with actionable advice", "specific area with actionable advice"],
-       "recommendations": ["developmental recommendation with steps", "developmental recommendation with steps"],
-       "officerLikeQualities": ["observed quality with evidence", "observed quality with evidence"],
-       "sampleResponse": "A professionally written example response demonstrating excellence for this prompt"
+       "traitScores": [{"trait": "Leadership", "score": 8, "description": "Given the [situation], your response showed... You could improve by..."}],
+       "strengths": ["For this particular [image/word/situation], you effectively demonstrated [quality] by [evidence]"],
+       "improvements": ["The situation demanded [X], but your response focused on [Y]. Consider [specific advice for THIS scenario]"],
+       "recommendations": ["When facing similar [type of situations], remember to [contextual advice based on what was shown]"],
+       "officerLikeQualities": ["Your handling of [this specific scenario] revealed [quality with evidence]"],
+       "sampleResponse": "A professionally written example response specifically for THIS exact stimulus/situation/word/image"
      }`;
   } else {
     return `${basePrompt}
     
-    Provide a professional basic assessment focusing on overall performance and key areas.
-    Include a sample response to demonstrate improvement potential.
+    Provide a professional basic assessment focusing on how well the response addressed the specific stimulus.
+    
+    IMPORTANT: Reference the actual stimulus (image/word/situation) in your feedback.
     
     Return analysis as JSON:
     {
       "overallScore": 6,
       "traitScores": [],
-      "strengths": ["key strength 1", "key strength 2"],
-      "improvements": ["critical area 1", "critical area 2", "critical area 3"],
-      "recommendations": ["Upgrade to premium for detailed 15-trait analysis and personalized development plan"],
-      "officerLikeQualities": ["basic quality 1", "basic quality 2"],
-      "sampleResponse": "A sample ideal response demonstrating how this could be written better"
+      "strengths": ["For this [situation/word/image], you showed [quality with brief evidence]"],
+      "improvements": ["This [scenario] required [X], but your response [Y]. Try [specific advice]", "Given this [context], you missed [opportunity]"],
+      "recommendations": ["For scenarios like this [type], focus on [contextual advice]", "Upgrade to premium for detailed 15-trait analysis"],
+      "officerLikeQualities": ["In response to this [scenario], you demonstrated [quality]"],
+      "sampleResponse": "A sample ideal response specifically addressing THIS exact stimulus"
     }`;
   }
 }
 
 function getUserPrompt(testType: string, response: string, prompt?: string, timeTaken?: number, totalQuestions?: number, completedQuestions?: number): string {
-  let userPrompt = `TEST TYPE: ${testType.toUpperCase()}\n`;
+  let userPrompt = `TEST TYPE: ${testType.toUpperCase()}\n\n`;
+  
+  userPrompt += `=== STIMULUS PRESENTED TO CANDIDATE ===\n`;
   if (prompt) {
-    userPrompt += `SITUATION/PROMPT: ${prompt}\n`;
+    userPrompt += `${prompt}\n`;
+  } else {
+    userPrompt += `[Stimulus details not provided]\n`;
   }
-  userPrompt += `CANDIDATE RESPONSE: "${response}"\n`;
+  userPrompt += `\n=== CANDIDATE'S RESPONSE ===\n"${response}"\n`;
   
   // Add timing and completion data for comprehensive analysis
   if (timeTaken !== undefined) {
@@ -284,122 +300,140 @@ function getUserPrompt(testType: string, response: string, prompt?: string, time
   
   switch (testType) {
     case 'tat':
-      userPrompt += `TAT EVALUATION CRITERIA:
+      userPrompt += `\nTAT EVALUATION - STIMULUS-RESPONSE CONNECTION:
 
-IMPORTANT: If an image is provided, it may contain the user's handwritten story in response to the TAT picture. Please read the handwriting carefully and analyze the written story content.
+CRITICAL: Analyze how well the response relates to the SPECIFIC image/situation shown above.
+
+Your analysis MUST address:
+1. How does the story interpret the given image/situation?
+2. Did the candidate understand what the image was depicting?
+3. Does the story flow logically from what's shown in the image?
+4. What elements of the image were addressed or ignored?
+
+IMPORTANT: If an image is provided, it may contain handwritten story. Read the handwriting carefully and analyze the written story content.
 
 STORY STRUCTURE (25%):
-- Complete narrative with beginning, middle, end
-- Logical sequence and character development
-- Clear conflict and resolution
+- Does the story have beginning, middle, end that fits the image context?
+- Are characters and their actions consistent with what the image suggests?
+- Is the conflict appropriate to the situation depicted?
 
 LEADERSHIP QUALITIES (35%):
-- Initiative and decision-making
-- Problem-solving approach
-- Team coordination and responsibility
-- Positive thinking patterns
+- Given THIS situation in the image, did the response show initiative?
+- Was the problem-solving appropriate for THIS specific context?
+- Did the approach match what the situation demanded?
 
 PSYCHOLOGICAL MATURITY (25%):
-- Emotional stability and realistic thinking
-- Understanding of consequences
-- Balanced optimism
+- Is the interpretation of the image realistic and mature?
+- Does the candidate understand the gravity/nature of the situation shown?
 
 COMMUNICATION (15%):
-- Clear articulation and organization
-- Demonstration of values
-- Constructive approach
+- Is the story clearly connected to the image/situation?
+- Are values demonstrated relevant to the context?
 
-IMPORTANT: Score based on actual content quality. A well-structured story with good leadership demonstration should score 7-8/10. Only gibberish or inappropriate content should score very low.
+For uploaded handwritten responses: Evaluate presentation and professionalism.
 
-For uploaded handwritten responses: Also evaluate handwriting presentation, clarity, and overall professionalism.`;
+REMEMBER: Every piece of feedback must reference "In this image/situation..." or "Given this scenario..."`;
       break;
     case 'wat':
-      userPrompt += `WAT EVALUATION CRITERIA:
+      userPrompt += `\nWAT EVALUATION - WORD-ASSOCIATION CONNECTION:
+
+CRITICAL: Analyze the association in context of the SPECIFIC WORD shown above.
+
+Your analysis MUST address:
+1. Is the association logically/semantically connected to THIS word?
+2. What does this particular association reveal about thinking patterns?
+3. Was there a more officer-like association possible for THIS word?
+4. How appropriate is this specific pairing (word → response)?
 
 MENTAL ASSOCIATIONS (40%):
-- Positive vs negative thought patterns
-- Speed and appropriateness of associations
-- Officer-like mindset demonstration
+- For THIS particular word, is the association positive or negative?
+- Given THIS word, was the response appropriately quick and relevant?
+- Does this association show officer-like thinking for THIS context?
 
 EMOTIONAL STABILITY (30%):
-- Consistent positive responses
-- Absence of extreme negativity
-- Balanced emotional patterns
+- Given THIS word's nature, is the emotional response balanced?
+- Does the association show maturity given what THIS word typically evokes?
 
 LEADERSHIP MINDSET (20%):
-- Action-oriented associations
-- Service and team focus
-- Problem-solving orientation
+- For THIS word, did the candidate choose an action-oriented association?
+- Could THIS word have triggered a more leadership-focused response?
 
 VALUES (10%):
-- Moral and ethical associations
-- Social responsibility
-- Integrity indicators
+- Given THIS word, does the association reflect good values?
+- What does this specific pairing reveal about character?
 
-IMPORTANT: Score fairly - positive, appropriate associations should score well (6-8/10). Only inappropriate or consistently negative responses score low.`;
+REMEMBER: Always say "For the word '[word]', your association '[response]' shows..."`;
       break;
     case 'srt':
-      userPrompt += `SRT RESPONSE EVALUATION:
+      userPrompt += `\nSRT EVALUATION - SITUATION-RESPONSE ALIGNMENT:
+
+CRITICAL: Evaluate how well the response addresses the SPECIFIC SITUATION described above.
+
+Your analysis MUST address:
+1. Did the candidate correctly identify what THIS situation demanded?
+2. Is the solution appropriate for THIS specific problem?
+3. What did THIS situation require that was or wasn't addressed?
+4. How realistic is the proposed solution for THIS exact context?
 
 1. PROBLEM UNDERSTANDING:
-   - Clear grasp of the situation
-   - Accurate problem identification
-   - Situational awareness demonstration
+   - Does the response show clear understanding of THIS specific situation?
+   - Are the unique challenges of THIS scenario properly identified?
+   - What contextual factors of THIS situation were considered or missed?
 
 2. LEADERSHIP INITIATIVE:
-   - Taking charge and responsibility
-   - Proactive vs reactive approach
-   - Decision-making capability
+   - Given THIS situation, did the response show appropriate initiative?
+   - Is the level of responsibility taken suitable for THIS scenario?
+   - Does the approach match what THIS situation demands?
 
 3. PRACTICAL SOLUTIONS:
-   - Realistic and implementable approaches
-   - Step-by-step planning
-   - Resource consideration
+   - Are the proposed solutions realistic for THIS specific context?
+   - Do the steps make sense given THIS exact situation?
+   - Are resources and constraints of THIS scenario properly considered?
 
 4. EXECUTION FOCUS:
-   - Personal ownership and accountability
-   - Follow-through commitment
-   - Result-oriented thinking
+   - Does the response show ownership appropriate to THIS situation?
+   - Is the commitment level suitable for THIS particular challenge?
 
-BALANCED SCORING:
-- Well-thought responses with clear leadership approach: 7-8/10
-- Decent responses showing some initiative: 6-7/10
-- Basic responses with minimal leadership: 4-5/10
-- Poor or irrelevant responses: 2-3/10
+${timeTaken ? `Response Time: ${timeTaken}s - Consider if speed affected understanding of the situation` : ''}
+${completedQuestions && totalQuestions ? `Completion: ${completedQuestions}/${totalQuestions} - Factor in sustained focus` : ''}
 
-${timeTaken ? `Response Time: ${timeTaken}s - Consider quality vs speed balance` : ''}
-${completedQuestions && totalQuestions ? `Completion: ${completedQuestions}/${totalQuestions} - Factor in persistence` : ''}
-
-IMPORTANT: Focus on the actual leadership qualities demonstrated in the response. Don't default to 5/10 - score based on genuine merit.`;
+REMEMBER: Every feedback point must reference "In this situation where [X]..." or "Given that the problem was [Y]..."`;
       break;
     case 'ppdt':
-      userPrompt += `PPDT RESPONSE EVALUATION:
+      userPrompt += `\nPPDT EVALUATION - IMAGE INTERPRETATION & RESPONSE:
 
-IMPORTANT: If an image is provided, it may contain the user's handwritten response to the PPDT scenario. Please read the handwriting carefully and analyze the written content along with their perception of the situation.
+CRITICAL: Evaluate how well the response interprets and addresses the SPECIFIC IMAGE/SCENARIO above.
+
+Your analysis MUST address:
+1. How accurately did the candidate interpret what's happening in THIS image?
+2. Is the perception of THIS situation positive and realistic?
+3. Does the proposed solution fit what THIS image actually depicts?
+4. What elements of THIS image were well-utilized or misunderstood?
+
+IMPORTANT: If an image is provided, it may contain handwritten response. Read carefully and analyze the content.
 
 1. SITUATION PERCEPTION:
-   - Accurate interpretation of scenario
-   - Positive and constructive viewpoint
-   - Realistic assessment
+   - How well does the interpretation match what THIS image actually shows?
+   - Is the mood/tone of the story appropriate for THIS visual context?
+   - What aspects of THIS image were correctly/incorrectly understood?
 
 2. LEADERSHIP DEMONSTRATION:
-   - Natural initiative taking
-   - Team coordination abilities
-   - Motivational approach
+   - Given what THIS image depicts, is the leadership approach suitable?
+   - Does the initiative shown match what THIS situation requires?
+   - Is the team coordination relevant to THIS scenario?
 
 3. PROBLEM-SOLVING:
-   - Systematic and organized thinking
-   - Practical solution approach
-   - Strategic consideration
+   - Is the problem identified consistent with what THIS image presents?
+   - Are the solutions practical for THIS specific visual scenario?
+   - Does the approach fit the context shown in THIS image?
 
 4. COMMUNICATION:
-   - Clear articulation
-   - Persuasive presentation
-   - Organized thought process
+   - Is the story clearly connected to THIS image?
+   - Does the response effectively convey understanding of THIS scene?
 
-FAIR SCORING: Good responses with clear leadership demonstration should score 7-8/10. Only poor or negative interpretations should score low.
+For uploaded handwritten responses: Evaluate presentation and professionalism.
 
-For uploaded handwritten responses: Also evaluate handwriting presentation, clarity, and overall professionalism.`;
+REMEMBER: Reference "In this image showing [X]..." or "Given that the picture depicts [Y]..."`;
       break;
     default:
       userPrompt += `Evaluate this response for officer-like qualities, leadership potential, and psychological maturity. Score fairly based on actual content quality.`;
@@ -407,13 +441,17 @@ For uploaded handwritten responses: Also evaluate handwriting presentation, clar
   
   userPrompt += `
 
-CRITICAL INSTRUCTIONS:
-1. Analyze the actual content and quality of the response
-2. Look for genuine officer-like qualities and leadership potential
-3. Score based on merit - don't default to average scores
-4. Provide specific evidence from their response
-5. Be encouraging yet constructive in feedback
-6. Remember: A thoughtful, well-structured response deserves a good score (7-8/10)`;
+CRITICAL INSTRUCTIONS FOR YOUR ANALYSIS:
+1. ALWAYS reference the specific stimulus (image/word/situation) in every piece of feedback
+2. Explain how the response does or doesn't connect to what was actually shown
+3. Point out what the stimulus specifically demanded and whether it was delivered
+4. Give recommendations that are contextual - "For situations like this where [X], you should [Y]"
+5. Provide specific evidence connecting stimulus to response
+6. Score based on how well the response addresses the SPECIFIC stimulus given
+7. In your sample response, write it specifically for THIS exact stimulus, not a generic example
+8. Use phrases like: "Given this situation...", "For this word...", "In this image...", "This scenario required..."
+
+Remember: Every strength, improvement, recommendation, and quality you mention MUST be tied back to the specific stimulus that was presented.`;
   
   return userPrompt;
 }
