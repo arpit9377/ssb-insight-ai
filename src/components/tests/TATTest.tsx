@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,10 @@ import { TestContentService } from '@/services/testContentService';
 import { testAnalysisService } from '@/services/testAnalysisService';
 import { testLimitService } from '@/services/testLimitService';
 import { setupTestTables } from '@/services/databaseSetup';
+import { supabase } from '@/integrations/supabase/client';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
+import { Camera, Upload, X, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TATTest = () => {
@@ -27,6 +28,15 @@ const TATTest = () => {
   const [viewingTime, setViewingTime] = useState(30);
   const [canRespond, setCanRespond] = useState(false);
   const [isWritingPhase, setIsWritingPhase] = useState(false);
+  
+  // Upload functionality
+  const [responseMode, setResponseMode] = useState<'type' | 'upload'>('type');
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -58,7 +68,82 @@ const TATTest = () => {
     setViewingTime(30);
     setCanRespond(isBlankSlide); // Allow immediate response for blank slide
     setIsWritingPhase(isBlankSlide);
+    setResponseMode('type');
+    setUploadedImage(null);
+    setImageFile(null);
+    stopCamera();
   }, [currentImageIndex, images]);
+  
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setShowCamera(true);
+      }
+    } catch (error) {
+      console.error('Camera access error:', error);
+      toast.error('Unable to access camera. Please use file upload instead.');
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        const imageDataUrl = canvas.toDataURL('image/jpeg');
+        setUploadedImage(imageDataUrl);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], 'tat-response.jpg', { type: 'image/jpeg' });
+            setImageFile(file);
+          }
+        }, 'image/jpeg');
+      }
+      stopCamera();
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+      
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setUploadedImage(null);
+    setImageFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const initializeTest = async () => {
     try {
@@ -132,22 +217,61 @@ const TATTest = () => {
   };
 
   const handleNext = async (forceNext = false) => {
-    if (!forceNext && !currentResponse.trim()) {
-      toast.error('Please provide a response before continuing');
+    if (!forceNext) {
+      if (responseMode === 'type' && !currentResponse.trim()) {
+        toast.error('Please provide a response before continuing');
+        return;
+      }
+      if (responseMode === 'upload' && !uploadedImage) {
+        toast.error('Please upload your response image');
+        return;
+      }
+    }
+
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) {
+      toast.error('Missing required information');
       return;
     }
 
-    // Store response locally (don't send to AI yet)
-    const newResponses = [...responses];
-    newResponses[currentImageIndex] = currentResponse.trim() || 'No response provided';
-    setResponses(newResponses);
+    try {
+      let imageUrl = null;
+      
+      // Upload image if in upload mode
+      if (responseMode === 'upload' && imageFile) {
+        const fileName = `tat-responses/${currentUserId}/${Date.now()}-${imageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('test-images')
+          .upload(fileName, imageFile);
 
-    if (currentImageIndex < images.length - 1) {
-      setCurrentImageIndex(currentImageIndex + 1);
-      setCurrentResponse('');
-      setStartTime(Date.now());
-    } else {
-      await handleTestCompletion(newResponses);
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('test-images')
+          .getPublicUrl(fileName);
+          
+        imageUrl = publicUrl;
+      }
+
+      // Store response locally (don't send to AI yet)
+      const newResponses = [...responses];
+      const responseData = responseMode === 'type'
+        ? currentResponse.trim() || 'No response provided'
+        : JSON.stringify({ mode: 'uploaded', imageUrl });
+        
+      newResponses[currentImageIndex] = responseData;
+      setResponses(newResponses);
+
+      if (currentImageIndex < images.length - 1) {
+        setCurrentImageIndex(currentImageIndex + 1);
+        setCurrentResponse('');
+        setStartTime(Date.now());
+      } else {
+        await handleTestCompletion(newResponses);
+      }
+    } catch (error) {
+      console.error('Error processing response:', error);
+      toast.error('Failed to process response. Please try again.');
     }
   };
 
@@ -293,28 +417,138 @@ const TATTest = () => {
               <p className="text-blue-800">{currentImage.prompt}</p>
             </div>
 
-            <div className="space-y-4">
-              <Textarea
-                value={currentResponse}
-                onChange={(e) => setCurrentResponse(e.target.value)}
-                placeholder="Write your story here..."
-                className="min-h-32"
-                disabled={!canRespond && !isBlankSlide}
-              />
-              
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-500">
-                  Progress: {currentImageIndex + 1}/{images.length}
-                </p>
-                <Button 
-                  onClick={() => handleNext()}
-                  disabled={(!canRespond && !isBlankSlide)}
-                  className="px-8"
-                >
-                  {currentImageIndex === images.length - 1 ? 'Submit All Stories for Analysis' : 'Next'}
-                </Button>
-              </div>
-            </div>
+            {(canRespond || isBlankSlide) && (
+              <>
+                {/* Response Mode Toggle */}
+                <div className="flex justify-center gap-4 mb-6">
+                  <Button
+                    variant={responseMode === 'type' ? 'default' : 'outline'}
+                    onClick={() => setResponseMode('type')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Type Response
+                  </Button>
+                  <Button
+                    variant={responseMode === 'upload' ? 'default' : 'outline'}
+                    onClick={() => setResponseMode('upload')}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload Response
+                  </Button>
+                </div>
+
+                {responseMode === 'type' ? (
+                  <div className="space-y-4">
+                    <Textarea
+                      value={currentResponse}
+                      onChange={(e) => setCurrentResponse(e.target.value)}
+                      placeholder="Write your story here..."
+                      className="min-h-32"
+                      autoFocus
+                    />
+                    
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-gray-500">
+                        Progress: {currentImageIndex + 1}/{images.length}
+                      </p>
+                      <Button 
+                        onClick={() => handleNext()}
+                        className="px-8"
+                      >
+                        {currentImageIndex === images.length - 1 ? 'Submit All Stories for Analysis' : 'Next'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Upload Mode */}
+                    {!uploadedImage ? (
+                      <div className="space-y-4">
+                        {showCamera ? (
+                          <div className="relative">
+                            <video 
+                              ref={videoRef} 
+                              autoPlay 
+                              playsInline
+                              className="w-full max-h-96 rounded-lg"
+                            />
+                            <div className="flex justify-center gap-4 mt-4">
+                              <Button onClick={capturePhoto} size="lg">
+                                <Camera className="mr-2 h-5 w-5" />
+                                Capture Photo
+                              </Button>
+                              <Button onClick={stopCamera} variant="outline" size="lg">
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-4 p-8 border-2 border-dashed rounded-lg">
+                            <p className="text-lg font-medium">Upload your handwritten story</p>
+                            {!isBlankSlide && (
+                              <div className="text-center bg-blue-50 p-4 rounded-lg mb-2">
+                                <p className="text-sm font-medium text-blue-900">
+                                  Write your story about this image
+                                </p>
+                              </div>
+                            )}
+                            <div className="flex gap-4">
+                              <Button onClick={startCamera} size="lg">
+                                <Camera className="mr-2 h-5 w-5" />
+                                Open Camera
+                              </Button>
+                              <Button 
+                                onClick={() => fileInputRef.current?.click()} 
+                                variant="outline" 
+                                size="lg"
+                              >
+                                <Upload className="mr-2 h-5 w-5" />
+                                Upload Image
+                              </Button>
+                            </div>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <img 
+                            src={uploadedImage} 
+                            alt="Uploaded response" 
+                            className="w-full max-h-96 object-contain rounded-lg border-2 border-green-200"
+                          />
+                          <Button 
+                            onClick={removeImage} 
+                            variant="destructive" 
+                            size="icon"
+                            className="absolute top-2 right-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm text-green-600 font-medium">
+                            ✓ Response image uploaded
+                          </p>
+                          <Button onClick={() => handleNext()} size="lg">
+                            {currentImageIndex === images.length - 1 ? 'Submit All Stories for Analysis' : 'Next'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
