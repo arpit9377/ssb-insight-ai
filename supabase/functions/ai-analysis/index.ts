@@ -212,12 +212,34 @@ ASSESSMENT PHILOSOPHY:
 - Recognize genuine effort and positive qualities in responses
 - Provide constructive feedback that encourages development
 
-BALANCED SCORING CRITERIA:
-- 1-2/10: Inappropriate content, gibberish, or completely irrelevant to the stimulus
-- 3-4/10: Minimal effort, poor understanding of what the stimulus demanded
-- 5-6/10: Average responses showing some understanding but weak connection to stimulus
+CRITICAL SCORING CRITERIA - BE STRICT:
+- 1-2/10: Gibberish, random keystrokes, completely irrelevant content, or inappropriate responses
+  * Example: "asdfasdf", "zzz", "random text", nonsensical words
+  * Random handwritten notes unrelated to the stimulus
+  * No coherent thought or connection to the task
+- 3-4/10: Minimal effort, extremely poor quality, vague or one-word responses
+  * Shows no understanding of what the stimulus demanded
+  * Copied the situation without adding any solution
+  * Very short responses with no depth
+- 5-6/10: Below average to average responses with weak stimulus connection
+  * Some effort shown but lacks substance or depth
+  * Partial understanding but misses key elements
+  * Generic responses that could apply to any situation
 - 7-8/10: Good responses clearly addressing the stimulus with officer-like thinking
-- 9-10/10: Exceptional responses deeply engaging with the stimulus and demonstrating strong leadership
+  * Demonstrates clear understanding and appropriate response
+  * Shows leadership qualities and practical solutions
+  * Well-structured with proper reasoning
+- 9-10/10: Exceptional responses deeply engaging with the stimulus
+  * Outstanding leadership demonstration
+  * Innovative and practical solutions
+  * Mature, professional, and comprehensive approach
+
+VALIDATION RULES - ALWAYS CHECK FIRST:
+1. Is the response actual gibberish or random characters? → Score 1-2
+2. Is it completely unrelated to the stimulus? → Score 1-2
+3. Is it extremely short (1-3 words) with no meaning? → Score 2-3
+4. Does it show ANY effort to understand the task? → Minimum score 4
+5. Only give 7+ if response is genuinely good quality
 
 STIMULUS-RESPONSE CONNECTION INDICATORS:
 - Does the response directly address what the stimulus presented?
@@ -310,7 +332,14 @@ Your analysis MUST address:
 3. Does the story flow logically from what's shown in the image?
 4. What elements of the image were addressed or ignored?
 
-IMPORTANT: If an image is provided, it may contain handwritten story. Read the handwriting carefully and analyze the written story content.
+IMPORTANT: If an image is provided, it may contain handwritten response. Read carefully and analyze.
+
+CRITICAL VALIDATION (MUST CHECK FIRST):
+1. Is the response complete gibberish or random keystrokes? (e.g., "asdfgh", "zzz", random letters)
+2. Is it completely unrelated to the TAT image? (e.g., shopping list, random notes)
+3. Is it extremely short with no coherent story? (e.g., single word, fragment)
+4. Does it show zero understanding of the TAT task?
+→ If YES to any: Score 1-2/10 immediately
 
 STORY STRUCTURE (25%):
 - Does the story have beginning, middle, end that fits the image context?
@@ -338,6 +367,12 @@ REMEMBER: Every piece of feedback must reference "In this image/situation..." or
       userPrompt += `\nWAT EVALUATION - WORD-ASSOCIATION CONNECTION:
 
 CRITICAL: Analyze the association in context of the SPECIFIC WORD shown above.
+
+VALIDATION CHECK FIRST:
+1. Is the response random characters or gibberish? → Score 1/10
+2. Is it completely unrelated to the word? → Score 1-2/10
+3. Is there NO logical connection whatsoever? → Score 2-3/10
+→ Only proceed with normal evaluation if response shows genuine attempt
 
 Your analysis MUST address:
 1. Is the association logically/semantically connected to THIS word?
@@ -368,6 +403,13 @@ REMEMBER: Always say "For the word '[word]', your association '[response]' shows
       userPrompt += `\nSRT EVALUATION - SITUATION-RESPONSE ALIGNMENT:
 
 CRITICAL: Evaluate how well the response addresses the SPECIFIC SITUATION described above.
+
+VALIDATION CHECK FIRST:
+1. Is this gibberish, random text, or nonsense? → Score 1/10
+2. Is the response just repeating the situation without solution? → Score 2-3/10
+3. Is it extremely vague or generic with no specifics? → Score 3-4/10
+4. Is it totally unrelated to the given situation? → Score 1-2/10
+→ BE STRICT: Only good responses deserve 7+ scores
 
 Your analysis MUST address:
 1. Did the candidate correctly identify what THIS situation demanded?
@@ -410,7 +452,13 @@ Your analysis MUST address:
 3. Does the proposed solution fit what THIS image actually depicts?
 4. What elements of THIS image were well-utilized or misunderstood?
 
-IMPORTANT: If an image is provided, it may contain handwritten response. Read carefully and analyze the content.
+IMPORTANT: If an image is provided, it may contain handwritten response. Read carefully and analyze.
+
+VALIDATION CHECK FIRST:
+1. Is the response gibberish or random text? → Score 1/10
+2. Is it completely irrelevant to the PPDT task? → Score 1-2/10
+3. Does it show zero understanding of the image/task? → Score 2-3/10
+→ Strict scoring: Generic responses get 4-5, good ones get 7-8, exceptional get 9-10
 
 1. SITUATION PERCEPTION:
    - How well does the interpretation match what THIS image actually shows?
@@ -526,13 +574,23 @@ function formatFeedback(analysis: any, isPremium: boolean): any {
 
 function getFallbackFeedback(): any {
   return {
-    overallScore: 6,
+    overallScore: 3,
     traitScores: [],
-    strengths: ['Attempted the test', 'Showed engagement'],
-    improvements: ['Provide more detailed responses', 'Show clearer leadership thinking', 'Include practical solutions'],
-    recommendations: ['Practice structured response writing', 'Study officer-like qualities', 'Upgrade to premium for detailed analysis'],
-    officerLikeQualities: ['Basic effort shown', 'Engagement with the task'],
-    sampleResponse: "A well-structured response would demonstrate clear thinking, practical solutions, and leadership qualities.",
+    strengths: ['You attempted to complete the test'],
+    improvements: [
+      'Response quality could not be properly evaluated due to technical issues',
+      'Ensure responses are clear, relevant, and address the given stimulus',
+      'Avoid random text or gibberish - write meaningful, thoughtful responses',
+      'Take time to understand what each stimulus is asking before responding'
+    ],
+    recommendations: [
+      'Review the requirements for each test type before attempting',
+      'Practice writing structured, coherent responses',
+      'Focus on demonstrating officer-like qualities through your answers',
+      'Upgrade to premium for detailed analysis and better guidance'
+    ],
+    officerLikeQualities: ['Completion shows basic commitment to the process'],
+    sampleResponse: "A good response requires: clear understanding of the stimulus, thoughtful analysis, practical solutions with proper reasoning, and demonstration of leadership qualities.",
   };
 }
 
@@ -998,36 +1056,37 @@ function getSRTBatchUserPrompt(batchData: any[]): string {
 async function handleImageTimeoutFallback(batchData: any[], isPremium: boolean, corsHeaders: any): Promise<Response> {
   console.log('Handling image timeout fallback for TAT analysis');
   
-  // Create a text-only analysis of the TAT responses
+  // CRITICAL: Low score because we cannot verify uploaded image content
   const fallbackAnalysis = {
-    overallScore: 7, // Give a reasonable score based on text responses
+    overallScore: 3, // Cannot verify quality without seeing the images
     traitScores: isPremium ? [
-      { trait: "Leadership", score: 7, description: "Good effort shown in story creation despite technical issues" },
-      { trait: "Communication", score: 7, description: "Stories demonstrate clear communication abilities" },
-      { trait: "Initiative", score: 6, description: "Proactive approach visible in narrative development" }
+      { trait: "Leadership", score: 3, description: "Unable to assess - image processing failed" },
+      { trait: "Communication", score: 3, description: "Cannot verify handwritten content quality" },
+      { trait: "Initiative", score: 3, description: "Completion shown but content unverifiable" }
     ] : [],
     strengths: [
-      "Completed full TAT assessment despite technical challenges",
-      "Demonstrated persistence and engagement with all stories", 
-      "Creative storytelling abilities evident in text responses"
+      "You attempted to complete all TAT stories"
     ],
     improvements: [
-      "Continue developing story structure and character development",
-      "Focus on incorporating more leadership scenarios in narratives",
-      "Practice time management during assessment conditions"
+      "Image uploads failed to process - cannot verify if content is relevant TAT material",
+      "Ensure images are properly uploaded before submitting test",
+      "Verify handwriting is clear and legible in uploaded photos",
+      "Consider typing responses instead for more reliable analysis",
+      "Double-check uploaded images contain actual TAT stories, not random notes"
     ],
     recommendations: isPremium ? [
-      "Retake TAT assessment when technical issues are resolved for more accurate image-based analysis",
-      "Practice storytelling with visual prompts to improve image interpretation skills",
-      "Focus on leadership-oriented narrative development"
+      "Retake the TAT test with verified image uploads or typed responses",
+      "Upload images immediately after writing to avoid timeout issues",
+      "Test image quality before starting - ensure photos are clear and readable",
+      "Focus on writing coherent stories that address the specific TAT images shown",
+      "Practice proper TAT story structure: beginning, middle, end with leadership themes"
     ] : [
-      "Consider retaking the assessment for full image-based analysis",
-      "Upgrade to premium for detailed trait analysis"
+      "Retake test with verified uploads or type responses",
+      "Ensure images upload successfully before submission",
+      "Upgrade to premium for detailed support"
     ],
     officerLikeQualities: [
-      "Persistence under challenging conditions",
-      "Adaptability when facing technical difficulties",
-      "Commitment to completing assigned tasks"
+      "Test completion shows basic commitment"
     ],
     sampleResponse: "In this situation, I see a leader taking initiative to address the challenge. The main character assesses the situation carefully, considers available resources, and takes decisive action while ensuring team coordination. The resolution demonstrates both problem-solving skills and responsibility for outcomes, showing the kind of leadership qualities essential for military officers."
   };
