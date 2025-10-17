@@ -124,7 +124,61 @@ const PPDTTest = () => {
     setShowCamera(false);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const maxSize = 5 * 1024 * 1024;
+      
+      if (file.size <= maxSize) {
+        resolve(file);
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const maxDimension = 1920;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                  resolve(compressedFile);
+                } else {
+                  reject(new Error('Failed to compress image'));
+                }
+              },
+              'image/jpeg',
+              0.8
+            );
+          }
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
@@ -132,12 +186,29 @@ const PPDTTest = () => {
         return;
       }
       
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast.error('Image is too large. Please select an image under 10MB.');
+        return;
+      }
+      
+      try {
+        const processedFile = await compressImage(file);
+        setImageFile(processedFile);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setUploadedImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(processedFile);
+        
+        if (processedFile.size < file.size) {
+          toast.success('Image compressed for optimal processing');
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
+        toast.error('Failed to process image. Please try another image.');
+      }
     }
   };
 

@@ -92,29 +92,38 @@ serve(async (req) => {
     }
 
     const startTime = Date.now();
-    const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages,
-        temperature: 0.2,
-        max_tokens: 3500,
-        response_format: { type: "json_object" }
-      }),
-    });
+    
+    // Add timeout for OpenAI API call (30 seconds for single response)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+      const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages,
+          temperature: 0.2,
+          max_tokens: 3500,
+          response_format: { type: "json_object" }
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    const responseTime = Date.now() - startTime;
-    let data;
-    let logEventType = 'success';
-    let errorCode = null;
-    let errorMessage = null;
-    let tokensUsed = 0;
+      const responseTime = Date.now() - startTime;
+      let data;
+      let logEventType = 'success';
+      let errorCode = null;
+      let errorMessage = null;
+      let tokensUsed = 0;
 
-    if (!apiResponse.ok) {
+      if (!apiResponse.ok) {
       const errorData = await apiResponse.json();
       errorCode = apiResponse.status.toString();
       errorMessage = errorData.error?.message || apiResponse.statusText;
@@ -140,27 +149,47 @@ serve(async (req) => {
         isPremium
       });
 
-      throw new Error(`OpenAI API request failed: ${errorMessage}`);
+        throw new Error(`OpenAI API request failed: ${errorMessage}`);
+      }
+
+      data = await apiResponse.json();
+      tokensUsed = data.usage?.total_tokens || 0;
+
+      // Log successful API call
+      await logOpenAIUsage({
+        supabase,
+        eventType: 'success',
+        requestType: testType,
+        tokensUsed,
+        responseTime,
+        modelUsed: 'gpt-4o-mini',
+        isPremium
+      });
+      const analysis = JSON.parse(data.choices[0].message.content);
+
+      return new Response(JSON.stringify(formatFeedback(analysis, isPremium)), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      // Handle timeout specifically
+      if (fetchError.name === 'AbortError') {
+        console.error('OpenAI API request timeout');
+        await logOpenAIUsage({
+          supabase,
+          eventType: 'error',
+          errorCode: '408',
+          errorMessage: 'Request timeout',
+          requestType: testType,
+          responseTime: Date.now() - startTime,
+          modelUsed: 'gpt-4o-mini',
+          isPremium
+        });
+        throw new Error('Request timeout - image processing took too long');
+      }
+      throw fetchError;
     }
-
-    data = await apiResponse.json();
-    tokensUsed = data.usage?.total_tokens || 0;
-
-    // Log successful API call
-    await logOpenAIUsage({
-      supabase,
-      eventType: 'success',
-      requestType: testType,
-      tokensUsed,
-      responseTime,
-      modelUsed: 'gpt-4o-mini',
-      isPremium
-    });
-    const analysis = JSON.parse(data.choices[0].message.content);
-
-    return new Response(JSON.stringify(formatFeedback(analysis, isPremium)), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('AI Analysis Error:', error);
     return new Response(JSON.stringify(getFallbackFeedback()), {
@@ -623,6 +652,49 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
     console.log('Calling OpenAI API for batch analysis...');
     const startTime = Date.now();
     
+    // Helper function to validate and optimize image URLs
+    const validateAndOptimizeImageUrl = async (imageUrl: string): Promise<string | null> => {
+      try {
+        const url = new URL(imageUrl);
+        
+        // If it's a Supabase storage URL, add transform parameters
+        if (url.hostname.includes('supabase')) {
+          url.searchParams.set('width', '1024');
+          url.searchParams.set('quality', '80');
+          const optimizedUrl = url.toString();
+          
+          // Quick validation check with 5 second timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          try {
+            const response = await fetch(optimizedUrl, { 
+              method: 'HEAD',
+              signal: controller.signal 
+            });
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              console.log(`Validated and optimized image: ${optimizedUrl}`);
+              return optimizedUrl;
+            } else {
+              console.warn(`Image validation failed: ${response.status}`);
+              return null;
+            }
+          } catch (error) {
+            clearTimeout(timeoutId);
+            console.warn(`Image pre-fetch failed:`, error.message);
+            return null;
+          }
+        }
+        
+        return imageUrl;
+      } catch (error) {
+        console.error(`Error processing image URL:`, error);
+        return null;
+      }
+    };
+    
     // Prepare messages based on test type and whether images are involved
     let messages: any[] = [{ role: 'system', content: systemPrompt }];
     
@@ -636,37 +708,43 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
         text: userPrompt
       });
       
-      // Add images for each TAT story that has an imageUrl with validation
-      let failedImages = 0;
-      batchData.forEach((item, index) => {
+      // Validate and add images for each TAT story
+      const failedImageIndices: number[] = [];
+      for (let index = 0; index < batchData.length; index++) {
+        const item = batchData[index];
         if (item.imageUrl && !item.isBlankSlide) {
-          try {
-            // Validate URL format and ensure it's accessible
-            const imageUrl = item.imageUrl.trim();
-            if (imageUrl.startsWith('http')) {
+          const imageUrl = item.imageUrl.trim();
+          if (imageUrl.startsWith('http')) {
+            const optimizedUrl = await validateAndOptimizeImageUrl(imageUrl);
+            if (optimizedUrl) {
               userMessage.content.push({
                 type: 'image_url',
                 image_url: { 
-                  url: imageUrl,
+                  url: optimizedUrl,
                   detail: "low" // Use low detail to reduce processing time and potential timeouts
                 }
               });
-              console.log(`Added image ${index + 1} to batch analysis: ${imageUrl}`);
+              console.log(`Added image ${index + 1} to batch analysis`);
             } else {
-              console.warn(`Invalid image URL format for item ${index + 1}: ${imageUrl}`);
-              failedImages++;
+              console.warn(`Image ${index + 1} failed validation, skipping`);
+              failedImageIndices.push(index + 1);
             }
-          } catch (error) {
-            console.error(`Error processing image ${index + 1}:`, error);
-            failedImages++;
+          } else {
+            console.warn(`Invalid image URL format for item ${index + 1}`);
+            failedImageIndices.push(index + 1);
           }
         }
-      });
+      }
       
-      if (failedImages > 0) {
-        console.warn(`${failedImages} images could not be processed. Analysis will continue with available images.`);
-        // Add note to the user message about missing images
-        userMessage.content[0].text += `\n\nNOTE: ${failedImages} images could not be loaded. Please analyze based on available images and text responses, giving appropriate weight to the stories where images are missing.`;
+      // If too many images failed, use fallback
+      if (failedImageIndices.length > batchData.length / 2) {
+        console.error(`Too many images failed: ${failedImageIndices.length}/${batchData.length}`);
+        return handleImageTimeoutFallback(isPremium, batchData, failedImageIndices);
+      }
+      
+      if (failedImageIndices.length > 0) {
+        console.warn(`${failedImageIndices.length} images could not be processed.`);
+        userMessage.content[0].text += `\n\nNOTE: Images ${failedImageIndices.join(', ')} could not be loaded. Analyze based on available images and responses.`;
       }
       
       messages.push(userMessage);
@@ -707,20 +785,43 @@ async function handleBatchAnalysis(testType: string, batchData: any[], isPremium
       messages.push({ role: 'user', content: userPrompt });
     }
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 0.2,
-        max_tokens: isPremium ? 4000 : 2000,
-        response_format: { type: "json_object" }
-      }),
-    });
+    // Add timeout for batch processing (50 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 50000);
+    
+    let response;
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: messages,
+          temperature: 0.2,
+          max_tokens: isPremium ? 4000 : 2000,
+          response_format: { type: "json_object" }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error('Batch analysis timeout - using fallback');
+        return new Response(
+          JSON.stringify(handleImageTimeoutFallback(isPremium, batchData, [])),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
+      }
+      throw fetchError;
+    }
 
     const responseTime = Date.now() - startTime;
     
