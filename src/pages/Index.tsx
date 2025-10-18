@@ -43,7 +43,7 @@ const Index = () => {
   ];
 
   const benefits = [
-    'AI-powered personality trait analysis',
+    'AI-powered personality trait analysiss',
     'Detailed feedback on 15 SSB traits',
     'Officer Like Qualities assessment',
     'Progress tracking and analytics',
