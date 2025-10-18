@@ -25,7 +25,7 @@ const Index = () => {
   // ============================================
   // Set to false when ready to launch the full site
   // This allows you to develop behind the scenes while showing maintenance page
-  const SHOW_UNDER_DEVELOPMENT = true;
+  const SHOW_UNDER_DEVELOPMENT = false;
   
   // Admin bypass: Allow admin (editkarde@gmail.com) to see the real site for testing
   if (SHOW_UNDER_DEVELOPMENT && !isAdmin) {

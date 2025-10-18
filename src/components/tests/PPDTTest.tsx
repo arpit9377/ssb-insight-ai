@@ -13,6 +13,7 @@ import { setupTestTables } from '@/services/databaseSetup';
 import { supabase } from '@/integrations/supabase/client';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
+import { PPDTGuidelines } from '@/components/tests/PPDTGuidelines';
 import { Camera, Upload, X, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -474,7 +475,10 @@ const PPDTTest = () => {
             )}
             
             <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-lg font-medium text-blue-900 mb-2">Instructions:</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-lg font-medium text-blue-900">Instructions:</p>
+                <PPDTGuidelines />
+              </div>
               <p className="text-blue-800">{currentImage.prompt}</p>
             </div>
 

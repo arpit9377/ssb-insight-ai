@@ -299,6 +299,15 @@ You must respond with valid JSON format only.`;
     In officer qualities: "Your response to [this scenario] showed..."
     In sample response: Write it specifically for the EXACT stimulus given
     
+    ${testType === 'ppdt' ? `
+    FOR PPDT: Include component breakdown in improvements array:
+    - First item: "WHO (Character) - X/2 points: [analysis with what's missing]"
+    - Second item: "WHAT (Problem) - X/2 points: [analysis with what's missing]"
+    - Third item: "HOW (Actions) - X/4 points ⚠️ CRITICAL: [count actions, list missing elements]"
+    - Fourth item: "SO WHAT (Outcome) - X/2 points: [analysis with what's missing]"
+    - Then add 2-3 general improvement points
+    ` : ''}
+    
      Return comprehensive analysis as JSON:
      {
        "overallScore": 7,
@@ -307,7 +316,7 @@ You must respond with valid JSON format only.`;
        "improvements": ["The situation demanded [X], but your response focused on [Y]. Consider [specific advice for THIS scenario]"],
        "recommendations": ["When facing similar [type of situations], remember to [contextual advice based on what was shown]"],
        "officerLikeQualities": ["Your handling of [this specific scenario] revealed [quality with evidence]"],
-       "sampleResponse": "A professionally written example response specifically for THIS exact stimulus/situation/word/image"
+       "sampleResponse": "A professionally written example response specifically for THIS exact stimulus/situation/word/image. ${testType === 'ppdt' ? 'Format with clear sections: [WHO] name, age, designation, location. [WHAT] problem/opportunity at specific location. [HOW] minimum 5-6 specific actions with authorities, resources, timeline, numbers. [SO WHAT] outcome with beneficiaries and measurable impact.' : ''}"
      }`;
   } else {
     return `${basePrompt}
@@ -471,46 +480,143 @@ ${completedQuestions && totalQuestions ? `Completion: ${completedQuestions}/${to
 REMEMBER: Every feedback point must reference "In this situation where [X]..." or "Given that the problem was [Y]..."`;
       break;
     case 'ppdt':
-      userPrompt += `\nPPDT EVALUATION - IMAGE INTERPRETATION & RESPONSE:
+      userPrompt += `\nPPDT EVALUATION - STRUCTURED 4-STEP ANALYSIS:
 
-CRITICAL: Evaluate how well the response interprets and addresses the SPECIFIC IMAGE/SCENARIO above.
+CRITICAL: PPDT is NOT creative writing - it's about showing PLANNING and EXECUTION ability.
+Evaluate based on the SSB 4-STEP STRUCTURE: WHO → WHAT → HOW → SO WHAT
 
-Your analysis MUST address:
-1. How accurately did the candidate interpret what's happening in THIS image?
-2. Is the perception of THIS situation positive and realistic?
-3. Does the proposed solution fit what THIS image actually depicts?
-4. What elements of THIS image were well-utilized or misunderstood?
+IMPORTANT: If an image is provided, it may contain handwritten response. Read carefully and analyze the content.
 
-IMPORTANT: If an image is provided, it may contain handwritten response. Read carefully and analyze.
-
-VALIDATION CHECK FIRST:
+=== VALIDATION CHECK FIRST ===
 1. Is the response gibberish or random text? → Score 1/10
 2. Is it completely irrelevant to the PPDT task? → Score 1-2/10
 3. Does it show zero understanding of the image/task? → Score 2-3/10
-→ Strict scoring: Generic responses get 4-5, good ones get 7-8, exceptional get 9-10
+4. Is it just describing the image without a story? → Score 3-4/10
+→ Only proceed with structured evaluation if response shows genuine attempt
 
-1. SITUATION PERCEPTION:
-   - How well does the interpretation match what THIS image actually shows?
-   - Is the mood/tone of the story appropriate for THIS visual context?
-   - What aspects of THIS image were correctly/incorrectly understood?
+=== PPDT SCORING RUBRIC (Total: 10 points) ===
 
-2. LEADERSHIP DEMONSTRATION:
-   - Given what THIS image depicts, is the leadership approach suitable?
-   - Does the initiative shown match what THIS situation requires?
-   - Is the team coordination relevant to THIS scenario?
+**STEP 1: WHO? (Character Setup) - 2 points**
+Check for:
+✅ Specific name used (Rahul, Amit, Priya) - NOT "the boy", "the man", "someone"
+✅ Age mentioned (25 years, 28 years)
+✅ Designation/Role specified (SDM, engineer, teacher, intern, officer)
+✅ Location mentioned (posted in Thoubal Manipur, working in Leh, at resort in Goa)
 
-3. PROBLEM-SOLVING:
-   - Is the problem identified consistent with what THIS image presents?
-   - Are the solutions practical for THIS specific visual scenario?
-   - Does the approach fit the context shown in THIS image?
+Score 2/2: All 4 elements present with specifics
+Score 1/2: 2-3 elements present
+Score 0/2: Generic character or missing details
 
-4. COMMUNICATION:
-   - Is the story clearly connected to THIS image?
-   - Does the response effectively convey understanding of THIS scene?
+**STEP 2: WHAT? (Problem/Opportunity) - 2 points**
+Check for:
+✅ Clear problem or opportunity identified
+✅ Specific location mentioned (between villages X and Y, at river Z, on road from A to B)
+✅ Realistic scenario (something an officer/professional would encounter)
+✅ Positive framing (opportunity to help, not crime/violence/negative themes)
 
-For uploaded handwritten responses: Evaluate presentation and professionalism.
+Score 2/2: Problem clearly stated with specific location and positive framing
+Score 1/2: Problem identified but vague or missing location
+Score 0/2: No clear problem or negative/unrealistic scenario
 
-REMEMBER: Reference "In this image showing [X]..." or "Given that the picture depicts [Y]..."`;
+**STEP 3: HOW? (Actions - MOST CRITICAL) - 4 points**
+This is where candidates WIN or LOSE. Check for:
+✅ Minimum 5-6 SPECIFIC actions (not vague "he tried", "he worked hard")
+✅ Authorities/departments contacted (forest dept, district collector, contractors, local authorities)
+✅ Resources arranged (materials, workers, budget, equipment)
+✅ Timeline mentioned (completed in 3 months, within 2 weeks, by next month)
+✅ Specific features/details (ferry services, 20 meters apart, 15 lakhs cost, 50 people)
+✅ Supervision/monitoring shown (personally checked, conducted inspections)
+
+Score 4/4: 6+ specific actions with authorities, resources, timeline, and numbers
+Score 3/4: 4-5 specific actions with some details
+Score 2/4: 2-3 actions but mostly vague
+Score 1/4: Only 1-2 vague actions like "he tried" or "he worked"
+Score 0/4: No concrete actions, just thoughts or feelings
+
+**STEP 4: SO WHAT? (Outcome) - 2 points**
+Check for:
+✅ Clear positive result stated
+✅ Who benefited mentioned (people, villagers, students, community)
+✅ Measurable impact (numbers, time saved, cost, ratings)
+✅ Realistic outcome (not superhero achievements)
+
+Score 2/2: Clear outcome with beneficiaries and measurable impact
+Score 1/2: Outcome mentioned but vague or no numbers
+Score 0/2: No outcome or unrealistic result
+
+=== ANALYSIS INSTRUCTIONS ===
+
+1. **Analyze each component separately** and assign points
+2. **Count the actual number of specific actions** in the HOW section
+3. **Identify what's missing** from each step
+4. **Provide specific examples** of what should have been included
+5. **Reference the actual image/scenario** throughout your feedback
+
+=== SAMPLE RESPONSE FORMAT ===
+Your sample response MUST follow this exact structure for THIS specific image:
+
+[WHO - Character Setup]
+[Name], [Age] years, [Designation], [Location]
+
+[WHAT - Problem/Opportunity]  
+While [doing what], he/she noticed/saw [specific problem/opportunity] at [exact location between X and Y]
+
+[HOW - Specific Actions - MINIMUM 5-6 ACTIONS]
+He/she immediately [ACTION 1 - contacted whom], [ACTION 2 - arranged what resources], [ACTION 3 - planned what specific features with numbers], [ACTION 4 - set what timeline], [ACTION 5 - supervised how], and [ACTION 6 - additional specific detail]
+
+[SO WHAT - Outcome]
+[What changed], [who benefited], [measurable impact with numbers]. [Positive reaction from people]
+
+=== FEEDBACK STRUCTURE ===
+
+Provide feedback in this format:
+
+**Component Analysis:**
+
+WHO (Character) - X/2 points
+[List what was present and what was missing with specific examples]
+
+WHAT (Problem/Opportunity) - X/2 points  
+[List what was present and what was missing with specific examples]
+
+HOW (Actions) - X/4 points ⚠️ MOST IMPORTANT
+[Count actual actions: "You provided only 2 actions, need minimum 5-6"]
+[List missing elements: authorities, resources, timeline, numbers]
+[Give specific examples of what should have been added]
+
+SO WHAT (Outcome) - X/2 points
+[List what was present and what was missing with specific examples]
+
+**Critical Issues:**
+- List 2-3 most important things missing
+- Be specific about what to add
+
+**Strengths:**
+- Acknowledge any good elements present
+- Be encouraging but honest
+
+=== COMMON THEMES TO SUGGEST ===
+If response is weak, suggest these safe themes:
+- Infrastructure (bridges, roads, community centers)
+- Social welfare (education, healthcare, sanitation)
+- Disaster management (flood relief, rescue, rehabilitation)
+- Government/Administration (SDM/Collector solving issues)
+- Innovation/Development (new technology, improving systems)
+- Environmental (plantation, river cleaning, water conservation)
+
+=== SCORING GUIDELINES ===
+1-2/10: Gibberish, irrelevant, or no structure
+3-4/10: Basic attempt but missing most components
+5-6/10: Has some structure but weak HOW section (less than 3 actions)
+7-8/10: Good structure with 5+ specific actions and details
+9-10/10: Excellent - all components with specific names, numbers, authorities, timeline
+
+REMEMBER: 
+- PPDT is about PLANNING (multiple steps) and EXECUTION (specific details)
+- The HOW section is worth 40% - this is where most candidates fail
+- Always reference the specific image/scenario in your feedback
+- Provide actionable improvements with examples
+- Be strict but constructive - help them improve`;
       break;
     default:
       userPrompt += `Evaluate this response for officer-like qualities, leadership potential, and psychological maturity. Score fairly based on actual content quality.`;
