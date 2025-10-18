@@ -84,15 +84,31 @@ serve(async (req) => {
     ];
 
     // Check if this is an uploaded handwritten response
-    const isUploadedResponse = response.trim() === 'User uploaded handwritten response' || 
-                                response.toLowerCase().includes('uploaded') && imageUrl;
+    let isUploadedResponse = false;
+    let actualImageUrl = imageUrl;
+    
+    // Try to parse response as JSON to check for uploaded image
+    try {
+      const parsed = JSON.parse(response);
+      if (parsed.mode === 'uploaded' && parsed.imageUrl) {
+        isUploadedResponse = true;
+        actualImageUrl = parsed.imageUrl;
+        console.log('DEBUG - Detected uploaded image from JSON:', actualImageUrl);
+      }
+    } catch (e) {
+      // Not JSON, check if it's the placeholder text
+      if (response.trim() === 'User uploaded handwritten response' || 
+          response.toLowerCase().includes('uploaded')) {
+        isUploadedResponse = true;
+      }
+    }
     
     console.log('DEBUG - Response text:', response);
     console.log('DEBUG - Is uploaded response:', isUploadedResponse);
-    console.log('DEBUG - Image URL:', imageUrl);
+    console.log('DEBUG - Image URL:', actualImageUrl);
 
     // Add image for vision tasks (TAT/PPDT) or uploaded handwritten responses
-    if (imageUrl && (testType === 'ppdt' || testType === 'tat' || isUploadedResponse)) {
+    if (actualImageUrl && (testType === 'ppdt' || testType === 'tat' || isUploadedResponse)) {
       // If it's an uploaded handwritten response, we need to extract text first
       if (isUploadedResponse) {
         console.log('DEBUG - Using OCR mode for uploaded handwritten response');
@@ -107,14 +123,14 @@ After extracting the text, evaluate it against the PPDT criteria (WHO, WHAT, HOW
 
 ${userPrompt}` 
           },
-          { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } }
+          { type: 'image_url', image_url: { url: actualImageUrl, detail: 'high' } }
         ];
       } else {
         console.log('DEBUG - Using regular vision mode for test image');
         // Regular vision task (test image, not response image)
         messages[1].content = [
           { type: 'text', text: userPrompt },
-          { type: 'image_url', image_url: { url: imageUrl } }
+          { type: 'image_url', image_url: { url: actualImageUrl } }
         ];
       }
     }
