@@ -6,6 +6,7 @@ import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } 
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { UploadFeatureAnnouncement } from '@/components/announcement/UploadFeatureAnnouncement';
+import { UnderDevelopment } from '@/components/UnderDevelopment';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,6 +19,19 @@ const Index = () => {
   
   // Check if current user is admin
   const isAdmin = user?.emailAddresses?.[0]?.emailAddress === 'editkarde@gmail.com';
+
+  // ============================================
+  // TEMPORARY: Under Development Mode
+  // ============================================
+  // Set to false when ready to launch the full site
+  // This allows you to develop behind the scenes while showing maintenance page
+  const SHOW_UNDER_DEVELOPMENT = true;
+  
+  // Admin bypass: Allow admin (editkarde@gmail.com) to see the real site for testing
+  if (SHOW_UNDER_DEVELOPMENT && !isAdmin) {
+    return <UnderDevelopment />;
+  }
+  // ============================================
 
   const features = [
     {
