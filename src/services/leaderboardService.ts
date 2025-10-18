@@ -218,35 +218,86 @@ class LeaderboardService {
         return;
       }
 
-      // Sync each user's data to leaderboard_entries
+      // Get test statistics for each user
+      const { data: userStats, error: statsError } = await supabase
+        .from('user_responses')
+        .select('user_id, test_type, trait_scores');
+
+      const testCompletionStats = this.calculateTestStats(userStats || []);
+
+      // Sync each user's data to ALL leaderboard categories
+      const categories: LeaderboardCategory[] = ['overall', 'weekly', 'monthly', 'streaks'];
+      
       for (const streak of streaks || []) {
         const profile = (streak as any).profiles;
         const displayName = profile?.display_name || 'Anonymous User';
+        const userTestStats = testCompletionStats[streak.user_id] || { total: 0, avgScore: 0 };
         
         // Calculate weekly/monthly points (simplified - in real app, would be time-based)
         const weeklyPoints = Math.floor(streak.total_points * 0.1); // 10% of total as weekly
         const monthlyPoints = Math.floor(streak.total_points * 0.3); // 30% of total as monthly
+        const currentStreak = Math.max(streak.current_login_streak, streak.current_test_streak);
 
-        await supabase
-          .from('leaderboard_entries')
-          .upsert({
-            user_id: streak.user_id,
-            display_name: displayName,
-            total_points: streak.total_points,
-            current_streak: Math.max(streak.current_login_streak, streak.current_test_streak),
-            weekly_points: weeklyPoints,
-            monthly_points: monthlyPoints,
-            city: profile?.city,
-            avatar_url: profile?.avatar_url,
-            category: 'overall', // Could be expanded to sync multiple categories
-            total_tests_completed: 0, // Would need to be calculated from user_responses
-            average_score: 0, // Would need to be calculated from user_responses
-            updated_at: new Date().toISOString()
-          });
+        // Upsert for each category
+        for (const category of categories) {
+          await supabase
+            .from('leaderboard_entries')
+            .upsert({
+              user_id: streak.user_id,
+              display_name: displayName,
+              total_points: streak.total_points,
+              current_streak: currentStreak,
+              weekly_points: weeklyPoints,
+              monthly_points: monthlyPoints,
+              city: profile?.city,
+              avatar_url: profile?.avatar_url,
+              category: category,
+              total_tests_completed: userTestStats.total,
+              average_score: userTestStats.avgScore,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,category'
+            });
+        }
       }
+
+      console.log('✅ Leaderboard data synced successfully for all categories');
     } catch (error) {
       console.error('Error syncing leaderboard data:', error);
     }
+  }
+
+  private calculateTestStats(responses: any[]): Record<string, { total: number; avgScore: number }> {
+    const stats: Record<string, { scores: number[]; count: number }> = {};
+
+    responses.forEach(response => {
+      if (!stats[response.user_id]) {
+        stats[response.user_id] = { scores: [], count: 0 };
+      }
+      
+      stats[response.user_id].count++;
+      
+      // Extract score from trait_scores if available
+      if (response.trait_scores?.overall_score) {
+        stats[response.user_id].scores.push(response.trait_scores.overall_score);
+      }
+    });
+
+    // Calculate averages
+    const result: Record<string, { total: number; avgScore: number }> = {};
+    Object.keys(stats).forEach(userId => {
+      const userStats = stats[userId];
+      const avgScore = userStats.scores.length > 0
+        ? userStats.scores.reduce((a, b) => a + b, 0) / userStats.scores.length
+        : 0;
+      
+      result[userId] = {
+        total: userStats.count,
+        avgScore: Math.round(avgScore * 10) / 10
+      };
+    });
+
+    return result;
   }
 
   getCategoryDisplayName(category: LeaderboardCategory): string {
