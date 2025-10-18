@@ -83,19 +83,45 @@ serve(async (req) => {
       { role: 'user', content: userPrompt }
     ];
 
-    // Add image for vision tasks (TAT/PPDT)
-    if (imageUrl && (testType === 'ppdt' || testType === 'tat')) {
-      messages[1].content = [
-        { type: 'text', text: userPrompt },
-        { type: 'image_url', image_url: { url: imageUrl } }
-      ];
+    // Check if this is an uploaded handwritten response
+    const isUploadedResponse = response === 'User uploaded handwritten response' || 
+                                response.includes('uploaded') && imageUrl;
+
+    // Add image for vision tasks (TAT/PPDT) or uploaded handwritten responses
+    if (imageUrl && (testType === 'ppdt' || testType === 'tat' || isUploadedResponse)) {
+      // If it's an uploaded handwritten response, we need to extract text first
+      if (isUploadedResponse) {
+        messages[1].content = [
+          { 
+            type: 'text', 
+            text: `IMPORTANT: This is a handwritten response uploaded by the user. First, carefully read and extract ALL the text from the image. Then evaluate it using the PPDT structure.
+
+The image contains the user's handwritten PPDT response. Read every word carefully, including any corrections or additions.
+
+After extracting the text, evaluate it against the PPDT criteria (WHO, WHAT, HOW, SO WHAT).
+
+${userPrompt}` 
+          },
+          { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } }
+        ];
+      } else {
+        // Regular vision task (test image, not response image)
+        messages[1].content = [
+          { type: 'text', text: userPrompt },
+          { type: 'image_url', image_url: { url: imageUrl } }
+        ];
+      }
     }
 
     const startTime = Date.now();
     
-    // Add timeout for OpenAI API call (30 seconds for single response)
+    // Use gpt-4o for uploaded handwritten responses (better OCR), gpt-4o-mini for typed responses
+    const modelToUse = isUploadedResponse ? 'gpt-4o' : 'gpt-4o-mini';
+    
+    // Add timeout for OpenAI API call (45 seconds for uploaded images, 30 for typed)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutMs = isUploadedResponse ? 45000 : 30000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
       const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -105,7 +131,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${openaiApiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: modelToUse,
           messages,
           temperature: 0.2,
           max_tokens: 3500,
@@ -162,8 +188,9 @@ serve(async (req) => {
         requestType: testType,
         tokensUsed,
         responseTime,
-        modelUsed: 'gpt-4o-mini',
-        isPremium
+        modelUsed: modelToUse,
+        isPremium,
+        metadata: isUploadedResponse ? { uploadedImage: true } : {}
       });
       const analysis = JSON.parse(data.choices[0].message.content);
 
