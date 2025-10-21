@@ -29,8 +29,12 @@ const SSB_TRAITS = [
   'Courage',
   'Determination',
   'Social Skills',
-  'Intelligence'
-];
+  'Intelligence',
+  'Effective Intelligence',
+  'Reasoning Ability',
+  'Cooperation',
+  'Liveliness',
+  'Team Spirit'];
 
 export class AIService {
   private currentProvider: 'openai';
@@ -349,17 +353,42 @@ Be critical of superficial responses. Look for depth, positivity, and practical 
   }
 
   private getTATBatchSystemPrompt(isPremium: boolean): string {
-    const basePrompt = `You are a professional psychologist specializing in SSB psychological assessments. Analyze ALL TAT stories together to provide comprehensive evaluation.
+    const basePrompt = `You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments. Analyze ALL TAT stories together to provide comprehensive evaluation.
 
 Task: Analyze ${isPremium ? '13' : 'multiple'} TAT stories (12 pictures + 1 blank slide) and evaluate Officer Like Qualities.
 
 The 15 SSB traits: ${SSB_TRAITS.join(', ')}.
 
-STRICT SCORING GUIDELINES:
-- Evaluate story quality, character development, problem-solving approach
-- Look for consistent patterns across all stories
-- Score each trait based on cumulative evidence from all responses
-- Consider creativity, leadership potential, and positive thinking patterns
+TAT EVALUATION GUIDELINES:
+The TAT assesses personality, thought process, and problem-solving abilities through ambiguous pictures. Each story should be evaluated for:
+
+STORY STRUCTURE (3-part format):
+1. Beginning: Clear protagonist introduction with background and situation
+2. Middle: Actions taken by protagonist to address the problem
+3. End: Positive outcome/resolution highlighting protagonist's qualities
+
+KEY EVALUATION CRITERIA:
+✅ POSITIVE INDICATORS:
+- Protagonist shows leadership, courage, empathy, problem-solving, teamwork
+- Realistic and practical scenarios (avoid supernatural/overly dramatic elements)
+- Positive endings showing growth, success, or solutions
+- Protagonist takes initiative and motivates others
+- Demonstrates logical problem-solving and resourcefulness
+- Shows responsibility and determination
+- Reflects positive traits like leadership, teamwork, social responsibility
+
+❌ NEGATIVE INDICATORS:
+- Protagonist portrayed as helpless, overly emotional, or dependent
+- Passive behavior or lack of initiative
+- Negative or pessimistic outcomes
+- Unrealistic or overly complex interpretations
+- Superficial responses without depth
+- Lack of clear action or resolution
+
+SCORING APPROACH:
+- Score 7-10: Strong leadership, clear problem-solving, positive outcomes, realistic approach
+- Score 4-6: Moderate qualities, some positive traits but lacking depth or clarity
+- Score 1-3: Passive responses, negative thinking, unrealistic scenarios, poor structure
 
 Return comprehensive analysis as JSON.`;
 
@@ -403,18 +432,63 @@ Return basic analysis:
       prompt += `Response: "${item.response}"\n\n`;
     });
 
-    prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses.`;
+    prompt += `Analyze these ${batchData.length} TAT stories comprehensively. Look for patterns, consistency, and overall psychological profile across all responses.
+
+Provide:
+1. Overall psychological assessment based on all stories
+2. Story-by-story feedback in "storyFeedback" array with format:
+   [{"storyNumber": number, "score": 1-10, "strengths": "what worked well", "improvements": "what could be better", "sampleStory": "example of how this story could be improved with better structure, protagonist qualities, and positive outcome"}]
+3. Pattern analysis across all stories (recurring themes, protagonist characteristics, problem-solving approaches)
+4. Identify best stories that demonstrated strong OLQs
+5. Common weaknesses to address (e.g., passive protagonists, negative endings, unrealistic scenarios)
+6. Overall consistency and psychological profile`;
     
     return prompt;
   }
 
   private getWATBatchSystemPrompt(isPremium: boolean): string {
-    // Similar structure for WAT batch analysis
-    return `You are analyzing Word Association Test responses. Evaluate thought patterns, emotional stability, and officer-like thinking across all 60 word associations.
+    const basePrompt = `You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments. Analyze Word Association Test (WAT) responses to assess thought process, values, and officer suitability.
 
-Look for: Positive vs negative associations, leadership mindset, emotional maturity, social responsibility.
+Task: Analyze 60 word associations to evaluate spontaneous thought patterns and Officer Like Qualities.
 
-${isPremium ? 'Provide detailed trait analysis.' : 'Provide basic assessment.'}`;
+The 15 SSB traits: ${SSB_TRAITS.join(', ')}.
+
+WAT EVALUATION GUIDELINES:
+WAT provides quick insight into thought process, values, and suitability for officer role through immediate, spontaneous responses.
+
+KEY EVALUATION CRITERIA:
+✅ POSITIVE INDICATORS:
+- Spontaneous, immediate responses (first thought that comes to mind)
+- Positive and constructive tone showing optimism and determination
+- Responses related to leadership qualities (challenge → opportunity, discipline → efficiency)
+- Consistency showing stable and coherent thought process
+- Values like integrity, commitment, duty, patriotism reflected
+- Adaptability and resilience demonstrated
+- Leadership traits: decisiveness, responsibility, initiative, positive influence
+- Emotional intelligence and maturity
+- Action-oriented and solution-focused responses
+- Authentic, non-clichéd answers
+
+❌ NEGATIVE INDICATORS:
+- Negative or passive responses (e.g., "failed", "cried", "gave up")
+- Overly philosophical or abstract answers lacking practicality
+- Responses showing fear, indecisiveness, or lack of confidence
+- Using "I am..." format (avoid first person "I")
+- Clichéd or overused expressions
+- Pessimistic or problem-focused associations
+- Emotional instability or immaturity
+- Dependent or helpless thinking patterns
+
+SCORING APPROACH:
+- Score 8-10: Consistently positive, leadership-oriented, emotionally mature responses
+- Score 5-7: Mix of positive and neutral responses, some leadership qualities
+- Score 1-4: Predominantly negative, passive, or inappropriate associations
+
+${isPremium ? 'Provide detailed trait analysis with specific examples from responses.' : 'Provide basic assessment with key patterns identified.'}
+
+Return comprehensive analysis as JSON.`;
+    
+    return basePrompt;
   }
 
   private getWATBatchUserPrompt(batchData: any[]): string {
@@ -424,15 +498,77 @@ ${isPremium ? 'Provide detailed trait analysis.' : 'Provide basic assessment.'}`
       prompt += `${index + 1}. ${item.word} → "${item.response}"\n`;
     });
 
-    return prompt + "\n\nAnalyze these word associations for psychological patterns and officer-like qualities.";
+    prompt += `\n\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities.
+
+Provide:
+1. Overall psychological profile based on response patterns
+2. Word-by-word suggestions in "wordSuggestions" array with format:
+   [{"word": "word", "yourResponse": "response", "score": 1-10, "feedback": "why this response works/doesn't work", "betterResponse": "improved alternative showing officer-like thinking"}]
+3. Pattern analysis (positive vs negative ratio, emotional maturity, leadership mindset)
+4. Specific examples of strong and weak responses`;
+    
+    return prompt;
   }
 
   private getSRTBatchSystemPrompt(isPremium: boolean): string {
-    return `Analyze Situation Reaction Test responses. Evaluate decision-making, leadership approach, and practical problem-solving across all situations.
+    const basePrompt = `You are a professional psychologist specializing in SSB (Services Selection Board) psychological assessments. Analyze Situation Reaction Test (SRT) responses to assess decision-making ability, presence of mind, emotional intelligence, and Officer Like Qualities under pressure.
 
-Focus on: Initiative, responsibility, practical solutions, leadership potential.
+Task: Analyze 60 situation responses to evaluate practical problem-solving and leadership approach.
 
-${isPremium ? 'Provide detailed trait scoring.' : 'Provide basic assessment.'}`;
+The 15 SSB traits: ${SSB_TRAITS.join(', ')}.
+
+SRT EVALUATION GUIDELINES:
+SRT assesses decision-making ability, presence of mind, emotional intelligence, and officer-like qualities under pressure. Candidates must respond quickly and logically.
+
+GENERAL PRINCIPLES:
+✅ Be Practical and Logical - Responses should reflect realistic actions
+✅ Show Responsibility and Initiative - Always take charge, avoid passive behavior
+✅ Reflect OLQs - Demonstrate leadership, empathy, courage, discipline, problem-solving
+✅ Be Concise and Clear - Short (1-2 lines), direct, action-oriented responses
+✅ Face the Situation - Never ignore or avoid the problem, always provide solution
+
+RESPONSE STRUCTURE:
+Each response should answer:
+1. What action will you take?
+2. How will you resolve the issue?
+3. What qualities are reflected?
+
+KEY EVALUATION CRITERIA:
+✅ POSITIVE INDICATORS:
+- Immediate problem identification and assessment
+- Practical, realistic solution approach
+- Leadership initiative and taking charge
+- Clear decision-making without hesitation
+- Responsibility acceptance (not blaming others)
+- Teamwork and cooperation when appropriate
+- Risk assessment and management
+- Action-oriented responses (doing something concrete)
+- Positive outcomes focused on resolution
+- Specific, actionable solutions with clear steps
+- Demonstrates courage, empathy, and resourcefulness
+- Shows presence of mind under pressure
+
+❌ NEGATIVE INDICATORS:
+- Passive responses (e.g., "I will wait", "I will do nothing")
+- Overly emotional or dramatic reactions
+- Responses showing fear, indecisiveness, or lack of initiative
+- Long-winded or vague answers without clear action
+- Escaping or avoiding the situation
+- Blaming others or making excuses
+- Impractical or unrealistic solutions
+- Lack of responsibility or leadership
+- Repetitive similar actions across different situations
+
+SCORING APPROACH:
+- Score 8-10: Immediate action, clear leadership, practical solutions, strong OLQs
+- Score 5-7: Adequate responses with some initiative but lacking clarity or depth
+- Score 1-4: Passive, vague, emotional, or impractical responses
+
+${isPremium ? 'Provide detailed trait scoring with specific examples from responses.' : 'Provide basic assessment with key decision-making patterns.'}
+
+Return comprehensive analysis as JSON.`;
+    
+    return basePrompt;
   }
 
   private getSRTBatchUserPrompt(batchData: any[]): string {
@@ -443,7 +579,17 @@ ${isPremium ? 'Provide detailed trait scoring.' : 'Provide basic assessment.'}`;
       prompt += `Response: "${item.response}"\n\n`;
     });
 
-    return prompt + "Analyze decision-making patterns and leadership qualities across all responses.";
+    prompt += `Analyze decision-making patterns and leadership qualities across all ${batchData.length} responses.
+
+Provide:
+1. Overall assessment of decision-making ability and leadership approach
+2. Situation-by-situation feedback in "situationSuggestions" array with format:
+   [{"situation": "brief situation", "yourResponse": "response", "score": 1-10, "feedback": "analysis of response quality", "betterResponse": "improved response showing clear action, leadership, and OLQs"}]
+3. Pattern analysis (initiative level, responsibility acceptance, practical thinking)
+4. Identify best and weakest responses with specific examples
+5. Common mistakes or repetitive patterns to avoid`;
+    
+    return prompt;
   }
 }
 

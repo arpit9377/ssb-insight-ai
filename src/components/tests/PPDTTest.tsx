@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
 import { PPDTGuidelines } from '@/components/tests/PPDTGuidelines';
-import { Camera, Upload, X, Edit } from 'lucide-react';
+import { Camera, Upload, X, Edit, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PPDTTest = () => {
@@ -47,6 +47,8 @@ const PPDTTest = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingToStorage, setIsUploadingToStorage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   useEffect(() => {
     if (user) {

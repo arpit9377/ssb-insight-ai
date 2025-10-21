@@ -12,7 +12,7 @@ import { setupTestTables } from '@/services/databaseSetup';
 import { supabase } from '@/integrations/supabase/client';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
 import TestTimer from '@/components/tests/TestTimer';
-import { Camera, Upload, X, Edit } from 'lucide-react';
+import { Camera, Upload, X, Edit, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WATTest = () => {
