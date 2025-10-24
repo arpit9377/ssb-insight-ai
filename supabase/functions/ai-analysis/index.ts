@@ -1239,7 +1239,10 @@ You must respond with valid JSON format only:
   "recommendations": ["Practice writing complete, positive sentences without using 'I', 'He', or 'She'."],
   "officerLikeQualities": ["observed OLQ with evidence"],
   "sampleResponse": "Word -> Short positive sentence (6-10 words, no pronouns, shows OLQs)",
-  "wordSuggestions": [{"word": "EXACT_WORD_FROM_INPUT", "response": "EXACT_USER_RESPONSE", "betterResponse": "Improved 1-2 line sentence: positive, no pronouns, shows OLQs"}],
+  "wordSuggestions": [
+    {"word": "EXACT_WORD_FROM_LINE_1", "response": "EXACT_RESPONSE_FROM_LINE_1", "score": 8, "betterResponse": "Short improved version (8-10 words)"},
+    {"word": "EXACT_WORD_FROM_LINE_2", "response": "EXACT_RESPONSE_FROM_LINE_2", "score": 9, "betterResponse": "Already excellent - demonstrates leadership"}
+  ],
   "sampleExamples": [{"word": "EXACT_WORD", "response": "EXACT_RESPONSE", "analysis": "Why this works/doesn't work"}]
 }`;
   } else {
@@ -1273,26 +1276,38 @@ function getWATBatchUserPrompt(batchData: any[]): string {
     }
   });
 
-  prompt += `\n\nCRITICAL INSTRUCTIONS:
-1. Match EXACT word with EXACT response - do NOT mix up responses
-2. In "wordSuggestions", use the EXACT word and EXACT response from above
-3. Score based on ACTUAL content quality:
+  prompt += `\n\n⚠️ CRITICAL MATCHING INSTRUCTIONS - READ CAREFULLY:
+1. WORD-RESPONSE PAIRING:
+   - Each numbered line above shows: NUMBER. WORD -> "RESPONSE"
+   - In "wordSuggestions" array, you MUST use:
+     * "word": The EXACT word from that line
+     * "response": The EXACT response text from that line
+   - DO NOT mix up or swap responses between different words
+   - Example: If line says "1. Danger -> 'Danger is assessed calmly'"
+     Then wordSuggestions must have: {"word": "Danger", "response": "Danger is assessed calmly", ...}
+
+2. SCORING RULES:
    - Complete sentences with positive associations = 7-10
+   - No pronouns (I/He/She) + positive = 8-10
+   - Patriotic/leadership themes = 9-10
    - Uses "I", "He", "She" or philosophical = 3-5
    - Negative or passive = 1-3
-4. "betterResponse" must be:
+
+3. "betterResponse" FORMAT:
    - SHORT: Maximum 8-10 words
    - NO pronouns (I, He, She)
    - Positive and action-oriented
    - Shows leadership/patriotism/problem-solving
    - Examples:
-     * "Challenges build resilience and strength."
-     * "Discipline ensures mission success."
-     * "Teamwork achieves collective goals efficiently."
-   - If user's response is already excellent (8+/10), keep betterResponse VERY similar or say "Already excellent - demonstrates [quality]"
+     * "Challenges build resilience and strength." (5 words)
+     * "Discipline ensures mission success." (4 words)
+     * "Teamwork achieves collective goals efficiently." (5 words)
+   - If user's response is already excellent (8+/10), say "Already excellent - demonstrates [quality]"
 
-5. Provide specific feedback for EACH response in "wordSuggestions"
-6. Identify patterns: pronoun usage, sentence completeness, positivity ratio`;
+4. VERIFICATION:
+   - Before finalizing, verify each word matches its response
+   - Check line numbers to ensure correct pairing
+   - Double-check you haven't swapped any responses`;
   
   if (hasUploadedImages) {
     prompt += `\n\nNOTE: Some responses are handwritten. Read carefully and analyze content quality.`;
