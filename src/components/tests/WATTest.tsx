@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -11,13 +10,14 @@ import { testLimitService } from '@/services/testLimitService';
 import { setupTestTables } from '@/services/databaseSetup';
 import { supabase } from '@/integrations/supabase/client';
 import AnalysisLoadingScreen from '@/components/analysis/AnalysisLoadingScreen';
+import { BatchImageUpload } from '@/components/tests/BatchImageUpload';
+import { PreTestInstructions } from '@/components/tests/PreTestInstructions';
 import TestTimer from '@/components/tests/TestTimer';
-import { Camera, Upload, X, Edit, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WATTest = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuthContext();
+  const { user } = useAuthContext();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [words, setWords] = useState<any[]>([]);
   const [responses, setResponses] = useState<string[]>([]);
@@ -27,39 +27,34 @@ const WATTest = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [startTime, setStartTime] = useState<number>(Date.now());
   
-  // Upload functionality
-  const [responseMode, setResponseMode] = useState<'type' | 'upload'>('type');
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // New state for instructions and upload
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [showUploadScreen, setShowUploadScreen] = useState(false);
+  const [inputMethod, setInputMethod] = useState<'typed' | 'handwritten'>('typed');
+  const MINIMUM_RESPONSES = 20;
 
-  useEffect(() => {
+  // Don't initialize test automatically - wait for user to click "Start Test"
+  const handleStartTest = (method: 'typed' | 'handwritten') => {
+    setInputMethod(method);
+    setShowInstructions(false);
+    
+    // Initialize test for both methods
     if (user) {
       initializeTest();
     }
-  }, [user]);
+  };
+
+  // Check if user can finish early
+  const completedCount = responses.filter(r => r && r.trim()).length;
+  const canFinishEarly = completedCount >= MINIMUM_RESPONSES;
 
   const initializeTest = async () => {
     try {
-      if (!user?.id) {
-        toast.error('Please sign in to take tests.');
-        navigate('/dashboard');
-        return;
-      }
+      console.log('Initializing WAT test...');
+      await setupTestTables();
 
-      const userId = user.id;
-      console.log('Initializing WAT test for user:', userId);
-      
-      // Check database setup
-      const dbSetup = await setupTestTables();
-      console.log('Database setup result:', dbSetup);
-      
-      // Test database connection
       const testWords = await TestContentService.getRandomWATWords(60);
-      console.log('Retrieved words:', testWords?.length || 0);
+      console.log('Retrieved WAT words:', testWords?.length || 0);
       
       if (!testWords || testWords.length === 0) {
         console.error('No WAT words retrieved from database');
@@ -89,154 +84,57 @@ const WATTest = () => {
       setIsLoading(false);
     }
   };
-  
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setShowCamera(true);
-      }
-    } catch (error) {
-      console.error('Camera access error:', error);
-      toast.error('Unable to access camera. Please use file upload instead.');
-    }
-  };
 
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const imageDataUrl = canvas.toDataURL('image/jpeg');
-        setUploadedImage(imageDataUrl);
-        
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], 'wat-response.jpg', { type: 'image/jpeg' });
-            setImageFile(file);
-          }
-        }, 'image/jpeg');
-      }
-      stopCamera();
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setShowCamera(false);
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-      
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setUploadedImage(null);
-    setImageFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleTimeUp = useCallback(() => {
-    console.log('Timer finished for word:', currentWordIndex + 1);
-    if (currentResponse.trim()) {
-      handleNext();
+  const handleTimeUp = () => {
+    if (inputMethod === 'handwritten') {
+      // Auto-advance for handwritten mode
+      handleNext(true);
     } else {
-      toast.warning('Time is up! Moving to next word...');
-      setTimeout(() => {
-        handleNext(true); // Force next even without response
-      }, 1000);
+      // Typed mode - check if response exists
+      if (currentResponse.trim()) {
+        handleNext();
+      } else {
+        toast.warning('Time is up! Moving to next word...');
+        setTimeout(() => {
+          handleNext(true);
+        }, 1000);
+      }
     }
-  }, [currentResponse, currentWordIndex, words.length]);
+  };
 
   const handleNext = async (forceNext = false) => {
-    if (!forceNext) {
-      if (responseMode === 'type' && !currentResponse.trim()) {
-        toast.error('Please provide a response before continuing');
-        return;
-      }
-      if (responseMode === 'upload' && !uploadedImage) {
-        toast.error('Please upload your response image');
-        return;
-      }
-    }
-
-    const currentUserId = user?.id;
-    if (!currentUserId || !sessionId) {
-      toast.error('Missing required information');
+    // For typed mode, validate response
+    if (inputMethod === 'typed' && !forceNext && !currentResponse.trim()) {
+      toast.error('Please provide a response before continuing');
       return;
     }
 
-    try {
-      let imageUrl = null;
-      
-      // Upload image if in upload mode
-      if (responseMode === 'upload' && imageFile) {
-        const fileName = `wat-responses/${currentUserId}/${Date.now()}-${imageFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('test-images')
-          .upload(fileName, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('test-images')
-          .getPublicUrl(fileName);
-          
-        imageUrl = publicUrl;
-      }
-
-      // Store response locally (don't send to AI yet)
+    // Store response locally (only for typed mode)
+    if (inputMethod === 'typed') {
       const newResponses = [...responses];
-      const responseData = responseMode === 'type'
-        ? currentResponse.trim() || 'No response provided'
-        : JSON.stringify({ mode: 'uploaded', imageUrl });
-        
-      newResponses[currentWordIndex] = responseData;
+      newResponses[currentWordIndex] = currentResponse.trim() || 'No response provided';
       setResponses(newResponses);
+    }
 
-      if (currentWordIndex < words.length - 1) {
-        setCurrentWordIndex(currentWordIndex + 1);
-        setCurrentResponse('');
-        setUploadedImage(null);
-        setImageFile(null);
-        setResponseMode('type');
-        stopCamera();
-        setStartTime(Date.now());
-      } else {
-        await handleTestCompletion(newResponses);
-      }
-    } catch (error) {
-      console.error('Error processing response:', error);
-      toast.error('Failed to process response. Please try again.');
+    if (currentWordIndex < words.length - 1) {
+      setCurrentWordIndex(currentWordIndex + 1);
+      setCurrentResponse('');
+      setStartTime(Date.now());
+    } else {
+      // Test completed - show upload option
+      setShowUploadScreen(true);
     }
   };
 
-  const handleTestCompletion = async (finalResponses: string[]) => {
+  const handleFinishEarly = () => {
+    if (completedCount < MINIMUM_RESPONSES) {
+      toast.error(`Minimum ${MINIMUM_RESPONSES} responses required`);
+      return;
+    }
+    setShowUploadScreen(true);
+  };
+
+  const handleHandwrittenUpload = async (imageUrls: string[]) => {
     const currentUserId = user?.id;
     if (!currentUserId || !sessionId) {
       toast.error('Missing required information');
@@ -245,41 +143,224 @@ const WATTest = () => {
 
     try {
       setIsAnalyzing(true);
+      setShowUploadScreen(false);
       
-      // Filter out only the responses we actually have (up to current index)
-      const actualResponses = finalResponses.slice(0, currentWordIndex + 1);
-      const actualWords = words.slice(0, currentWordIndex + 1);
+      toast.info('Extracting text from images... This may take a moment.');
       
-      console.log(`Storing ${actualResponses.length} responses for analysis`);
+      // Import Tesseract.js dynamically
+      const Tesseract = (await import('tesseract.js')).default;
       
-      // Store all responses in database first
-      for (let i = 0; i < actualResponses.length; i++) {
-        if (actualResponses[i] && actualResponses[i] !== '') {
-          console.log(`Storing response ${i + 1}: ${actualResponses[i]}`);
-          await testAnalysisService.storeResponse(
-            currentUserId,
+      const extractedResponses: string[] = [];
+      
+      // Process each uploaded image
+      for (let i = 0; i < imageUrls.length; i++) {
+        try {
+          console.log(`Processing image ${i + 1}/${imageUrls.length}...`);
+          
+          // Perform OCR on the image
+          const result = await Tesseract.recognize(
+            imageUrls[i],
+            'eng',
+            {
+              logger: (m) => {
+                if (m.status === 'recognizing text') {
+                  console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+                }
+              }
+            }
+          );
+          
+          // Extract text and split by lines
+          const text = result.data.text;
+          const lines = text.split('\n').filter(line => line.trim().length > 0);
+          
+          console.log(`Extracted ${lines.length} lines from image ${i + 1}`);
+          
+          // Add each line as a response
+          lines.forEach(line => {
+            const cleaned = line.trim();
+            if (cleaned && cleaned.length > 1) {
+              extractedResponses.push(cleaned);
+            }
+          });
+          
+        } catch (error) {
+          console.error(`Error processing image ${i + 1}:`, error);
+          toast.error(`Failed to extract text from image ${i + 1}`);
+        }
+      }
+      
+      console.log(`Total extracted responses: ${extractedResponses.length}`);
+      console.log('Extracted responses:', extractedResponses);
+      
+      if (extractedResponses.length === 0) {
+        toast.error('No text could be extracted from the images. Please ensure handwriting is clear.');
+        setIsAnalyzing(false);
+        setShowUploadScreen(true);
+        return;
+      }
+      
+      // Store extracted responses
+      const storePromises = [];
+      const responsesToStore = Math.min(extractedResponses.length, words.length);
+      
+      for (let i = 0; i < responsesToStore; i++) {
+        console.log(`Storing response ${i + 1}: "${extractedResponses[i]}" for word: "${words[i].word}"`);
+        storePromises.push(
+          testAnalysisService.storeResponse(
+            user.id,
             sessionId,
-            actualWords[i].id,
-            actualResponses[i],
-            0, // Time taken per response not tracked in batch mode
+            words[i].id,
+            extractedResponses[i],
+            0,
             'wat'
+          )
+        );
+      }
+      
+      await Promise.all(storePromises);
+      console.log(`Successfully stored ${storePromises.length} extracted responses`);
+      
+      toast.success(`Extracted and stored ${storePromises.length} responses!`);
+      
+      await completeAnalysis();
+    } catch (error) {
+      console.error('Error processing handwritten responses:', error);
+      toast.error('Failed to process handwritten responses. Please try again.');
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleUploadComplete = async (imageUrls: string[]) => {
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) {
+      toast.error('Missing required information');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      setShowUploadScreen(false);
+      
+      // Store all typed responses (images are just for reference/verification)
+      console.log('Storing responses for analysis...');
+      console.log('Total responses:', responses.length);
+      console.log('Total words:', words.length);
+      
+      const storePromises = [];
+      for (let i = 0; i < responses.length; i++) {
+        if (responses[i] && responses[i].trim()) {
+          console.log(`Storing response ${i + 1}: "${responses[i]}" for word: "${words[i].word}"`);
+          storePromises.push(
+            testAnalysisService.storeResponse(
+              user.id,
+              sessionId,
+              words[i].id,
+              responses[i].trim(), // Store plain text response
+              0,
+              'wat'
+            )
           );
         }
       }
+      
+      // Wait for all responses to be stored
+      await Promise.all(storePromises);
+      console.log(`Successfully stored ${storePromises.length} responses`);
+      
+      // Store image URLs as metadata for reference
+      console.log('Uploaded images for verification:', imageUrls);
 
-      await testAnalysisService.updateTestSession(sessionId, actualResponses.length, 'completed', currentUserId);
+      await completeAnalysis();
+    } catch (error) {
+      console.error('Error processing uploaded images:', error);
+      toast.error('Failed to process images. Please try again.');
+      setIsAnalyzing(false);
+    }
+  };
 
-      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(currentUserId);
-      const hasSubscription = await testAnalysisService.getUserSubscription(currentUserId);
+  const handleSkipUpload = async () => {
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) {
+      toast.error('Missing required information');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      setShowUploadScreen(false);
+      
+      // Store all typed responses
+      console.log('Storing responses (skipped upload)...');
+      console.log('Total responses:', responses.length);
+      
+      const storePromises = [];
+      for (let i = 0; i < responses.length; i++) {
+        if (responses[i] && responses[i].trim()) {
+          console.log(`Storing response ${i + 1}: "${responses[i]}" for word: "${words[i].word}"`);
+          storePromises.push(
+            testAnalysisService.storeResponse(
+              user.id,
+              sessionId,
+              words[i].id,
+              responses[i].trim(),
+              0,
+              'wat'
+            )
+          );
+        }
+      }
+      
+      // Wait for all responses to be stored
+      await Promise.all(storePromises);
+      console.log(`Successfully stored ${storePromises.length} responses`);
+
+      await completeAnalysis();
+    } catch (error) {
+      console.error('Error completing test:', error);
+      toast.error('Failed to complete test. Please try again.');
+      setIsAnalyzing(false);
+    }
+  };
+
+  const completeAnalysis = async () => {
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) return;
+
+    try {
+      const completedResponses = responses.filter(r => r && r.trim());
+      await testAnalysisService.updateTestSession(sessionId, completedResponses.length, 'completed', user.id);
+
+      const canGetFree = await testAnalysisService.canUserGetFreeAnalysis(user.id);
+      const hasSubscription = await testAnalysisService.getUserSubscription(user.id);
       const isPremium = hasSubscription || !canGetFree;
 
-      console.log(`Starting WAT batch analysis - Premium: ${isPremium}, Responses: ${actualResponses.length}`);
+      console.log(`Starting batch analysis - Premium: ${isPremium}`);
+
+      // Get stored responses from database
+      console.log('Fetching stored responses from database...');
+      const { data: storedResponses, error: fetchError } = await supabase
+        .from('user_responses')
+        .select('response_text')
+        .eq('test_session_id', sessionId)
+        .order('created_at', { ascending: true });
+
+      if (fetchError) {
+        console.error('Error fetching responses:', fetchError);
+      }
+      
+      console.log('Stored responses from DB:', storedResponses);
+      console.log('Number of stored responses:', storedResponses?.length || 0);
+      
+      const finalResponses = storedResponses?.map(r => r.response_text) || responses.filter(r => r);
+      console.log('Final responses for analysis:', finalResponses);
+      console.log('Number of final responses:', finalResponses.length);
 
       // Send all responses for batch analysis
-      await testAnalysisService.analyzeWATBatch(currentUserId, sessionId, isPremium, actualWords, actualResponses);
+      await testAnalysisService.analyzeWATBatch(user.id, sessionId, isPremium, words, finalResponses);
 
       // Decrement test count
-      const decrementSuccess = await testLimitService.decrementTestLimit(currentUserId, 'wat');
+      const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'wat');
       if (!decrementSuccess) {
         console.warn('Failed to decrement WAT test limit');
       }
@@ -291,12 +372,41 @@ const WATTest = () => {
       }, 2000);
 
     } catch (error) {
-      console.error('Error completing test:', error);
-      console.error('Error details:', error.message, error.stack);
-      toast.error(`Test completion failed: ${error.message || 'Unknown error'}`);
+      console.error('Error completing WAT test:', error);
+      toast.error(`WAT test completion failed: ${error.message || 'Unknown error'}`);
       navigate('/dashboard');
     }
   };
+
+  // Show instructions first
+  if (showInstructions) {
+    return (
+      <PreTestInstructions
+        testType="wat"
+        onStart={handleStartTest}
+        onCancel={() => navigate('/dashboard')}
+      />
+    );
+  }
+
+  // For handwritten method, show upload screen after viewing words
+  if (showUploadScreen) {
+    return (
+      <BatchImageUpload
+        testType="wat"
+        allowDynamicSlots={true}
+        totalSlots={3}
+        minSlots={1}
+        maxSlots={5}
+        slotLabels={['Sheet 1', 'Sheet 2', 'Sheet 3']}
+        onUploadComplete={inputMethod === 'handwritten' ? handleHandwrittenUpload : handleUploadComplete}
+        onSkip={inputMethod === 'typed' ? handleSkipUpload : () => {
+          toast.error('You must upload images for handwritten responses');
+        }}
+        allowSkip={inputMethod === 'typed'}
+      />
+    );
+  }
 
   if (isLoading) {
     return (
@@ -311,6 +421,22 @@ const WATTest = () => {
 
   if (isAnalyzing) {
     return <AnalysisLoadingScreen testType="wat" isVisible={isAnalyzing} />;
+  }
+
+  if (showUploadScreen) {
+    return (
+      <BatchImageUpload
+        testType="wat"
+        totalSlots={3}
+        allowDynamicSlots={true}
+        minSlots={1}
+        maxSlots={5}
+        slotLabels={['Sheet 1', 'Sheet 2', 'Sheet 3']}
+        onUploadComplete={handleUploadComplete}
+        onSkip={handleSkipUpload}
+        allowSkip={true}
+      />
+    );
   }
 
   if (words.length === 0) {
@@ -330,10 +456,11 @@ const WATTest = () => {
 
   const currentWord = words[currentWordIndex];
 
+  // Both modes: Show one word at a time
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
-        <Card className="w-full max-w-2xl mx-auto">
+        <Card className="w-full max-w-3xl mx-auto">
           <CardHeader>
             <CardTitle className="text-center">
               Word Association Test (WAT)
@@ -343,179 +470,109 @@ const WATTest = () => {
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Timer */}
             <TestTimer 
+              key={currentWordIndex}
               totalTime={15}
               isActive={true}
               onTimeUp={handleTimeUp}
-              showWarning={true}
-              key={`timer-${currentWordIndex}-${startTime}`} // More unique key to force reset
+              label="Time per word"
             />
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-lg font-medium text-blue-900 mb-2">Instructions:</p>
-              <p className="text-blue-800">
-                Write the first thought or sentence that comes to your mind when you see this word.
-                You have 15 seconds per word. There are no right or wrong answers.
+            {/* Current Word Display */}
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-8 text-center">
+              <p className="text-sm text-blue-600 mb-2">Word:</p>
+              <p className="text-4xl font-bold text-blue-900">{currentWord.word}</p>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                💡 <strong>Tip:</strong> {inputMethod === 'typed' 
+                  ? 'Write your first spontaneous thought and type it below.'
+                  : 'Write your response on paper. The word will change automatically after 15 seconds.'}
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="bg-white p-8 rounded-lg border-2 border-blue-200 shadow-sm">
-                <h2 className="text-4xl font-bold text-blue-900">
-                  {currentWord.word}
-                </h2>
+            {/* Response Input - Only show for typed mode */}
+            {inputMethod === 'typed' && (
+              <div className="space-y-4">
+                <Input
+                  placeholder="Your immediate response..."
+                  value={currentResponse}
+                  onChange={(e) => setCurrentResponse(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && currentResponse.trim()) {
+                      handleNext();
+                    }
+                  }}
+                  className="text-lg p-6"
+                  autoFocus
+                />
               </div>
-            </div>
+            )}
 
-            <div className="space-y-4">
-              {/* Response Mode Toggle */}
-              <div className="flex justify-center gap-4 mb-6">
-                <Button
-                  variant={responseMode === 'type' ? 'default' : 'outline'}
-                  onClick={() => setResponseMode('type')}
-                  className="flex items-center gap-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  Type Response
-                </Button>
-                <Button
-                  variant={responseMode === 'upload' ? 'default' : 'outline'}
-                  onClick={() => setResponseMode('upload')}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Response
-                </Button>
+            {/* Handwritten mode message */}
+            {inputMethod === 'handwritten' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <p className="text-green-800">
+                  ✍️ Write this word and your response on paper. The next word will appear automatically.
+                </p>
               </div>
+            )}
 
-              {responseMode === 'type' ? (
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              {inputMethod === 'typed' ? (
                 <>
-                  <Input
-                    value={currentResponse}
-                    onChange={(e) => setCurrentResponse(e.target.value)}
-                    placeholder="Write your immediate response..."
-                    className="text-lg p-4"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && currentResponse.trim()) {
-                        handleNext();
-                      }
-                    }}
-                    autoFocus
-                  />
+                  <Button 
+                    onClick={() => handleNext()}
+                    disabled={!currentResponse.trim()}
+                    className="flex-1"
+                  >
+                    Next Word
+                  </Button>
                   
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500">
-                      Progress: {currentWordIndex + 1}/{words.length}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => handleNext()}
-                        className="px-8"
-                      >
-                        {currentWordIndex === words.length - 1 ? 'Submit All Responses for Analysis' : 'Next'}
-                      </Button>
-                      {currentWordIndex >= 9 && (
-                        <Button 
-                          onClick={async () => {
-                            const newResponses = [...responses];
-                            newResponses[currentWordIndex] = currentResponse.trim() || 'No response provided';
-                            await handleTestCompletion(newResponses);
-                          }}
-                          variant="outline"
-                          className="px-6"
-                        >
-                          Submit Now
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  {canFinishEarly && (
+                    <Button
+                      onClick={handleFinishEarly}
+                      variant="outline"
+                      className="flex-1 border-green-500 text-green-700 hover:bg-green-50"
+                    >
+                      Finish Test ({completedCount} responses)
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
-                  {/* Upload Mode */}
-                  {!uploadedImage ? (
-                    <div className="space-y-4">
-                      {showCamera ? (
-                        <div className="relative">
-                          <video 
-                            ref={videoRef} 
-                            autoPlay 
-                            playsInline
-                            className="w-full max-h-96 rounded-lg"
-                          />
-                          <div className="flex justify-center gap-4 mt-4">
-                            <Button onClick={capturePhoto} size="lg">
-                              <Camera className="mr-2 h-5 w-5" />
-                              Capture Photo
-                            </Button>
-                            <Button onClick={stopCamera} variant="outline" size="lg">
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-4 p-8 border-2 border-dashed rounded-lg">
-                          <p className="text-lg font-medium">Upload your handwritten response</p>
-                          <div className="flex gap-4">
-                            <Button onClick={startCamera} size="lg">
-                              <Camera className="mr-2 h-5 w-5" />
-                              Open Camera
-                            </Button>
-                            <Button 
-                              onClick={() => fileInputRef.current?.click()} 
-                              variant="outline" 
-                              size="lg"
-                            >
-                              <Upload className="mr-2 h-5 w-5" />
-                              Upload Image
-                            </Button>
-                          </div>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                          />
-                          <p className="text-sm text-gray-500">
-                            Take a photo of your written response or upload an image
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <img 
-                          src={uploadedImage} 
-                          alt="Uploaded Response" 
-                          className="w-full max-h-96 object-contain rounded-lg border"
-                        />
-                        <Button
-                          onClick={removeImage}
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-gray-500">
-                          Progress: {currentWordIndex + 1}/{words.length}
-                        </p>
-                        <Button 
-                          onClick={() => handleNext()}
-                          disabled={!uploadedImage}
-                          className="px-8"
-                        >
-                          {currentWordIndex === words.length - 1 ? 'Submit All Responses for Analysis' : 'Next'}
-                        </Button>
-                      </div>
+                  {/* Handwritten mode buttons */}
+                  {currentWordIndex >= MINIMUM_RESPONSES - 1 && (
+                    <Button
+                      onClick={() => setShowUploadScreen(true)}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      Finish & Upload Responses ({currentWordIndex + 1} words viewed)
+                    </Button>
+                  )}
+                  {currentWordIndex < MINIMUM_RESPONSES - 1 && (
+                    <div className="flex-1 text-center text-sm text-gray-600 py-3">
+                      View at least {MINIMUM_RESPONSES} words to finish early (Current: {currentWordIndex + 1})
                     </div>
                   )}
                 </>
+              )}
+            </div>
+
+            {/* Progress Info */}
+            <div className="text-center text-sm text-gray-600">
+              <p>Words viewed: {currentWordIndex + 1} / {words.length}</p>
+              {inputMethod === 'typed' && (
+                <p>Responses typed: {completedCount}</p>
+              )}
+              {currentWordIndex + 1 >= MINIMUM_RESPONSES && (
+                <p className="text-green-600 font-medium">
+                  ✓ Minimum {MINIMUM_RESPONSES} words viewed - You can finish
+                </p>
               )}
             </div>
           </CardContent>

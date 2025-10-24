@@ -1227,67 +1227,69 @@ Analyze EACH response individually and score based on ACTUAL quality shown.`;
 
 You must respond with valid JSON format only:
 {
-  "overallScore": [score from 1-10 based on actual response analysis],
-  "traitScores": [{"trait": "Leadership", "score": [1-10 based on evidence], "description": "evidence from word associations"}],
-  "strengths": ["specific strength with association examples"],
-  "improvements": ["critical area with actionable development advice"],
-  "recommendations": ["specific training recommendations based on patterns"],
-  "officerLikeQualities": ["observed quality with evidence"],
-  "sampleResponse": "Word -> Positive association that demonstrates leadership thinking and action-oriented mindset (use general statements, no 'I' references)",
-  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response showing positive association"}],
-  "sampleExamples": [{"word": "actual_word", "response": "user_response", "analysis": "brief analysis of this specific response"}]
+  "overallScore": [score from 1-10 based on actual response quality],
+  "traitScores": [{"trait": "Leadership", "score": [1-10], "description": "evidence from specific responses"}],
+  "strengths": ["specific strength with examples from responses"],
+  "improvements": ["Engagement in workshops focused on emotional intelligence."],
+  "recommendations": ["Practice writing complete, positive sentences without using 'I', 'He', or 'She'."],
+  "officerLikeQualities": ["observed OLQ with evidence"],
+  "sampleResponse": "Word -> Complete sentence showing positive association and leadership mindset (NO pronouns, concise, action-oriented)",
+  "wordSuggestions": [{"word": "EXACT_WORD_FROM_INPUT", "response": "EXACT_USER_RESPONSE", "betterResponse": "Improved 1-2 line sentence: positive, no pronouns, shows OLQs"}],
+  "sampleExamples": [{"word": "EXACT_WORD", "response": "EXACT_RESPONSE", "analysis": "Why this works/doesn't work"}]
 }`;
   } else {
     return `${basePrompt}
 
 You must respond with valid JSON format only:
 {
-  "overallScore": [score from 1-10 based on actual response analysis],
+  "overallScore": [score from 1-10],
   "traitScores": [],
-  "strengths": ["key strength observed"],
-  "improvements": ["most critical development area", "thought pattern assessment"],
-  "recommendations": ["primary recommendation for improvement"],
-  "officerLikeQualities": ["main officer-like quality observed"],
-  "sampleResponse": "Word -> Better association that shows positive, action-oriented thinking (no 'I' statements)",
-  "wordSuggestions": [{"word": "actual_word", "response": "user_response", "betterResponse": "improved response"}],
-  "sampleExamples": [{"word": "actual_word", "response": "user_response", "analysis": "brief analysis of this specific response"}]
+  "strengths": ["key strength"],
+  "improvements": ["Avoid using 'I', 'He', 'She' in responses."],
+  "recommendations": ["Practice writing complete, positive sentences."],
+  "officerLikeQualities": ["main OLQ observed"],
+  "sampleResponse": "Word -> Positive sentence without pronouns (1-2 lines)",
+  "wordSuggestions": [{"word": "EXACT_WORD", "response": "EXACT_RESPONSE", "betterResponse": "Improved sentence"}],
+  "sampleExamples": [{"word": "EXACT_WORD", "response": "EXACT_RESPONSE", "analysis": "brief feedback"}]
 }`;
   }
 }
 
 function getWATBatchUserPrompt(batchData: any[]): string {
-  let prompt = "WAT BATCH ANALYSIS:\n\n";
+  let prompt = "WORD ASSOCIATION TEST ANALYSIS:\n\n";
   
   let hasUploadedImages = false;
   batchData.forEach((item, index) => {
     if (item.isUploadedImage) {
       hasUploadedImages = true;
-      prompt += `Word ${index + 1}: ${item.word} -> [User uploaded handwritten response - analyze from image]\n`;
+      prompt += `${index + 1}. ${item.word} -> [Handwritten response - analyze from image]\n`;
     } else {
-      prompt += `Word ${index + 1}: ${item.word} -> ${item.response}\n`;
+      prompt += `${index + 1}. ${item.word} -> "${item.response}"\n`;
     }
   });
 
-  prompt += `\nAnalyze these ${batchData.length} word associations for psychological patterns and officer-like qualities. Score based on actual content quality, not generic averages.`;
+  prompt += `\n\nCRITICAL INSTRUCTIONS:
+1. Match EXACT word with EXACT response - do NOT mix up responses
+2. In "wordSuggestions", use the EXACT word and EXACT response from above
+3. Score based on ACTUAL content quality:
+   - Complete sentences with positive associations = 7-10
+   - Uses "I", "He", "She" or philosophical = 3-5
+   - Negative or passive = 1-3
+4. "betterResponse" must be:
+   - Complete sentence (1-2 lines)
+   - NO pronouns (I, He, She)
+   - Positive and action-oriented
+   - Shows leadership/patriotism/problem-solving
+   - Example: "Challenges strengthen character and build resilience."
+
+5. Provide specific feedback for EACH response in "wordSuggestions"
+6. Identify patterns: pronoun usage, sentence completeness, positivity ratio`;
   
   if (hasUploadedImages) {
-    prompt += `\n\nIMPORTANT: Some responses are handwritten and uploaded as images. Please read the handwriting from the images provided and analyze those responses along with the typed ones. Evaluate handwriting clarity and presentation as part of the assessment.`;
+    prompt += `\n\nNOTE: Some responses are handwritten. Read carefully and analyze content quality.`;
   }
   
-  prompt += `\n\nProvide:
-1. Overall psychological profile based on response patterns
-2. Word-by-word suggestions in "wordSuggestions" array with format:
-   [{"word": "word", "yourResponse": "response", "score": 1-10, "feedback": "why this response works/doesn't work", "betterResponse": "improved alternative showing officer-like thinking"}]
-3. Pattern analysis (positive vs negative ratio, emotional maturity, leadership mindset)
-4. Specific examples of strong and weak responses
-
-For betterResponse suggestions:
-- Use short, positive, action-oriented language
-- Avoid "I" statements completely
-- Example: "Challenges create opportunities" NOT "I see challenges as opportunities"
-- Focus on clarity, optimism, responsibility, and action
-
-For sampleExamples, include 3-4 actual examples from the user's responses with brief analysis.`;
+  prompt += `\n\nProvide comprehensive analysis with word-by-word feedback in "wordSuggestions" array.`;
   
   return prompt;
 }

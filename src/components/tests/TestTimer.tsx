@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Clock } from 'lucide-react';
 
 interface TestTimerProps {
@@ -6,42 +6,59 @@ interface TestTimerProps {
   isActive: boolean;
   onTimeUp?: () => void;
   showWarning?: boolean;
+  label?: string;
 }
 
 const TestTimer: React.FC<TestTimerProps> = ({ 
   totalTime, 
   isActive, 
   onTimeUp,
-  showWarning = true 
+  showWarning = true,
+  label 
 }) => {
   const [timeLeft, setTimeLeft] = useState(totalTime);
-  const [hasCalledTimeUp, setHasCalledTimeUp] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onTimeUpRef = useRef(onTimeUp);
+  const hasCalledTimeUpRef = useRef(false);
+  const startTimeRef = useRef<number>(Date.now());
+  const initialTimeRef = useRef(totalTime);
 
-  // Reset timer when totalTime or isActive changes
+  // Keep onTimeUp ref updated
   useEffect(() => {
-    setTimeLeft(totalTime);
-    setHasCalledTimeUp(false);
-  }, [totalTime, isActive]);
+    onTimeUpRef.current = onTimeUp;
+  }, [onTimeUp]);
 
+  // Start timer on mount
   useEffect(() => {
-    if (!isActive || hasCalledTimeUp) return;
+    if (!isActive) return;
 
-    const timer = setInterval(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Start new interval
+    intervalRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         const newTimeLeft = Math.max(0, prev - 1);
         
         // Call onTimeUp only once when timer reaches 0
-        if (newTimeLeft === 0 && prev > 0 && !hasCalledTimeUp) {
-          setHasCalledTimeUp(true);
-          setTimeout(() => onTimeUp?.(), 100); // Small delay to prevent race conditions
+        if (newTimeLeft === 0 && prev > 0 && !hasCalledTimeUpRef.current) {
+          hasCalledTimeUpRef.current = true;
+          setTimeout(() => onTimeUpRef.current?.(), 100);
         }
         
         return newTimeLeft;
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [isActive, hasCalledTimeUp, onTimeUp]);
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isActive]); // Only depend on isActive
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
