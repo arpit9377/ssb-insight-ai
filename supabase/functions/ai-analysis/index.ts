@@ -1368,9 +1368,16 @@ KEY EVALUATION CRITERIA:
 - Repetitive similar actions across different situations
 
 SCORING APPROACH:
-- Score 8-10: Immediate action, clear leadership, practical solutions, strong OLQs
-- Score 5-7: Adequate responses with some initiative but lacking clarity or depth
-- Score 1-4: Passive, vague, emotional, or impractical responses
+- Score 9-10: Immediate action, clear leadership, practical solutions, strong OLQs, takes responsibility
+- Score 7-8: Good initiative, practical approach, shows leadership, minor improvements possible
+- Score 5-6: Some initiative but vague, lacks clarity, or too passive
+- Score 1-4: Passive, emotional, impractical, or avoids responsibility
+
+IMPORTANT SCORING RULES:
+- Clear action + practical solution = minimum 7/10
+- Takes responsibility + shows leadership = minimum 8/10
+- Immediate action + strong OLQs = 9-10/10
+- Do NOT underscore good responses - reward quality appropriately
 
 ${isPremium ? 'Provide detailed trait scoring with specific examples from responses.' : 'Provide basic assessment with key decision-making patterns.'}`;
 
@@ -1385,8 +1392,12 @@ You must respond with valid JSON format only:
   "improvements": ["critical area with actionable development advice"],
   "recommendations": ["specific training recommendations based on patterns"],
   "officerLikeQualities": ["observed leadership qualities with evidence"],
-  "sampleResponse": "Example of ideal SRT response demonstrating excellence",
-  "sampleExamples": [{"situation": "actual_situation", "response": "user_response", "analysis": "brief analysis of this specific response"}]
+  "sampleResponse": "Short action-oriented response (1-2 lines, clear decision, shows leadership)",
+  "situationSuggestions": [
+    {"situation": "EXACT_SITUATION_FROM_INPUT", "response": "EXACT_USER_RESPONSE", "score": 8, "betterResponse": "Short improved response (1-2 lines, clear action)"},
+    {"situation": "EXACT_SITUATION_FROM_INPUT", "response": "EXACT_USER_RESPONSE", "score": 9, "betterResponse": "Already excellent - demonstrates leadership"}
+  ],
+  "sampleExamples": [{"situation": "actual_situation", "response": "user_response", "analysis": "brief analysis"}]
 }`;
   } else {
     return `${basePrompt}
@@ -1399,8 +1410,11 @@ You must respond with valid JSON format only:
   "improvements": ["most critical development area", "time management assessment"],
   "recommendations": ["Upgrade to premium for detailed trait analysis and personalized development plan"],
   "officerLikeQualities": ["primary leadership indicator"],
-  "sampleResponse": "Example of improved SRT response",
-  "sampleExamples": [{"situation": "actual_situation", "response": "user_response", "analysis": "brief analysis of this specific response"}]
+  "sampleResponse": "Short action-oriented response (1-2 lines)",
+  "situationSuggestions": [
+    {"situation": "EXACT_SITUATION", "response": "EXACT_RESPONSE", "score": 7, "betterResponse": "Improved response (1-2 lines)"}
+  ],
+  "sampleExamples": [{"situation": "actual_situation", "response": "user_response", "analysis": "brief analysis"}]
 }`;
   }
 }
@@ -1428,16 +1442,40 @@ function getSRTBatchUserPrompt(batchData: any[]): string {
   prompt += `- Assess officer potential based on actual responses\n\n`;
   
   prompt += `Provide:\n`;
-  prompt += `1. Overall assessment of decision-making ability and leadership approach\n`;
-  prompt += `2. Situation-by-situation feedback in "situationSuggestions" array with format:\n`;
-  prompt += `   [{"situation": "brief situation", "yourResponse": "response", "score": 1-10, "feedback": "analysis of response quality", "betterResponse": "improved response showing clear action, leadership, and OLQs"}]\n`;
-  prompt += `3. Pattern analysis (initiative level, responsibility acceptance, practical thinking)\n`;
-  prompt += `4. Identify best and weakest responses with specific examples\n`;
-  prompt += `5. Common mistakes or repetitive patterns to avoid\n\n`;
-  
-  prompt += `For sampleExamples, include 3-4 actual examples from the user's responses with brief analysis.\n\n`;
-  
-  prompt += `IMPORTANT: Score fairly based on actual content quality. Well-structured responses with clear leadership thinking should score well (7-8/10).`;
+  prompt += `
+
+⚠️ CRITICAL MATCHING INSTRUCTIONS:
+1. SITUATION-RESPONSE PAIRING:
+   - Each situation above is numbered (SITUATION 1, SITUATION 2, etc.)
+   - In "situationSuggestions" array, you MUST use:
+     * "situation": Brief description of that EXACT situation
+     * "response": The EXACT user response from that situation
+   - DO NOT mix up or swap responses between different situations
+   - Verify each situation matches its response before finalizing
+
+2. SCORING RULES:
+   - Clear action + practical solution = 7-10
+   - Takes responsibility + leadership = 8-10
+   - Immediate action + strong OLQs = 9-10
+   - Vague or passive = 3-5
+   - Avoids problem or blames others = 1-3
+
+3. "betterResponse" FORMAT:
+   - SHORT: 1-2 lines maximum (15-20 words)
+   - Clear action statement
+   - Shows leadership and responsibility
+   - Practical and realistic
+   - Examples:
+     * "Assess situation, coordinate team response, ensure safety first."
+     * "Take immediate action, inform authorities, provide first aid."
+   - If user's response is already excellent (8+/10), say "Already excellent - demonstrates [quality]"
+
+4. VERIFICATION:
+   - Before finalizing, verify each situation matches its response
+   - Check situation numbers to ensure correct pairing
+   - Double-check you haven't swapped any responses
+
+Provide comprehensive analysis with situation-by-situation feedback in "situationSuggestions" array.`;
   
   return prompt;
 }
