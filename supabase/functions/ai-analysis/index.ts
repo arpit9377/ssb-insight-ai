@@ -1214,11 +1214,16 @@ KEY EVALUATION CRITERIA:
 - Dependent or helpless thinking patterns
 
 SCORING APPROACH:
-- Score 8-10: Consistently positive, leadership-oriented, emotionally mature responses
-- Score 5-7: Mix of positive and neutral responses, some leadership qualities
-- Score 1-4: Predominantly negative, passive, or inappropriate associations
+- Score 9-10: Complete sentences, highly positive, strong leadership/patriotism, action-oriented, no pronouns
+- Score 7-8: Complete sentences, positive associations, shows OLQs, minor issues (passive voice)
+- Score 5-6: Incomplete thoughts, philosophical/abstract, uses pronouns, lacks action
+- Score 1-4: Negative, passive, inappropriate, or very weak associations
 
-IMPORTANT: Some responses may be handwritten images. Read carefully and analyze as typed responses.
+IMPORTANT SCORING RULES:
+- Complete sentences with positive associations = minimum 7/10
+- No pronouns (I/He/She) + positive = minimum 8/10
+- Patriotic/leadership themes + complete sentence = 9-10/10
+- Do NOT underscore good responses - reward quality appropriately
 
 Analyze EACH response individually and score based on ACTUAL quality shown.`;
 
@@ -1233,7 +1238,7 @@ You must respond with valid JSON format only:
   "improvements": ["Engagement in workshops focused on emotional intelligence."],
   "recommendations": ["Practice writing complete, positive sentences without using 'I', 'He', or 'She'."],
   "officerLikeQualities": ["observed OLQ with evidence"],
-  "sampleResponse": "Word -> Complete sentence showing positive association and leadership mindset (NO pronouns, concise, action-oriented)",
+  "sampleResponse": "Word -> Short positive sentence (6-10 words, no pronouns, shows OLQs)",
   "wordSuggestions": [{"word": "EXACT_WORD_FROM_INPUT", "response": "EXACT_USER_RESPONSE", "betterResponse": "Improved 1-2 line sentence: positive, no pronouns, shows OLQs"}],
   "sampleExamples": [{"word": "EXACT_WORD", "response": "EXACT_RESPONSE", "analysis": "Why this works/doesn't work"}]
 }`;
@@ -1248,7 +1253,7 @@ You must respond with valid JSON format only:
   "improvements": ["Avoid using 'I', 'He', 'She' in responses."],
   "recommendations": ["Practice writing complete, positive sentences."],
   "officerLikeQualities": ["main OLQ observed"],
-  "sampleResponse": "Word -> Positive sentence without pronouns (1-2 lines)",
+  "sampleResponse": "Word -> Short positive sentence (6-10 words, no pronouns)",
   "wordSuggestions": [{"word": "EXACT_WORD", "response": "EXACT_RESPONSE", "betterResponse": "Improved sentence"}],
   "sampleExamples": [{"word": "EXACT_WORD", "response": "EXACT_RESPONSE", "analysis": "brief feedback"}]
 }`;
@@ -1276,11 +1281,15 @@ function getWATBatchUserPrompt(batchData: any[]): string {
    - Uses "I", "He", "She" or philosophical = 3-5
    - Negative or passive = 1-3
 4. "betterResponse" must be:
-   - Complete sentence (1-2 lines)
+   - SHORT: Maximum 8-10 words
    - NO pronouns (I, He, She)
    - Positive and action-oriented
    - Shows leadership/patriotism/problem-solving
-   - Example: "Challenges strengthen character and build resilience."
+   - Examples:
+     * "Challenges build resilience and strength."
+     * "Discipline ensures mission success."
+     * "Teamwork achieves collective goals efficiently."
+   - If user's response is already excellent (8+/10), keep betterResponse VERY similar or say "Already excellent - demonstrates [quality]"
 
 5. Provide specific feedback for EACH response in "wordSuggestions"
 6. Identify patterns: pronoun usage, sentence completeness, positivity ratio`;
