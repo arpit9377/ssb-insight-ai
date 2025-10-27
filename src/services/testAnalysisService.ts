@@ -116,11 +116,21 @@ export class TestAnalysisService {
                   .single();
 
                 if (testSession.data) {
-                  // This could be expanded to calculate actual average score
+                  // Get user's TOTAL accumulated points from user_streaks
+                  const { data: userStreak } = await supabase
+                    .from('user_streaks')
+                    .select('total_points')
+                    .eq('user_id', userId)
+                    .single();
+
+                  const totalPoints = userStreak?.total_points || 0;
+                  console.log(`📊 User total points from user_streaks: ${totalPoints}`);
+
+                  // Pass TOTAL points, not just the points earned from this test
                   await leaderboardService.updateUserStats(userId, {
                     testsCompleted: completedQuestions,
                     currentStreak: streakUpdate.currentStreak,
-                    totalPoints: streakUpdate.pointsEarned
+                    totalPoints: totalPoints  // ✅ Total accumulated points
                   });
                   console.log('🏆 Leaderboard stats updated successfully');
                 }

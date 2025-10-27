@@ -126,25 +126,59 @@ class LeaderboardService {
     monthlyPoints?: number;
   }): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('leaderboard_entries')
-        .upsert({
-          user_id: userId,
-          display_name: 'User', // This should be updated with actual name
-          total_tests_completed: stats.testsCompleted || 0,
-          average_score: stats.averageScore || 0,
-          total_points: stats.totalPoints || 0,
-          current_streak: stats.currentStreak || 0,
-          weekly_points: stats.weeklyPoints || 0,
-          monthly_points: stats.monthlyPoints || 0,
-          updated_at: new Date().toISOString()
-        });
+      // Get user's actual total points from user_streaks (source of truth)
+      const { data: userStreak } = await supabase
+        .from('user_streaks')
+        .select('total_points')
+        .eq('user_id', userId)
+        .single();
 
-      if (error) {
-        console.error('Error updating user stats:', error);
-        return false;
+      const totalPoints = userStreak?.total_points || stats.totalPoints || 0;
+      console.log(`📊 Updating leaderboard for user ${userId} with total points: ${totalPoints}`);
+
+      // Get user profile for display name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, city')
+        .eq('id', userId)
+        .single();
+
+      const displayName = profile?.full_name || 'Anonymous User';
+
+      // Calculate weekly/monthly points (simplified - 10% and 30% of total)
+      const weeklyPoints = stats.weeklyPoints || Math.floor(totalPoints * 0.1);
+      const monthlyPoints = stats.monthlyPoints || Math.floor(totalPoints * 0.3);
+
+      // Update ALL categories (overall, weekly, monthly, streaks)
+      const categories: LeaderboardCategory[] = ['overall', 'weekly', 'monthly', 'streaks'];
+      
+      for (const category of categories) {
+        const { error } = await supabase
+          .from('leaderboard_entries')
+          .upsert({
+            user_id: userId,
+            category: category,  // ✅ Include category field
+            display_name: displayName,
+            total_tests_completed: stats.testsCompleted || 0,
+            average_score: stats.averageScore || 0,
+            total_points: totalPoints,  // ✅ Use actual total from user_streaks
+            current_streak: stats.currentStreak || 0,
+            weekly_points: weeklyPoints,
+            monthly_points: monthlyPoints,
+            city: profile?.city || null,
+            avatar_url: null,  // No avatar_url in profiles table
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,category'  // ✅ Proper conflict resolution
+          });
+
+        if (error) {
+          console.error(`Error updating ${category} leaderboard:`, error);
+          return false;
+        }
       }
 
+      console.log(`✅ Leaderboard updated successfully for all categories`);
       return true;
     } catch (error) {
       console.error('Error in updateUserStats:', error);

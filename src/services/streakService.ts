@@ -141,15 +141,15 @@ class StreakService {
   private checkLevelUp(totalPoints: number): boolean {
     // Simple level up logic based on points
     const levels = [
-      { rank: 'Cadet', minPoints: 0 },
-      { rank: 'Private', minPoints: 500 },
-      { rank: 'Corporal', minPoints: 1000 },
-      { rank: 'Sergeant', minPoints: 1500 },
-      { rank: 'Lieutenant', minPoints: 2000 },
-      { rank: 'Captain', minPoints: 3000 },
-      { rank: 'Major', minPoints: 5000 },
-      { rank: 'Colonel', minPoints: 8000 },
-      { rank: 'General', minPoints: 12000 }
+      { rank: 'Aspirant', minPoints: 0 },
+      { rank: 'Gentlemen Cadet', minPoints: 500 },
+      { rank: 'LT.', minPoints: 1000 },
+      { rank: 'Captain', minPoints: 1500 },
+      { rank: 'Major', minPoints: 2000 },
+      { rank: 'LT. Colonel', minPoints: 3000 },
+      { rank: 'Colonel', minPoints: 5000 },
+      { rank: 'Brigadier', minPoints: 8000 },
+      { rank: 'Major General', minPoints: 12000 }
     ];
 
     // Implementation would check if user just crossed a threshold
