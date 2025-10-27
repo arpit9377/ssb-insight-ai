@@ -1214,18 +1214,26 @@ KEY EVALUATION CRITERIA:
 - Dependent or helpless thinking patterns
 
 SCORING APPROACH:
-- Score 9-10: Complete sentences, highly positive, strong leadership/patriotism, action-oriented, no pronouns
-- Score 7-8: Complete sentences, positive associations, shows OLQs, minor issues (passive voice)
-- Score 5-6: Incomplete thoughts, philosophical/abstract, uses pronouns, lacks action
+- Score 8-10: Consistently positive, leadership-oriented, emotionally mature responses (requires 40+ responses)
+- Score 5-7: Mix of positive and neutral responses, some leadership qualities (requires 20+ responses)
 - Score 1-4: Negative, passive, inappropriate, or very weak associations
 
-IMPORTANT SCORING RULES:
-- Complete sentences with positive associations = minimum 7/10
-- No pronouns (I/He/She) + positive = minimum 8/10
-- Patriotic/leadership themes + complete sentence = 9-10/10
-- Do NOT underscore good responses - reward quality appropriately
+CRITICAL SCORING RULES BASED ON RESPONSE COUNT:
+- **Less than 10 responses**: Maximum score = 3/10 (insufficient data, shows lack of commitment)
+- **10-19 responses**: Maximum score = 4/10 (incomplete test, poor time management)
+- **20-39 responses**: Maximum score = 6/10 (partial completion, average performance)
+- **40-59 responses**: Score based on quality (5-9/10 range)
+- **60 responses (complete)**: Full scoring range (1-10/10 based on quality)
 
-Analyze EACH response individually and score based on ACTUAL quality shown.`;
+INDIVIDUAL RESPONSE SCORING:
+- Complete sentences with positive associations = 7-8/10
+- No pronouns (I/He/She) + positive = 8-9/10
+- Patriotic/leadership themes + complete sentence = 9-10/10
+- Inappropriate, negative, or weak responses = 1-4/10
+
+**IMPORTANT**: The overall score MUST reflect both quality AND quantity. Completing only 2-5 words out of 60 shows poor preparation and time management, which are critical officer qualities.
+
+Analyze EACH response individually but calculate overall score based on BOTH response count AND average quality.`;
 
   if (isPremium) {
     return `${basePrompt}

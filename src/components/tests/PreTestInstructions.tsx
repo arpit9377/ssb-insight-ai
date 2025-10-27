@@ -248,7 +248,7 @@ export const PreTestInstructions: React.FC<PreTestInstructionsProps> = ({
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900 mb-1">Write on Paper</h4>
                       <p className="text-sm text-gray-600">
-                        Write responses on paper and upload images at the end. We'll extract text automatically.
+                        Write responses on paper and type the handwritten responses at the end.
                       </p>
                       {selectedMethod === 'handwritten' && (
                         <div className="mt-2 text-sm text-green-600 font-medium">

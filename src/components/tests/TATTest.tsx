@@ -15,6 +15,9 @@ import { PreTestInstructions } from '@/components/tests/PreTestInstructions';
 import TestTimer from '@/components/tests/TestTimer';
 import { toast } from 'sonner';
 
+// Feature flag: Set to true to enable image upload, false for typing interface
+const USE_IMAGE_UPLOAD = false;
+
 const TATTest = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthContext();
@@ -33,10 +36,14 @@ const TATTest = () => {
   // New state for post-test upload and instructions
   const [showInstructions, setShowInstructions] = useState(true);
   const [showUploadScreen, setShowUploadScreen] = useState(false);
+  const [showTypingScreen, setShowTypingScreen] = useState(false);
   const [useHandwrittenResponses, setUseHandwrittenResponses] = useState(false);
+  const [typedResponses, setTypedResponses] = useState<string[]>([]);
+  const [inputMethod, setInputMethod] = useState<'typed' | 'handwritten'>('handwritten');
 
   // Don't initialize test automatically - wait for user to click "Start Test"
-  const handleStartTest = () => {
+  const handleStartTest = (method: 'typed' | 'handwritten') => {
+    setInputMethod(method);
     setShowInstructions(false);
     if (user) {
       initializeTest();
@@ -117,18 +124,13 @@ const TATTest = () => {
   };
 
   const handleWritingTimeUp = () => {
-    if (currentResponse.trim()) {
-      handleNext();
-    } else {
-      toast.warning('Time is up! Moving to next image...');
-      setTimeout(() => {
-        handleNext(true);
-      }, 1000);
-    }
+    // Timer is just informational - user can proceed anytime
+    toast.info('Writing time is up, but you can continue or move to next image');
   };
 
   const handleNext = async (forceNext = false) => {
-    if (!forceNext && !currentResponse.trim()) {
+    // Only require typed response if user selected 'typed' mode
+    if (!forceNext && inputMethod === 'typed' && !currentResponse.trim()) {
       toast.error('Please provide a response before continuing');
       return;
     }
@@ -143,9 +145,77 @@ const TATTest = () => {
       setCurrentResponse('');
       setStartTime(Date.now());
     } else {
-      // Test completed - show upload option
-      setShowUploadScreen(true);
+      // Test completed - show typing or upload screen based on feature flag
+      handleTestCompletion();
     }
+  };
+
+  const handleTestCompletion = async () => {
+    if (inputMethod === 'typed') {
+      // User typed during test - save responses to DB then analyze
+      await saveTypedResponsesAndAnalyze();
+    } else if (USE_IMAGE_UPLOAD) {
+      setShowUploadScreen(true);
+    } else {
+      // Handwritten mode - show typing screen
+      const attemptedCount = currentImageIndex + 1;
+      setTypedResponses(new Array(attemptedCount).fill(''));
+      setShowTypingScreen(true);
+    }
+  };
+
+  const saveTypedResponsesAndAnalyze = async () => {
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) {
+      toast.error('Missing required information');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      
+      // Build complete responses array including current response
+      const completeResponses = [...responses];
+      if (currentResponse.trim()) {
+        completeResponses[currentImageIndex] = currentResponse.trim();
+      }
+      
+      // Store all typed responses that were entered during the test
+      const attemptedCount = currentImageIndex + 1;
+      for (let i = 0; i < attemptedCount; i++) {
+        if (completeResponses[i]) {
+          await testAnalysisService.storeResponse(
+            user.id,
+            sessionId,
+            images[i].id,
+            completeResponses[i],
+            0,
+            'tat'
+          );
+        }
+      }
+
+      await completeAnalysis();
+    } catch (error) {
+      console.error('Error saving typed responses:', error);
+      toast.error('Failed to save responses. Please try again.');
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleFinishEarly = () => {
+    // Only check for typed response if user selected 'typed' mode
+    if (inputMethod === 'typed' && currentImageIndex === 0 && !currentResponse.trim()) {
+      toast.error('Please complete at least one story before finishing');
+      return;
+    }
+    // Save current response if exists (for handwritten mode)
+    if (inputMethod === 'handwritten' && currentResponse.trim()) {
+      const newResponses = [...responses];
+      newResponses[currentImageIndex] = currentResponse.trim();
+      setResponses(newResponses);
+    }
+    handleTestCompletion();
   };
 
   const handleUploadComplete = async (imageUrls: string[]) => {
@@ -181,6 +251,45 @@ const TATTest = () => {
     } catch (error) {
       console.error('Error processing uploaded images:', error);
       toast.error('Failed to process images. Please try again.');
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleTypedSubmit = async () => {
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) {
+      toast.error('Missing required information');
+      return;
+    }
+
+    // Validate that all responses are filled
+    const emptyResponses = typedResponses.filter(r => !r.trim());
+    if (emptyResponses.length > 0) {
+      toast.error(`Please fill in all ${emptyResponses.length} remaining responses`);
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      setShowTypingScreen(false);
+      
+      // Store all typed responses (only attempted ones)
+      const attemptedCount = currentImageIndex + 1;
+      for (let i = 0; i < attemptedCount; i++) {
+        await testAnalysisService.storeResponse(
+          user.id,
+          sessionId,
+          images[i].id,
+          typedResponses[i],
+          0,
+          'tat'
+        );
+      }
+
+      await completeAnalysis();
+    } catch (error) {
+      console.error('Error completing test:', error);
+      toast.error('Failed to complete test. Please try again.');
       setIsAnalyzing(false);
     }
   };
@@ -238,8 +347,12 @@ const TATTest = () => {
 
       const finalResponses = storedResponses?.map(r => r.response_text) || responses;
 
+      // Only analyze attempted images (match array lengths)
+      const attemptedImages = images.slice(0, finalResponses.length);
+      console.log(`Analyzing ${finalResponses.length} attempted images out of ${images.length} total`);
+      
       // Send all responses for batch analysis
-      await testAnalysisService.analyzeTATSession(user.id, sessionId, isPremium, images, finalResponses);
+      await testAnalysisService.analyzeTATSession(user.id, sessionId, isPremium, attemptedImages, finalResponses);
 
       // Decrement test count
       const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'tat');
@@ -284,6 +397,76 @@ const TATTest = () => {
 
   if (isAnalyzing) {
     return <AnalysisLoadingScreen testType="tat" isVisible={isAnalyzing} />;
+  }
+
+  // Show typing screen for post-test response entry
+  if (showTypingScreen) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <Card className="w-full max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-center">Type Your TAT Stories</CardTitle>
+              <p className="text-center text-gray-600">
+                Please type the stories you wrote on paper during the test
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-900">
+                  📝 <strong>Instructions:</strong> Type each story exactly as you wrote it on paper. 
+                  This helps us provide accurate AI analysis of your responses.
+                </p>
+              </div>
+
+              {images.slice(0, currentImageIndex + 1).map((image, index) => (
+                <div key={index} className="space-y-2 pb-6 border-b last:border-b-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">
+                        Story {index + 1} {image.id === 'blank-slide' && '(Blank Slide)'}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">{image.prompt}</p>
+                    </div>
+                    <span className={`text-sm px-2 py-1 rounded ${
+                      typedResponses[index]?.trim() ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {typedResponses[index]?.trim() ? '✓ Done' : 'Pending'}
+                    </span>
+                  </div>
+                  <Textarea
+                    placeholder={`Type your story for ${image.id === 'blank-slide' ? 'blank slide' : `image ${index + 1}`}...`}
+                    value={typedResponses[index] || ''}
+                    onChange={(e) => {
+                      const newTypedResponses = [...typedResponses];
+                      newTypedResponses[index] = e.target.value;
+                      setTypedResponses(newTypedResponses);
+                    }}
+                    className="min-h-[150px] text-base"
+                  />
+                  <span className="text-xs text-gray-500">
+                    {typedResponses[index]?.length || 0} characters
+                  </span>
+                </div>
+              ))}
+
+              <div className="flex justify-between items-center pt-4">
+                <div className="text-sm text-gray-600">
+                  {typedResponses.filter(r => r?.trim()).length} of {currentImageIndex + 1} stories completed
+                </div>
+                <Button 
+                  onClick={handleTypedSubmit}
+                  disabled={typedResponses.filter(r => r?.trim()).length !== (currentImageIndex + 1)}
+                  size="lg"
+                >
+                  Submit for Analysis
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (showUploadScreen) {
@@ -339,8 +522,8 @@ const TATTest = () => {
               </div>
             )}
 
-            {/* Image Display */}
-            {!isBlankSlide && currentImage?.image_url && (
+            {/* Image Display - Only show during viewing phase */}
+            {!isBlankSlide && currentImage?.image_url && !canRespond && (
               <div className="flex justify-center">
                 <img 
                   src={currentImage.image_url} 
@@ -373,33 +556,49 @@ const TATTest = () => {
                   totalTime={240}
                   isActive={true}
                   onTimeUp={handleWritingTimeUp}
-                  label="Writing Time"
+                  label="Writing Time (informational only)"
                 />
 
                 <div className="space-y-4">
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <p className="text-sm text-yellow-800">
-                      💡 <strong>Tip:</strong> Write your story here OR write on paper and upload all images at the end of the test.
+                      💡 <strong>Tip:</strong> {inputMethod === 'typed'
+                        ? 'Write your story directly here. Be creative and descriptive.'
+                        : 'Write your story on paper. After completing all stories, you will type them for AI analysis.'}
                     </p>
                   </div>
 
                   <Textarea
-                    placeholder="Write your story here... (or write on paper and upload later)"
+                    placeholder={inputMethod === 'typed'
+                      ? "Write your story here..."
+                      : "Write your story on paper (you'll type it after the test)"}
                     value={currentResponse}
                     onChange={(e) => setCurrentResponse(e.target.value)}
                     className="min-h-[300px] text-base"
+                    disabled={inputMethod === 'handwritten'}
+                    autoFocus={inputMethod === 'typed'}
                   />
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">
-                      {currentResponse.length} characters
+                      {inputMethod === 'typed' ? `${currentResponse.length} characters` : 'Write on paper'}
                     </span>
-                    <Button 
-                      onClick={() => handleNext()}
-                      disabled={!currentResponse.trim()}
-                    >
-                      {currentImageIndex < images.length - 1 ? 'Next Image' : 'Complete Test'}
-                    </Button>
+                    <div className="flex gap-2">
+                      {currentImageIndex > 0 && (
+                        <Button 
+                          onClick={handleFinishEarly}
+                          variant="outline"
+                        >
+                          Finish Early ({currentImageIndex + 1} stories)
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={() => handleNext()}
+                        disabled={inputMethod === 'typed' && !currentResponse.trim()}
+                      >
+                        {currentImageIndex < images.length - 1 ? 'Next Image' : 'Complete Test'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </>

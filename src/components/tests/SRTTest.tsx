@@ -15,6 +15,9 @@ import { PreTestInstructions } from '@/components/tests/PreTestInstructions';
 import TestTimer from '@/components/tests/TestTimer';
 import { toast } from 'sonner';
 
+// Feature flag: Set to true to enable image upload, false for typing interface
+const USE_IMAGE_UPLOAD = false;
+
 const SRTTest = () => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
@@ -30,10 +33,14 @@ const SRTTest = () => {
   // New state for instructions and upload
   const [showInstructions, setShowInstructions] = useState(true);
   const [showUploadScreen, setShowUploadScreen] = useState(false);
+  const [showTypingScreen, setShowTypingScreen] = useState(false);
+  const [typedResponses, setTypedResponses] = useState<string[]>([]);
+  const [inputMethod, setInputMethod] = useState<'typed' | 'handwritten'>('handwritten');
   const MINIMUM_RESPONSES = 15;
 
   // Don't initialize test automatically - wait for user to click "Start Test"
-  const handleStartTest = () => {
+  const handleStartTest = (method: 'typed' | 'handwritten') => {
+    setInputMethod(method);
     setShowInstructions(false);
     if (user) {
       initializeTest();
@@ -82,7 +89,8 @@ const SRTTest = () => {
   };
 
   const handleNext = async (forceNext = false) => {
-    if (!forceNext && !currentResponse.trim()) {
+    // Only require typed response if user selected 'typed' mode
+    if (!forceNext && inputMethod === 'typed' && !currentResponse.trim()) {
       toast.error('Please provide a response before continuing');
       return;
     }
@@ -97,17 +105,115 @@ const SRTTest = () => {
       setCurrentResponse('');
       setStartTime(Date.now());
     } else {
-      // Test completed - show upload option
+      // Test completed - show typing or upload screen based on feature flag
+      handleTestCompletion();
+    }
+  };
+
+  const handleTestCompletion = async () => {
+    if (inputMethod === 'typed') {
+      // User typed during test - save responses to DB then analyze
+      await saveTypedResponsesAndAnalyze();
+    } else if (USE_IMAGE_UPLOAD) {
       setShowUploadScreen(true);
+    } else {
+      // Handwritten mode - show typing screen
+      const attemptedCount = currentSituationIndex + 1;
+      setTypedResponses(new Array(attemptedCount).fill(''));
+      setShowTypingScreen(true);
+    }
+  };
+
+  const saveTypedResponsesAndAnalyze = async () => {
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) {
+      toast.error('Missing required information');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      
+      // Build complete responses array including current response
+      const completeResponses = [...responses];
+      if (currentResponse.trim()) {
+        completeResponses[currentSituationIndex] = currentResponse.trim();
+      }
+      
+      // Store all typed responses that were entered during the test
+      const attemptedCount = currentSituationIndex + 1;
+      for (let i = 0; i < attemptedCount; i++) {
+        if (completeResponses[i]) {
+          await testAnalysisService.storeResponse(
+            user.id,
+            sessionId,
+            situations[i].id,
+            completeResponses[i],
+            0,
+            'srt'
+          );
+        }
+      }
+
+      await completeAnalysis();
+    } catch (error) {
+      console.error('Error saving typed responses:', error);
+      toast.error('Failed to save responses. Please try again.');
+      setIsAnalyzing(false);
     }
   };
 
   const handleFinishEarly = () => {
-    if (completedCount < MINIMUM_RESPONSES) {
-      toast.error(`Minimum ${MINIMUM_RESPONSES} responses required`);
+    if (currentSituationIndex === 0 && !currentResponse.trim()) {
+      toast.error('Please complete at least one situation before finishing');
       return;
     }
-    setShowUploadScreen(true);
+    // Save current response if exists (for handwritten mode)
+    if (inputMethod === 'handwritten' && currentResponse.trim()) {
+      const newResponses = [...responses];
+      newResponses[currentSituationIndex] = currentResponse.trim();
+      setResponses(newResponses);
+    }
+    handleTestCompletion();
+  };
+
+  const handleTypedSubmit = async () => {
+    const currentUserId = user?.id;
+    if (!currentUserId || !sessionId) {
+      toast.error('Missing required information');
+      return;
+    }
+
+    // Validate that all responses are filled
+    const emptyResponses = typedResponses.filter(r => !r.trim());
+    if (emptyResponses.length > 0) {
+      toast.error(`Please fill in all ${emptyResponses.length} remaining responses`);
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      setShowTypingScreen(false);
+      
+      // Store all typed responses (only attempted ones)
+      const attemptedCount = currentSituationIndex + 1;
+      for (let i = 0; i < attemptedCount; i++) {
+        await testAnalysisService.storeResponse(
+          user.id,
+          sessionId,
+          situations[i].id,
+          typedResponses[i],
+          0,
+          'srt'
+        );
+      }
+
+      await completeAnalysis();
+    } catch (error) {
+      console.error('Error completing test:', error);
+      toast.error('Failed to complete test. Please try again.');
+      setIsAnalyzing(false);
+    }
   };
 
   const handleUploadComplete = async (imageUrls: string[]) => {
@@ -203,8 +309,12 @@ const SRTTest = () => {
 
       const finalResponses = storedResponses?.map(r => r.response_text) || responses.filter(r => r);
 
+      // Only analyze attempted situations (match array lengths)
+      const attemptedSituations = situations.slice(0, finalResponses.length);
+      console.log(`Analyzing ${finalResponses.length} attempted situations out of ${situations.length} total`);
+
       // Send all responses for batch analysis
-      await testAnalysisService.analyzeSRTBatch(user.id, sessionId, isPremium, situations, finalResponses);
+      await testAnalysisService.analyzeSRTBatch(user.id, sessionId, isPremium, attemptedSituations, finalResponses);
 
       // Decrement test count
       const decrementSuccess = await testLimitService.decrementTestLimit(user.id, 'srt');
@@ -249,6 +359,74 @@ const SRTTest = () => {
 
   if (isAnalyzing) {
     return <AnalysisLoadingScreen testType="srt" isVisible={isAnalyzing} />;
+  }
+
+  // Show typing screen for post-test response entry
+  if (showTypingScreen) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <Card className="w-full max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-center">Type Your SRT Responses</CardTitle>
+              <p className="text-center text-gray-600">
+                Please type the responses you wrote on paper during the test
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-900">
+                  📝 <strong>Instructions:</strong> Type each response exactly as you wrote it on paper. 
+                  This helps us provide accurate AI analysis of your decision-making approach.
+                </p>
+              </div>
+
+              {situations.slice(0, currentSituationIndex + 1).map((situation, index) => (
+                <div key={index} className="space-y-2 pb-6 border-b last:border-b-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">Situation {index + 1}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{situation.situation}</p>
+                    </div>
+                    <span className={`text-sm px-2 py-1 rounded ${
+                      typedResponses[index]?.trim() ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {typedResponses[index]?.trim() ? '✓ Done' : 'Pending'}
+                    </span>
+                  </div>
+                  <Textarea
+                    placeholder={`Type your response for situation ${index + 1}...`}
+                    value={typedResponses[index] || ''}
+                    onChange={(e) => {
+                      const newTypedResponses = [...typedResponses];
+                      newTypedResponses[index] = e.target.value;
+                      setTypedResponses(newTypedResponses);
+                    }}
+                    className="min-h-[100px] text-base"
+                  />
+                  <span className="text-xs text-gray-500">
+                    {typedResponses[index]?.length || 0} characters
+                  </span>
+                </div>
+              ))}
+
+              <div className="flex justify-between items-center pt-4">
+                <div className="text-sm text-gray-600">
+                  {typedResponses.filter(r => r?.trim()).length} of {currentSituationIndex + 1} responses completed
+                </div>
+                <Button 
+                  onClick={handleTypedSubmit}
+                  disabled={typedResponses.filter(r => r?.trim()).length !== (currentSituationIndex + 1)}
+                  size="lg"
+                >
+                  Submit for Analysis
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (showUploadScreen) {
@@ -317,36 +495,41 @@ const SRTTest = () => {
             {/* Instructions */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <p className="text-sm text-yellow-800">
-                💡 <strong>Tip:</strong> Describe what action you would take. Be practical and show leadership. Type here OR write on paper and upload all sheets at the end.
+                💡 <strong>Tip:</strong> {inputMethod === 'typed'
+                  ? 'Type your response directly. Describe what action you would take. Be practical and show leadership.'
+                  : 'Write your response on paper. After completing all situations, you will type them for AI analysis.'}
               </p>
             </div>
 
             {/* Response Input */}
             <div className="space-y-4">
               <Textarea
-                placeholder="What would you do in this situation?"
+                placeholder={inputMethod === 'typed'
+                  ? "What would you do in this situation?"
+                  : "Write your response on paper (you'll type it after the test)"}
                 value={currentResponse}
                 onChange={(e) => setCurrentResponse(e.target.value)}
                 className="min-h-[120px] text-base"
-                autoFocus
+                disabled={inputMethod === 'handwritten'}
+                autoFocus={inputMethod === 'typed'}
               />
 
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <Button 
                   onClick={() => handleNext()}
-                  disabled={!currentResponse.trim()}
+                  disabled={inputMethod === 'typed' && !currentResponse.trim()}
                   className="flex-1"
                 >
                   {currentSituationIndex < situations.length - 1 ? 'Next Situation' : 'Complete Test'}
                 </Button>
                 
-                {canFinishEarly && currentSituationIndex < situations.length - 1 && (
+                {currentSituationIndex > 0 && currentSituationIndex < situations.length - 1 && (
                   <Button
                     variant="outline"
                     onClick={handleFinishEarly}
                   >
-                    Finish Test ({completedCount} responses)
+                    Finish Early ({currentSituationIndex + 1} situations)
                   </Button>
                 )}
               </div>
@@ -354,9 +537,9 @@ const SRTTest = () => {
               {/* Progress Info */}
               <div className="text-center text-sm text-gray-600">
                 <p>Completed: {completedCount} / {situations.length}</p>
-                {completedCount >= MINIMUM_RESPONSES && (
+                {currentSituationIndex > 0 && (
                   <p className="text-green-600 font-medium">
-                    ✓ Minimum {MINIMUM_RESPONSES} responses met - You can finish early
+                    ✓ You can finish early anytime
                   </p>
                 )}
               </div>
