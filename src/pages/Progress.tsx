@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Target, Calendar, Award, BarChart3 } from 'lucide-react';
+import { TrendingUp, Target, Calendar, Award, BarChart3, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,8 @@ import { Progress as ProgressBar } from '@/components/ui/progress';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { LineChart, Line, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 
 const Progress = () => {
   const navigate = useNavigate();
@@ -25,7 +27,10 @@ const Progress = () => {
     testsByType: {} as Record<string, number>,
     weeklyProgress: [] as Array<{ week: string, tests: number, avgScore: number }>,
     traitBreakdown: [] as Array<{ trait: string, avgScore: number, count: number }>,
-    improvementRate: 0
+    improvementRate: null as number | null,
+    scoreChartData: [] as Array<{ test: string, score: number }>,
+    testTypeChartData: [] as Array<{ type: string, count: number }>,
+    radarChartData: [] as Array<{ trait: string, score: number, fullMark: number }>
   });
   const [loading, setLoading] = useState(true);
 
@@ -78,12 +83,17 @@ const Progress = () => {
         new Date(s.completed_at || s.created_at) > monthAgo
       ).length;
 
-      // Trait analysis
+      // Trait analysis with type safety
+      interface TraitScore {
+        trait: string;
+        score: number;
+      }
+      
       const traitScoresMap = new Map<string, number[]>();
       analyses.forEach(analysis => {
         if (analysis.trait_scores && Array.isArray(analysis.trait_scores)) {
-          analysis.trait_scores.forEach((trait: any) => {
-            if (trait.trait && trait.score) {
+          analysis.trait_scores.forEach((trait: TraitScore | any) => {
+            if (trait && typeof trait === 'object' && 'trait' in trait && 'score' in trait) {
               if (!traitScoresMap.has(trait.trait)) {
                 traitScoresMap.set(trait.trait, []);
               }
@@ -162,14 +172,35 @@ const Progress = () => {
       traitBreakdown.sort((a, b) => b.avgScore - a.avgScore);
 
       // Improvement rate (compare first vs recent scores)
-      let improvementRate = 0;
+      let improvementRate: number | null = null;
       if (validScores.length >= 3) {
         const firstThree = validScores.slice(-3);
         const lastThree = validScores.slice(0, 3);
         const firstAvg = firstThree.reduce((sum, a) => sum + a.overall_score, 0) / firstThree.length;
         const lastAvg = lastThree.reduce((sum, a) => sum + a.overall_score, 0) / lastThree.length;
-        improvementRate = Math.round(((lastAvg - firstAvg) / firstAvg) * 100);
+        if (firstAvg > 0) {
+          improvementRate = Math.round(((lastAvg - firstAvg) / firstAvg) * 100);
+        }
       }
+
+      // Prepare chart data for score trends
+      const scoreChartData = validScores.slice(0, 10).reverse().map((analysis, index) => ({
+        test: `Test ${index + 1}`,
+        score: analysis.overall_score
+      }));
+
+      // Prepare chart data for test types
+      const testTypeChartData = Object.entries(testsByType).map(([type, count]) => ({
+        type: type.toUpperCase(),
+        count: count
+      }));
+
+      // Prepare radar chart data for traits
+      const radarChartData = traitBreakdown.slice(0, 8).map(trait => ({
+        trait: trait.trait.length > 15 ? trait.trait.substring(0, 15) + '...' : trait.trait,
+        score: trait.avgScore,
+        fullMark: 10
+      }));
 
       setStats({
         totalTests,
@@ -182,7 +213,10 @@ const Progress = () => {
         testsByType,
         weeklyProgress,
         traitBreakdown,
-        improvementRate
+        improvementRate,
+        scoreChartData,
+        testTypeChartData,
+        radarChartData
       });
     } catch (error) {
       console.error('Error loading progress data:', error);
@@ -214,6 +248,7 @@ const Progress = () => {
       showBackButton={true}
       backTo="/dashboard"
     >
+    <TooltipProvider>
     <div className="bg-gradient-to-br from-background to-muted/20">
       <div className="max-w-7xl mx-auto">
         <div className="space-y-6">
@@ -232,7 +267,7 @@ const Progress = () => {
             
             <TabsContent value="overview" className="space-y-6">
               {/* Stats Overview */}
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
@@ -287,19 +322,58 @@ const Progress = () => {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Improvement</CardTitle>
+                    <CardTitle className="text-sm font-medium flex items-center gap-1">
+                      Improvement
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-3 w-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Compares your last 3 tests vs first 3 tests</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </CardTitle>
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className={`text-2xl font-bold ${stats.improvementRate > 0 ? 'text-green-600' : stats.improvementRate < 0 ? 'text-red-600' : ''}`}>
-                      {stats.improvementRate > 0 ? '+' : ''}{stats.improvementRate || 0}%
+                    <div className={`text-2xl font-bold ${
+                      stats.improvementRate === null ? '' :
+                      stats.improvementRate > 0 ? 'text-green-600' : 
+                      stats.improvementRate < 0 ? 'text-red-600' : ''
+                    }`}>
+                      {stats.improvementRate === null ? 'N/A' : 
+                       `${stats.improvementRate > 0 ? '+' : ''}${stats.improvementRate}%`}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Recent progress
+                      {stats.improvementRate === null ? 'Need 3+ tests' : 'Recent progress'}
                     </p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Test Types Bar Chart */}
+              {stats.testTypeChartData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Test Types Distribution
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={stats.testTypeChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="type" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="count" fill="#10b981" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Test Types Breakdown */}
               {Object.keys(stats.testsByType).length > 0 && (
@@ -307,7 +381,7 @@ const Progress = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="h-5 w-5" />
-                      Test Types Completed
+                      Test Types Summary
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -327,6 +401,37 @@ const Progress = () => {
             </TabsContent>
 
             <TabsContent value="performance" className="space-y-6">
+              {/* Score Trend Chart */}
+              {stats.scoreChartData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Score Trend Over Time
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={stats.scoreChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="test" />
+                        <YAxis domain={[0, 10]} />
+                        <Tooltip />
+                        <Legend />
+                        <Line 
+                          type="monotone" 
+                          dataKey="score" 
+                          stroke="#3b82f6" 
+                          strokeWidth={2}
+                          dot={{ fill: '#3b82f6', r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Recent Performance */}
               {stats.recentScores.length > 0 && (
                 <Card>
@@ -382,6 +487,35 @@ const Progress = () => {
             </TabsContent>
 
             <TabsContent value="traits" className="space-y-6">
+              {/* Radar Chart for Traits */}
+              {stats.radarChartData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      Trait Analysis Radar
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <RadarChart data={stats.radarChartData}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="trait" />
+                        <PolarRadiusAxis angle={90} domain={[0, 10]} />
+                        <Radar 
+                          name="Your Score" 
+                          dataKey="score" 
+                          stroke="#8b5cf6" 
+                          fill="#8b5cf6" 
+                          fillOpacity={0.6}
+                        />
+                        <Legend />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Trait Analysis */}
               {stats.strongestTrait && stats.weakestTrait && (
                 <div className="grid gap-6 md:grid-cols-2 mb-6">
@@ -482,6 +616,7 @@ const Progress = () => {
         </div>
       </div>
     </div>
+    </TooltipProvider>
     </AppLayout>
   );
 };
