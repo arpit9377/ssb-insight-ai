@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye, UserPlus, Trophy } from 'lucide-react';
+import { Clock, Target, Users, BookOpen, BarChart3, User, CreditCard, Eye, UserPlus, Trophy, AlertCircle, Calendar, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +28,9 @@ const Dashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [userStreak, setUserStreak] = useState<UserStreak | null>(null);
   const [topLeaders, setTopLeaders] = useState<LeaderboardEntry[]>([]);
+  const [profileData, setProfileData] = useState<any>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(true);
+  const [daysUntilExam, setDaysUntilExam] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -36,8 +39,40 @@ const Dashboard = () => {
       loadTestLimits();
       loadUserStreak();
       loadTopLeaders();
+      loadProfileData();
     }
   }, [user]);
+
+  const loadProfileData = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (data) {
+        setProfileData(data);
+        // Check if mandatory fields are complete
+        const complete = !!(data.full_name && data.phone_number && data.target_exam && data.target_exam_date);
+        setIsProfileComplete(complete);
+
+        // Calculate days until exam
+        if (data.target_exam_date) {
+          const examDate = new Date(data.target_exam_date);
+          const today = new Date();
+          const diffTime = examDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          setDaysUntilExam(diffDays);
+        }
+      } else {
+        setIsProfileComplete(false);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
 
   const loadTestLimits = async () => {
     if (!user) return;
@@ -326,6 +361,72 @@ const Dashboard = () => {
             </p>
           )}
         </div>
+
+        {/* Profile Completion Banner */}
+        {!isProfileComplete && (
+          <Card className="mb-6 border-orange-200 bg-orange-50">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-1" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-orange-900 mb-1">Complete Your Profile</h3>
+                  <p className="text-orange-800 text-sm mb-3">
+                    Please complete your profile with phone number, target exam, and exam date to unlock personalized features and exam countdown.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/profile')} 
+                    variant="default"
+                    size="sm"
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    Complete Profile Now
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Exam Countdown Widget */}
+        {isProfileComplete && daysUntilExam !== null && profileData?.target_exam && (
+          <Card className="mb-6 border-primary/50 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Calendar className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">
+                      {profileData.target_exam} Exam Countdown
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      Target Date: {new Date(profileData.target_exam_date).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-4xl font-bold text-primary">
+                    {daysUntilExam > 0 ? daysUntilExam : 0}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {daysUntilExam > 0 ? 'days remaining' : daysUntilExam === 0 ? 'Exam Today!' : 'days overdue'}
+                  </p>
+                  {daysUntilExam > 0 && daysUntilExam <= 30 && (
+                    <div className="flex items-center gap-1 text-orange-600 text-xs mt-1">
+                      <TrendingUp className="h-3 w-3" />
+                      Final sprint!
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Subscription Status - only show for authenticated users */}
         {!subscription && !isPrivilegedUser && isAuthenticated && (

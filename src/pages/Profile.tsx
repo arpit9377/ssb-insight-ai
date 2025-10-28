@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { User, MapPin, Briefcase, Settings, Shield, Target, Download, Trash2, Clock, Award } from 'lucide-react';
+import { User, MapPin, Briefcase, Settings, Shield, Target, Download, Trash2, Clock, Award, Info } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -161,8 +161,44 @@ const Profile = () => {
   const validateForm = (): boolean => {
     if (!profile.full_name.trim()) {
       toast({
-        title: 'Validation Error',
-        description: 'Full name is required',
+        title: '❌ Missing Required Field',
+        description: 'Full Name is required. Please fill it in the Personal tab.',
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    if (!profile.phone_number || !profile.phone_number.trim()) {
+      toast({
+        title: '❌ Missing Required Field',
+        description: 'Phone Number is required for marketing and support. Please fill it in the Personal tab.',
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    if (!profile.phone_number.match(/^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/)) {
+      toast({
+        title: '❌ Invalid Phone Number',
+        description: 'Please enter a valid phone number (e.g., +1 234 567 8900)',
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    if (!profile.target_exam || !profile.target_exam.trim()) {
+      toast({
+        title: '❌ Missing Required Field',
+        description: 'Target Exam is required. Please select it in the Professional tab under SSB Preparation Details.',
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    if (!profile.target_exam_date || !profile.target_exam_date.trim()) {
+      toast({
+        title: '❌ Missing Required Field',
+        description: 'Target Exam Date is required for countdown. Please select it in the Professional tab under SSB Preparation Details.',
         variant: 'destructive'
       });
       return false;
@@ -170,17 +206,8 @@ const Profile = () => {
 
     if (profile.linkedin_url && !profile.linkedin_url.match(/^https?:\/\/.+/)) {
       toast({
-        title: 'Validation Error',
-        description: 'LinkedIn URL must be a valid URL',
-        variant: 'destructive'
-      });
-      return false;
-    }
-
-    if (profile.phone_number && !profile.phone_number.match(/^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/)) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please enter a valid phone number',
+        title: '❌ Invalid URL',
+        description: 'LinkedIn URL must start with http:// or https://',
         variant: 'destructive'
       });
       return false;
@@ -315,10 +342,11 @@ const Profile = () => {
       
       // Reload profile to get updated data
       await loadProfile();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Profile update error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update profile. Please try again.',
+        title: 'Failed to Save Profile',
+        description: error?.message || 'Please ensure all required fields are filled correctly and try again.',
         variant: 'destructive',
       });
     } finally {
@@ -363,6 +391,21 @@ const Profile = () => {
               </div>
             </div>
             <Progress value={calculateProfileCompletion()} className="h-2" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Mandatory Fields Info Banner */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-blue-900 text-sm mb-1">Required Information</h3>
+              <p className="text-blue-800 text-xs">
+                Please complete these mandatory fields: <strong>Full Name</strong>, <strong>Phone Number</strong>, <strong>Target Exam</strong>, and <strong>Target Exam Date</strong>. These help us personalize your experience and enable the exam countdown feature.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -461,12 +504,13 @@ const Profile = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone">Phone Number *</Label>
                     <Input
                       id="phone"
                       value={profile.phone_number}
                       onChange={(e) => handleProfileChange('phone_number', e.target.value)}
                       placeholder="+1 234 567 8900"
+                      required
                     />
                   </div>
                 </div>
@@ -616,8 +660,8 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="targetExam">Target Exam</Label>
-                    <Select value={profile.target_exam} onValueChange={(value) => handleProfileChange('target_exam', value)}>
+                    <Label htmlFor="targetExam">Target Exam *</Label>
+                    <Select value={profile.target_exam} onValueChange={(value) => handleProfileChange('target_exam', value)} required>
                       <SelectTrigger>
                         <SelectValue placeholder="Select target exam" />
                       </SelectTrigger>
@@ -648,12 +692,13 @@ const Profile = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="examDate">Target Exam Date</Label>
+                    <Label htmlFor="examDate">Target Exam Date *</Label>
                     <Input
                       id="examDate"
                       type="date"
                       value={profile.target_exam_date}
                       onChange={(e) => handleProfileChange('target_exam_date', e.target.value)}
+                      required
                     />
                   </div>
 
