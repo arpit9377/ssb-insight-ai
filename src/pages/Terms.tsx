@@ -128,7 +128,7 @@ const Terms = () => {
                     features and pricing. All prices are in Indian Rupees (INR).
                   </p>
                   <p>
-                    <strong>4.2 Payment Processing:</strong> Payments are processed securely through Cashfree. 
+                    <strong>4.2 Payment Processing:</strong> Payments are processed securely through instamojo. 
                     We do not store your credit card information.
                   </p>
                   <p>
@@ -273,9 +273,8 @@ const Terms = () => {
                     If you have any questions about these Terms & Conditions, please contact us at:
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <p><strong>Email:</strong> legal@psychsirai.ai</p>
+                    <p><strong>Email:</strong> editkarde@gmail.com</p>
                     <p><strong>Address:</strong> Delhi, India</p>
-                    <p><strong>Phone:</strong> +91 8319635728</p>
                   </div>
                 </div>
               </CardContent>
