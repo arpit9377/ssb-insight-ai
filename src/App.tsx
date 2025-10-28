@@ -24,10 +24,6 @@ import Leaderboard from '@/pages/Leaderboard';
 import Subscription from '@/pages/Subscription';
 import AdminDashboard from '@/pages/AdminDashboard';
 import NotFound from '@/pages/NotFound';
-import TATTest from '@/components/tests/TATTest';
-import PPDTTest from '@/components/tests/PPDTTest';
-import WATTest from '@/components/tests/WATTest';
-import SRTTest from '@/components/tests/SRTTest';
 import TestResultsPage from '@/components/analysis/TestResultsPage';
 import './App.css';
 
@@ -83,24 +79,9 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="/test" element={<Navigate to="/tests" replace />} />
-              <Route path="/test/tat" element={
+              <Route path="/test/:testId" element={
                 <ProtectedRoute>
-                  <TATTest />
-                </ProtectedRoute>
-              } />
-              <Route path="/test/ppdt" element={
-                <ProtectedRoute>
-                  <PPDTTest />
-                </ProtectedRoute>
-              } />
-              <Route path="/test/wat" element={
-                <ProtectedRoute>
-                  <WATTest />
-                </ProtectedRoute>
-              } />
-              <Route path="/test/srt" element={
-                <ProtectedRoute>
-                  <SRTTest />
+                  <TestModule />
                 </ProtectedRoute>
               } />
               <Route path="/test-results/:sessionId" element={
