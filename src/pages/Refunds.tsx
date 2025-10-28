@@ -274,10 +274,9 @@ const Refunds = () => {
                     For questions about billing, cancellation, or any concerns regarding your subscription:
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <p><strong>Email:</strong> billing@psychsirai.ai</p>
-                    <p><strong>Support:</strong> support@psychsirai.ai</p>
-                    <p><strong>Phone:</strong> +91 8319635728</p>
-                    <p><strong>Hours:</strong> Monday-Friday, 9:00 AM - 6:00 PM IST</p>
+                    <p><strong>Email:</strong> editkarde@gmail.com</p>
+                    <p><strong>Address:</strong> Delhi, India</p>
+                    <p><strong>Response Time:</strong> 24-48 hours</p>
                   </div>
                   <p className="text-sm text-gray-500 mt-4">
                     We typically respond to billing inquiries within 24 hours during business days.

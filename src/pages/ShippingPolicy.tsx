@@ -275,10 +275,9 @@ const ShippingPolicy = () => {
                     For technical issues, access problems, or questions about our digital service delivery:
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <p><strong>Technical Support:</strong> support@psychsirai.ai</p>
-                    <p><strong>General Inquiries:</strong> info@psychsirai.ai</p>
-                    <p><strong>Phone:</strong> +91 8319635728</p>
-                    <p><strong>Support Hours:</strong> Monday-Friday, 9:00 AM - 6:00 PM IST</p>
+                    <p><strong>Support Email:</strong> editkarde@gmail.com</p>
+                    <p><strong>Address:</strong> Delhi, India</p>
+                    <p><strong>Response Time:</strong> 24-48 hours</p>
                   </div>
                   <p className="text-sm text-gray-500 mt-4">
                     Our technical support team typically responds within 4-6 hours during business hours.

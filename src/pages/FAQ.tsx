@@ -32,7 +32,7 @@ const FAQ = () => {
         },
         {
           question: "How accurate is the AI feedback?",
-          answer: "Our AI models are trained on thousands of successful SSB responses and validated by military psychologists. The feedback is designed to be highly accurate and aligned with actual SSB evaluation criteria."
+          answer: "Our AI models are trained on thousands of successful SSB responses. The feedback is designed to be highly accurate and aligned with actual SSB evaluation criteria."
         }
       ]
     },
@@ -58,11 +58,7 @@ const FAQ = () => {
       questions: [
         {
           question: "What subscription plans are available?",
-          answer: "We offer a 7-day free trial, Basic Plan (₹999/month), and Premium Plan (₹1,999/month). Each plan includes different features and levels of access to our services."
-        },
-        {
-          question: "Can I cancel my subscription anytime?",
-          answer: "Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period, and no future charges will be made."
+          answer: "We offer a 2 tests free trial, and Premium Plan (₹599/month). Each plan includes different features and levels of access to our services."
         },
         {
           question: "Do you offer refunds?",
@@ -70,7 +66,7 @@ const FAQ = () => {
         },
         {
           question: "What payment methods do you accept?",
-          answer: "We accept all major credit/debit cards, UPI, net banking, and digital wallets through our secure payment processor Cashfree."
+          answer: "We accept UPI payments through Instamojo. Simply scan the QR code, pay, and upload your payment screenshot for verification."
         }
       ]
     },
@@ -91,7 +87,7 @@ const FAQ = () => {
         },
         {
           question: "What if I face technical issues?",
-          answer: "Our technical support team is available Monday-Friday, 9 AM-6 PM IST. Contact us at support@psychsirai.ai or +91 8319635728 for assistance."
+          answer: "Our technical support team is available to help you. Contact us at editkarde@gmail.com for assistance."
         }
       ]
     },
@@ -226,7 +222,7 @@ const FAQ = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => window.open('mailto:support@psychsirai.ai')}
+              onClick={() => window.open('mailto:editkarde@gmail.com')}
               className="px-8"
             >
               Email Us Directly
@@ -238,13 +234,13 @@ const FAQ = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
               <div>
                 <p className="font-medium text-gray-900">Email Support</p>
-                <p>support@psychsirai.ai</p>
-                <p>Response: 4-6 hours</p>
+                <p>editkarde@gmail.com</p>
+                <p>Response: 24-48 hours</p>
               </div>
               <div>
                 <p className="font-medium text-gray-900">Phone Support</p>
-                <p>+91 8319635728</p>
-                <p>Mon-Fri, 9 AM - 6 PM IST</p>
+                <p>Available via email</p>
+                <p>24-48 hour response time</p>
               </div>
               <div>
                 <p className="font-medium text-gray-900">Live Chat</p>
